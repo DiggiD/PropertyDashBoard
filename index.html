@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Property Expense Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://unpkg.com/d3-sankey@0.12.3/dist/d3-sankey.min.js"></script>
+    <script src="https://unpkg.com/dexie@3.2.4/dist/dexie.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Enhanced header with better accessibility -->
+        <header class="header" role="banner">
+            <div class="header-left">
+                <h1>Property Expense Dashboard</h1>
+                <p class="subtitle">Interactive expense visualization</p>
+            </div>
+            <nav class="header-actions" role="navigation" aria-label="Main actions">
+                <button class="btn btn--outline btn--sm" id="undoBtn" 
+                        aria-label="Undo last action" disabled>
+                    ↶ Undo
+                </button>
+                <button class="btn btn--outline btn--sm" id="redoBtn"
+                        aria-label="Redo last undone action" disabled>
+                    ↷ Redo
+                </button>
+                <button class="btn btn--outline btn--sm" id="darkModeToggle"
+                        aria-label="Toggle dark mode" title="Toggle dark mode (for testing only)">
+                    🌙 Dark
+                </button>
+                <!-- Dropdown Add Button -->
+                <div class="dropdown">
+                    <button class="btn btn--outline btn--sm dropdown-toggle" id="addDropdownBtn" 
+                            aria-label="Add property or category" aria-haspopup="true" aria-expanded="false">
+                        + Add
+                        <svg class="dropdown-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6,9 12,15 18,9"></polyline>
+                        </svg>
+                    </button>
+                    <div class="dropdown-menu" id="addDropdownMenu" role="menu" aria-hidden="true">
+                        <button class="dropdown-item" id="addPropertyBtn" role="menuitem" aria-label="Add a new property to track expenses">
+                            🏠 Add Property
+                        </button>
+                        <button class="dropdown-item" id="addCategoryBtn" role="menuitem" aria-label="Add a new expense category">
+                            📊 Add Category
+                        </button>
+                    </div>
+                </div>
+                <button class="btn btn--secondary btn--sm" id="historyBtn" 
+                        aria-label="Manage data history and snapshots">
+                    📚 History
+                </button>
+            </nav>
+        </header>
+
+        <!-- Enhanced main content with proper roles and sidebar support -->
+        <main class="main-content" role="main" aria-label="Expense visualization chart">
+            <!-- Summary Cards Sidebar -->
+            <div class="summary-cards" id="summaryCards">
+                <!-- Overview Button -->
+                <button class="summary-button" id="overviewBtn" data-metric="overview">
+                    <div class="button__body">
+                        <div class="button-icon">🔍</div>
+                        <div class="button-content">
+                            <div class="button-label">Overview</div>
+                        </div>
+                    </div>
+                </button>
+                
+                <!-- Properties Button -->
+                <button class="summary-button" id="propertiesBtn" data-metric="properties">
+                    <div class="button__body">
+                        <div class="button-icon">🏠</div>
+                        <div class="button-content">
+                            <div class="button-label">Properties</div>
+                        </div>
+                    </div>
+                </button>
+                
+                <!-- Expenses Button -->
+                <button class="summary-button" id="expensesBtn" data-metric="expenses">
+                    <div class="button__body">
+                        <div class="button-icon">💰</div>
+                        <div class="button-content">
+                            <div class="button-label">Expenses</div>
+                        </div>
+                    </div>
+                </button>
+                
+                <!-- Income Button -->
+                <button class="summary-button" id="incomeBtn" data-metric="income">
+                    <div class="button__body">
+                        <div class="button-icon">💵</div>
+                        <div class="button-content">
+                            <div class="button-label">Income</div>
+                        </div>
+                    </div>
+                </button>
+            </div>
+            
+            <!-- Dashboard Containers Section -->
+            <div class="dashboard-containers">
+                <!-- Expenses Dashboard Container -->
+                <div id="expensesDashboard" class="dashboard-container dashboard-expenses hidden">
+                    <!-- Expenses Header -->
+                    <div class="dashboard-header">
+                        <!-- Remove the entire dashboard-controls div with export button -->
+                    </div>
+                    <!-- Expenses Chart Container -->
+                    <div id="expenseChart" class="expense-container" role="img" 
+                            aria-label="Expenses visualization chart">
+                        <div class="loading-state" id="expensesLoadingState">
+                            <div class="loading-spinner"></div>
+                            <p>Loading expenses chart...</p>
+                        </div>
+                        <div id="expensesChartContent" class="chart-content"></div>
+                        <div class="chart-calculations">
+                            <!-- Chart Controls -->
+                            <div class="chart-controls">
+                                <div class="control-item">
+                                    <label class="control-label">View</label>
+                                    <select class="control-select" id="expensesViewSelect">
+                                        <option value="overview">📈 Overview</option>
+                                        <option value="trends">📊 Trends</option>
+                                        <option value="comparison">⚖️ Compare</option>
+                                        <option value="categories">🎯 Categories</option>
+                                    </select>
+                                </div>
+                                <div class="control-item">
+                                    <label class="control-label">Time Period</label>
+                                    <select class="control-select" id="expensesTimePeriodSelect">
+                                        <option value="all">🌍 All Time</option>
+                                        <option value="year">📅 This Year</option>
+                                        <option value="quarter">📆 This Quarter</option>
+                                        <option value="month">📊 This Month</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="chart-metrics">
+                                <div class="chart-metric">
+                                    <span class="chart-label">Total:</span>
+                                    <span class="chart-value" id="expensesTotal">₹0</span>
+                                    <span class="chart-trend" id="expensesTotalTrend">+0%</span>
+                                </div>
+                                <div class="chart-metric">
+                                    <span class="chart-label">Avg/Property:</span>
+                                    <span class="chart-value" id="expensesAvgPerProperty">₹0</span>
+                                    <span class="chart-trend" id="expensesAvgTrend">+0%</span>
+                                </div>
+                                <div class="chart-metric">
+                                    <span class="chart-label">Top Category:</span>
+                                    <span class="chart-value" id="expensesTopCategory">None</span>
+                                    <span class="chart-secondary" id="expensesCategoryValue">₹0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Income Dashboard Container -->
+                <div id="incomeDashboard" class="dashboard-container dashboard-income hidden">
+                    <div class="dashboard-header">
+                        <h2 class="dashboard-title">💵 Income Dashboard</h2>
+                        <p class="dashboard-subtitle">Track your income sources and trends</p>
+                    </div>
+                    <div class="dashboard-content">
+                        <div class="coming-soon">
+                            <div class="coming-soon-icon">📊</div>
+                            <h3>Income Dashboard Coming Soon</h3>
+                            <p>This feature is under development. Check back later for comprehensive income tracking and analysis.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Properties Dashboard Container -->
+                <div id="propertiesDashboard" class="dashboard-container dashboard-properties hidden">
+                    <div class="dashboard-header">
+                        <h2 class="dashboard-title">🏠 Properties Dashboard</h2>
+                        <p class="dashboard-subtitle">Manage and analyze your property portfolio</p>
+                    </div>
+                    <div class="dashboard-content">
+                        <div class="coming-soon">
+                            <div class="coming-soon-icon">🏢</div>
+                            <h3>Properties Dashboard Coming Soon</h3>
+                            <p>This feature is under development. Check back later for detailed property management and analytics.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Overview Dashboard Container -->
+                <div id="overviewDashboard" class="dashboard-container dashboard-overview hidden">
+                    <!-- Remove the dashboard-header div entirely -->
+                    
+                    <!-- Overview Chart Container - Ready for beautiful sankey diagram -->
+                    <div id="overviewChart" class="overview-container" role="img" 
+                            aria-label="Overview sankey visualization chart">
+                        <div class="loading-state" id="overviewLoadingState">
+                            <div class="loading-spinner"></div>
+                            <p>Loading overview chart...</p>
+                        </div>
+                        <div id="overviewChartContent" class="chart-content"></div>
+                    </div>
+                </div>
+            </div>  <!-- Close dashboard-containers -->
+        </main>
+
+        <!-- Enhanced detail panel with accessibility -->
+        <div id="detailPanel" class="detail-panel" role="complementary" 
+             aria-label="Detailed information panel" aria-hidden="true">
+            <div class="detail-header">
+                <h3 id="detailTitle">Details</h3>
+                <button class="detail-close" id="closeDetailPanel" 
+                        aria-label="Close details panel">&times;</button>
+            </div>
+            <div class="detail-content" id="detailContent" role="region" 
+                 aria-labelledby="detailTitle">
+                <!-- Dynamic content will be inserted here -->
+            </div>
+        </div>
+
+        <!-- Enhanced overlay -->
+        <div id="panelOverlay" class="panel-overlay" aria-hidden="true"></div>
+    </div>
+
+    <!-- Add Property Modal -->
+    <div id="addPropertyModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add New Property</h3>
+                <button class="modal-close" id="closePropertyModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label" for="propertyName">Property Name</label>
+                    <input type="text" id="propertyName" class="form-control" placeholder="Enter property name">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn--outline" id="cancelProperty">Cancel</button>
+                <button class="btn btn--primary" id="saveProperty">Add Property</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Category Modal -->
+    <div id="addCategoryModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add New Category</h3>
+                <button class="modal-close" id="closeCategoryModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label" for="categoryName">Category Name</label>
+                    <input type="text" id="categoryName" class="form-control" placeholder="Enter category name">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn--outline" id="cancelCategory">Cancel</button>
+                <button class="btn btn--primary" id="saveCategory">Add Category</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add this import modal after the Add Category Modal (around line 191) -->
+    <div id="importModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Import Data</h3>
+                <button class="modal-close" id="closeImportModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label" for="importData">Paste JSON data to import</label>
+                    <textarea id="importData" class="form-control" rows="10" placeholder="Paste exported JSON data here..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn--outline" id="cancelImport">Cancel</button>
+                <button class="btn btn--primary" id="confirmImport">Import Data</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast hidden">
+        <span id="toastMessage"></span>
+    </div>
+
+    <button id="debugBtn" style="position: fixed; bottom: 10px; right: 10px; z-index: 1000; background: var(--color-primary); color: var(--color-btn-primary-text); border: none; padding: 8px 12px; border-radius: 4px;">🔧 Debug</button>
+
+    <!-- Load all modular JavaScript files -->
+    <script src="src/modules/utils/Formatter.js"></script>
+    <script src="src/modules/utils/Storage.js"></script>
+    <script src="src/modules/utils/Validator.js"></script>
+    <script src="src/modules/utils/ThemeManager.js"></script>
+    <script src="src/modules/utils/PerformanceOptimizer.js"></script>
+    <script src="src/modules/ModuleLoader.js"></script>
+    <script src="src/modules/core/DataManager.js"></script>
+    <script src="src/modules/core/UIManager.js"></script>
+    <script src="src/modules/core/HistoryManager.js"></script>
+    <script src="src/modules/core/EventHandler.js"></script>
+    <script src="src/modules/core/ChartRenderer.js"></script>
+    <script src="src/App.js"></script>
+    <script src="src/index.js"></script>
+</body>
+</html>

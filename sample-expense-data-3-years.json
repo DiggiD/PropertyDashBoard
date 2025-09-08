@@ -1,0 +1,1783 @@
+{
+  "currentData": {
+    "properties": [
+      {
+        "id": 1,
+        "name": "Downtown Office Complex",
+        "quarterlyData": {
+          "Q1 2021": {
+            "total": 42000,
+            "expenses": {
+              "Rent": 15000,
+              "Utilities": 4500,
+              "Maintenance": 6500,
+              "Insurance": 2500,
+              "Taxes": 3500,
+              "Cleaning": 2200,
+              "Security": 1800,
+              "Parking": 2500,
+              "Management": 2000,
+              "Legal": 1500
+            }
+          },
+          "Q2 2021": {
+            "total": 42800,
+            "expenses": {
+              "Rent": 15000,
+              "Utilities": 4800,
+              "Maintenance": 6800,
+              "Insurance": 2500,
+              "Taxes": 3500,
+              "Cleaning": 2300,
+              "Security": 1800,
+              "Parking": 2500,
+              "Management": 2100,
+              "Legal": 1500
+            }
+          },
+          "Q3 2021": {
+            "total": 44000,
+            "expenses": {
+              "Rent": 15000,
+              "Utilities": 5200,
+              "Maintenance": 7200,
+              "Insurance": 2500,
+              "Taxes": 3500,
+              "Cleaning": 2400,
+              "Security": 1900,
+              "Parking": 2500,
+              "Management": 2200,
+              "Legal": 1600
+            }
+          },
+          "Q4 2021": {
+            "total": 44800,
+            "expenses": {
+              "Rent": 15000,
+              "Utilities": 5500,
+              "Maintenance": 7500,
+              "Insurance": 2500,
+              "Taxes": 3500,
+              "Cleaning": 2500,
+              "Security": 1900,
+              "Parking": 2500,
+              "Management": 2300,
+              "Legal": 1600
+            }
+          },
+          "Q1 2022": {
+            "total": 45000,
+            "expenses": {
+              "Rent": 15500,
+              "Utilities": 5200,
+              "Maintenance": 7200,
+              "Insurance": 2600,
+              "Taxes": 3600,
+              "Cleaning": 2400,
+              "Security": 2000,
+              "Parking": 2600,
+              "Management": 2200,
+              "Legal": 1700
+            }
+          },
+          "Q2 2022": {
+            "total": 45600,
+            "expenses": {
+              "Rent": 15500,
+              "Utilities": 5400,
+              "Maintenance": 7400,
+              "Insurance": 2600,
+              "Taxes": 3600,
+              "Cleaning": 2500,
+              "Security": 2000,
+              "Parking": 2600,
+              "Management": 2300,
+              "Legal": 1700
+            }
+          },
+          "Q3 2022": {
+            "total": 46600,
+            "expenses": {
+              "Rent": 15500,
+              "Utilities": 5700,
+              "Maintenance": 7700,
+              "Insurance": 2600,
+              "Taxes": 3600,
+              "Cleaning": 2600,
+              "Security": 2100,
+              "Parking": 2600,
+              "Management": 2400,
+              "Legal": 1800
+            }
+          },
+          "Q4 2022": {
+            "total": 47300,
+            "expenses": {
+              "Rent": 15500,
+              "Utilities": 5900,
+              "Maintenance": 8000,
+              "Insurance": 2600,
+              "Taxes": 3600,
+              "Cleaning": 2700,
+              "Security": 2100,
+              "Parking": 2600,
+              "Management": 2500,
+              "Legal": 1800
+            }
+          },
+          "Q1 2023": {
+            "total": 47600,
+            "expenses": {
+              "Rent": 16000,
+              "Utilities": 5600,
+              "Maintenance": 7800,
+              "Insurance": 2700,
+              "Taxes": 3700,
+              "Cleaning": 2600,
+              "Security": 2200,
+              "Parking": 2700,
+              "Management": 2400,
+              "Legal": 1900
+            }
+          },
+          "Q2 2023": {
+            "total": 48300,
+            "expenses": {
+              "Rent": 16000,
+              "Utilities": 5800,
+              "Maintenance": 8100,
+              "Insurance": 2700,
+              "Taxes": 3700,
+              "Cleaning": 2700,
+              "Security": 2200,
+              "Parking": 2700,
+              "Management": 2500,
+              "Legal": 1900
+            }
+          },
+          "Q3 2023": {
+            "total": 49200,
+            "expenses": {
+              "Rent": 16000,
+              "Utilities": 6000,
+              "Maintenance": 8400,
+              "Insurance": 2700,
+              "Taxes": 3700,
+              "Cleaning": 2800,
+              "Security": 2300,
+              "Parking": 2700,
+              "Management": 2600,
+              "Legal": 2000
+            }
+          },
+          "Q4 2023": {
+            "total": 49900,
+            "expenses": {
+              "Rent": 16000,
+              "Utilities": 6200,
+              "Maintenance": 8700,
+              "Insurance": 2700,
+              "Taxes": 3700,
+              "Cleaning": 2900,
+              "Security": 2300,
+              "Parking": 2700,
+              "Management": 2700,
+              "Legal": 2000
+            }
+          }
+        },
+        "categoryTrends": {
+          "Rent": {
+            "trend": "increasing",
+            "change": 6.7
+          },
+          "Utilities": {
+            "trend": "increasing",
+            "change": 37.8
+          },
+          "Maintenance": {
+            "trend": "increasing",
+            "change": 34.2
+          },
+          "Insurance": {
+            "trend": "increasing",
+            "change": 8.0
+          },
+          "Taxes": {
+            "trend": "increasing",
+            "change": 5.7
+          },
+          "Cleaning": {
+            "trend": "increasing",
+            "change": 31.8
+          },
+          "Security": {
+            "trend": "increasing",
+            "change": 27.8
+          },
+          "Parking": {
+            "trend": "increasing",
+            "change": 8.0
+          },
+          "Management": {
+            "trend": "increasing",
+            "change": 35.0
+          },
+          "Legal": {
+            "trend": "increasing",
+            "change": 33.3
+          }
+        }
+      },
+      {
+        "id": 2,
+        "name": "Residential Apartment Building",
+        "quarterlyData": {
+          "Q1 2021": {
+            "total": 28500,
+            "expenses": {
+              "Rent": 12000,
+              "Utilities": 3200,
+              "Maintenance": 4100,
+              "Insurance": 1800,
+              "Taxes": 2400,
+              "Cleaning": 1500,
+              "Security": 800,
+              "Parking": 700,
+              "Management": 1200,
+              "Legal": 800
+            }
+          },
+          "Q2 2021": {
+            "total": 30300,
+            "expenses": {
+              "Rent": 12000,
+              "Utilities": 3800,
+              "Maintenance": 5200,
+              "Insurance": 1800,
+              "Taxes": 2400,
+              "Cleaning": 1500,
+              "Security": 800,
+              "Parking": 700,
+              "Management": 1300,
+              "Legal": 800
+            }
+          },
+          "Q3 2021": {
+            "total": 31600,
+            "expenses": {
+              "Rent": 12000,
+              "Utilities": 4200,
+              "Maintenance": 5800,
+              "Insurance": 1800,
+              "Taxes": 2400,
+              "Cleaning": 1600,
+              "Security": 800,
+              "Parking": 700,
+              "Management": 1400,
+              "Legal": 900
+            }
+          },
+          "Q4 2021": {
+            "total": 32500,
+            "expenses": {
+              "Rent": 12000,
+              "Utilities": 4500,
+              "Maintenance": 6200,
+              "Insurance": 1800,
+              "Taxes": 2400,
+              "Cleaning": 1700,
+              "Security": 800,
+              "Parking": 700,
+              "Management": 1500,
+              "Legal": 900
+            }
+          },
+          "Q1 2022": {
+            "total": 32200,
+            "expenses": {
+              "Rent": 12500,
+              "Utilities": 4100,
+              "Maintenance": 5500,
+              "Insurance": 1900,
+              "Taxes": 2500,
+              "Cleaning": 1600,
+              "Security": 900,
+              "Parking": 800,
+              "Management": 1400,
+              "Legal": 1000
+            }
+          },
+          "Q2 2022": {
+            "total": 32900,
+            "expenses": {
+              "Rent": 12500,
+              "Utilities": 4300,
+              "Maintenance": 5800,
+              "Insurance": 1900,
+              "Taxes": 2500,
+              "Cleaning": 1700,
+              "Security": 900,
+              "Parking": 800,
+              "Management": 1500,
+              "Legal": 1000
+            }
+          },
+          "Q3 2022": {
+            "total": 33800,
+            "expenses": {
+              "Rent": 12500,
+              "Utilities": 4600,
+              "Maintenance": 6100,
+              "Insurance": 1900,
+              "Taxes": 2500,
+              "Cleaning": 1800,
+              "Security": 900,
+              "Parking": 800,
+              "Management": 1600,
+              "Legal": 1100
+            }
+          },
+          "Q4 2022": {
+            "total": 34600,
+            "expenses": {
+              "Rent": 12500,
+              "Utilities": 4800,
+              "Maintenance": 6500,
+              "Insurance": 1900,
+              "Taxes": 2500,
+              "Cleaning": 1900,
+              "Security": 900,
+              "Parking": 800,
+              "Management": 1700,
+              "Legal": 1100
+            }
+          },
+          "Q1 2023": {
+            "total": 34400,
+            "expenses": {
+              "Rent": 13000,
+              "Utilities": 4500,
+              "Maintenance": 5800,
+              "Insurance": 2000,
+              "Taxes": 2600,
+              "Cleaning": 1800,
+              "Security": 1000,
+              "Parking": 900,
+              "Management": 1600,
+              "Legal": 1200
+            }
+          },
+          "Q2 2023": {
+            "total": 35100,
+            "expenses": {
+              "Rent": 13000,
+              "Utilities": 4700,
+              "Maintenance": 6100,
+              "Insurance": 2000,
+              "Taxes": 2600,
+              "Cleaning": 1900,
+              "Security": 1000,
+              "Parking": 900,
+              "Management": 1700,
+              "Legal": 1200
+            }
+          },
+          "Q3 2023": {
+            "total": 35900,
+            "expenses": {
+              "Rent": 13000,
+              "Utilities": 4900,
+              "Maintenance": 6400,
+              "Insurance": 2000,
+              "Taxes": 2600,
+              "Cleaning": 2000,
+              "Security": 1000,
+              "Parking": 900,
+              "Management": 1800,
+              "Legal": 1300
+            }
+          },
+          "Q4 2023": {
+            "total": 36700,
+            "expenses": {
+              "Rent": 13000,
+              "Utilities": 5100,
+              "Maintenance": 6800,
+              "Insurance": 2000,
+              "Taxes": 2600,
+              "Cleaning": 2100,
+              "Security": 1000,
+              "Parking": 900,
+              "Management": 1900,
+              "Legal": 1300
+            }
+          }
+        },
+        "categoryTrends": {
+          "Rent": {
+            "trend": "increasing",
+            "change": 8.3
+          },
+          "Utilities": {
+            "trend": "increasing",
+            "change": 59.4
+          },
+          "Maintenance": {
+            "trend": "increasing",
+            "change": 65.9
+          },
+          "Insurance": {
+            "trend": "increasing",
+            "change": 11.1
+          },
+          "Taxes": {
+            "trend": "increasing",
+            "change": 8.3
+          },
+          "Cleaning": {
+            "trend": "increasing",
+            "change": 40.0
+          },
+          "Security": {
+            "trend": "increasing",
+            "change": 25.0
+          },
+          "Parking": {
+            "trend": "increasing",
+            "change": 28.6
+          },
+          "Management": {
+            "trend": "increasing",
+            "change": 58.3
+          },
+          "Legal": {
+            "trend": "increasing",
+            "change": 62.5
+          }
+        }
+      },
+      {
+        "id": 3,
+        "name": "Retail Shopping Center",
+        "quarterlyData": {
+          "Q1 2021": {
+            "total": 19600,
+            "expenses": {
+              "Rent": 8000,
+              "Utilities": 2100,
+              "Maintenance": 2800,
+              "Insurance": 1200,
+              "Taxes": 1600,
+              "Cleaning": 900,
+              "Security": 600,
+              "Parking": 1000,
+              "Management": 800,
+              "Legal": 600
+            }
+          },
+          "Q2 2021": {
+            "total": 20300,
+            "expenses": {
+              "Rent": 8000,
+              "Utilities": 2400,
+              "Maintenance": 3100,
+              "Insurance": 1200,
+              "Taxes": 1600,
+              "Cleaning": 900,
+              "Security": 600,
+              "Parking": 1000,
+              "Management": 900,
+              "Legal": 600
+            }
+          },
+          "Q3 2021": {
+            "total": 21200,
+            "expenses": {
+              "Rent": 8000,
+              "Utilities": 2700,
+              "Maintenance": 3400,
+              "Insurance": 1200,
+              "Taxes": 1600,
+              "Cleaning": 1000,
+              "Security": 600,
+              "Parking": 1000,
+              "Management": 1000,
+              "Legal": 700
+            }
+          },
+          "Q4 2021": {
+            "total": 22000,
+            "expenses": {
+              "Rent": 8000,
+              "Utilities": 2900,
+              "Maintenance": 3800,
+              "Insurance": 1200,
+              "Taxes": 1600,
+              "Cleaning": 1100,
+              "Security": 600,
+              "Parking": 1000,
+              "Management": 1100,
+              "Legal": 700
+            }
+          },
+          "Q1 2022": {
+            "total": 21600,
+            "expenses": {
+              "Rent": 8200,
+              "Utilities": 2600,
+              "Maintenance": 3300,
+              "Insurance": 1250,
+              "Taxes": 1700,
+              "Cleaning": 1000,
+              "Security": 650,
+              "Parking": 1100,
+              "Management": 1000,
+              "Legal": 800
+            }
+          },
+          "Q2 2022": {
+            "total": 22250,
+            "expenses": {
+              "Rent": 8200,
+              "Utilities": 2800,
+              "Maintenance": 3600,
+              "Insurance": 1250,
+              "Taxes": 1700,
+              "Cleaning": 1050,
+              "Security": 650,
+              "Parking": 1100,
+              "Management": 1100,
+              "Legal": 800
+            }
+          },
+          "Q3 2022": {
+            "total": 23050,
+            "expenses": {
+              "Rent": 8200,
+              "Utilities": 3000,
+              "Maintenance": 3900,
+              "Insurance": 1250,
+              "Taxes": 1700,
+              "Cleaning": 1150,
+              "Security": 650,
+              "Parking": 1100,
+              "Management": 1200,
+              "Legal": 900
+            }
+          },
+          "Q4 2022": {
+            "total": 23750,
+            "expenses": {
+              "Rent": 8200,
+              "Utilities": 3200,
+              "Maintenance": 4200,
+              "Insurance": 1250,
+              "Taxes": 1700,
+              "Cleaning": 1250,
+              "Security": 650,
+              "Parking": 1100,
+              "Management": 1300,
+              "Legal": 900
+            }
+          },
+          "Q1 2023": {
+            "total": 23450,
+            "expenses": {
+              "Rent": 8400,
+              "Utilities": 2900,
+              "Maintenance": 3800,
+              "Insurance": 1300,
+              "Taxes": 1800,
+              "Cleaning": 1150,
+              "Security": 700,
+              "Parking": 1200,
+              "Management": 1200,
+              "Legal": 1000
+            }
+          },
+          "Q2 2023": {
+            "total": 24100,
+            "expenses": {
+              "Rent": 8400,
+              "Utilities": 3100,
+              "Maintenance": 4100,
+              "Insurance": 1300,
+              "Taxes": 1800,
+              "Cleaning": 1200,
+              "Security": 700,
+              "Parking": 1200,
+              "Management": 1300,
+              "Legal": 1000
+            }
+          },
+          "Q3 2023": {
+            "total": 24900,
+            "expenses": {
+              "Rent": 8400,
+              "Utilities": 3300,
+              "Maintenance": 4400,
+              "Insurance": 1300,
+              "Taxes": 1800,
+              "Cleaning": 1300,
+              "Security": 700,
+              "Parking": 1200,
+              "Management": 1400,
+              "Legal": 1100
+            }
+          },
+          "Q4 2023": {
+            "total": 25600,
+            "expenses": {
+              "Rent": 8400,
+              "Utilities": 3500,
+              "Maintenance": 4700,
+              "Insurance": 1300,
+              "Taxes": 1800,
+              "Cleaning": 1400,
+              "Security": 700,
+              "Parking": 1200,
+              "Management": 1500,
+              "Legal": 1100
+            }
+          }
+        },
+        "categoryTrends": {
+          "Rent": {
+            "trend": "increasing",
+            "change": 5.0
+          },
+          "Utilities": {
+            "trend": "increasing",
+            "change": 66.7
+          },
+          "Maintenance": {
+            "trend": "increasing",
+            "change": 67.9
+          },
+          "Insurance": {
+            "trend": "increasing",
+            "change": 8.3
+          },
+          "Taxes": {
+            "trend": "increasing",
+            "change": 12.5
+          },
+          "Cleaning": {
+            "trend": "increasing",
+            "change": 55.6
+          },
+          "Security": {
+            "trend": "increasing",
+            "change": 16.7
+          },
+          "Parking": {
+            "trend": "increasing",
+            "change": 20.0
+          },
+          "Management": {
+            "trend": "increasing",
+            "change": 87.5
+          },
+          "Legal": {
+            "trend": "increasing",
+            "change": 83.3
+          }
+        }
+      },
+      {
+        "id": 4,
+        "name": "Industrial Warehouse Complex",
+        "quarterlyData": {
+          "Q1 2021": {
+            "total": 33700,
+            "expenses": {
+              "Rent": 14000,
+              "Utilities": 3800,
+              "Maintenance": 5200,
+              "Insurance": 2200,
+              "Taxes": 2800,
+              "Cleaning": 1200,
+              "Security": 1200,
+              "Parking": 900,
+              "Management": 1500,
+              "Legal": 900
+            }
+          },
+          "Q2 2021": {
+            "total": 34500,
+            "expenses": {
+              "Rent": 14000,
+              "Utilities": 4100,
+              "Maintenance": 5500,
+              "Insurance": 2200,
+              "Taxes": 2800,
+              "Cleaning": 1250,
+              "Security": 1200,
+              "Parking": 900,
+              "Management": 1600,
+              "Legal": 950
+            }
+          },
+          "Q3 2021": {
+            "total": 35350,
+            "expenses": {
+              "Rent": 14000,
+              "Utilities": 4400,
+              "Maintenance": 5800,
+              "Insurance": 2200,
+              "Taxes": 2800,
+              "Cleaning": 1300,
+              "Security": 1250,
+              "Parking": 900,
+              "Management": 1700,
+              "Legal": 1000
+            }
+          },
+          "Q4 2021": {
+            "total": 36100,
+            "expenses": {
+              "Rent": 14000,
+              "Utilities": 4700,
+              "Maintenance": 6100,
+              "Insurance": 2200,
+              "Taxes": 2800,
+              "Cleaning": 1350,
+              "Security": 1250,
+              "Parking": 900,
+              "Management": 1800,
+              "Legal": 1000
+            }
+          },
+          "Q1 2022": {
+            "total": 36500,
+            "expenses": {
+              "Rent": 14500,
+              "Utilities": 4500,
+              "Maintenance": 5900,
+              "Insurance": 2300,
+              "Taxes": 2900,
+              "Cleaning": 1300,
+              "Security": 1300,
+              "Parking": 1000,
+              "Management": 1700,
+              "Legal": 1100
+            }
+          },
+          "Q2 2022": {
+            "total": 37150,
+            "expenses": {
+              "Rent": 14500,
+              "Utilities": 4700,
+              "Maintenance": 6200,
+              "Insurance": 2300,
+              "Taxes": 2900,
+              "Cleaning": 1350,
+              "Security": 1300,
+              "Parking": 1000,
+              "Management": 1800,
+              "Legal": 1100
+            }
+          },
+          "Q3 2022": {
+            "total": 37950,
+            "expenses": {
+              "Rent": 14500,
+              "Utilities": 4900,
+              "Maintenance": 6500,
+              "Insurance": 2300,
+              "Taxes": 2900,
+              "Cleaning": 1400,
+              "Security": 1350,
+              "Parking": 1000,
+              "Management": 1900,
+              "Legal": 1200
+            }
+          },
+          "Q4 2022": {
+            "total": 38600,
+            "expenses": {
+              "Rent": 14500,
+              "Utilities": 5100,
+              "Maintenance": 6800,
+              "Insurance": 2300,
+              "Taxes": 2900,
+              "Cleaning": 1450,
+              "Security": 1350,
+              "Parking": 1000,
+              "Management": 2000,
+              "Legal": 1200
+            }
+          },
+          "Q1 2023": {
+            "total": 38900,
+            "expenses": {
+              "Rent": 15000,
+              "Utilities": 4800,
+              "Maintenance": 6600,
+              "Insurance": 2400,
+              "Taxes": 3000,
+              "Cleaning": 1400,
+              "Security": 1400,
+              "Parking": 1100,
+              "Management": 1900,
+              "Legal": 1300
+            }
+          },
+          "Q2 2023": {
+            "total": 39550,
+            "expenses": {
+              "Rent": 15000,
+              "Utilities": 5000,
+              "Maintenance": 6900,
+              "Insurance": 2400,
+              "Taxes": 3000,
+              "Cleaning": 1450,
+              "Security": 1400,
+              "Parking": 1100,
+              "Management": 2000,
+              "Legal": 1300
+            }
+          },
+          "Q3 2023": {
+            "total": 40350,
+            "expenses": {
+              "Rent": 15000,
+              "Utilities": 5200,
+              "Maintenance": 7200,
+              "Insurance": 2400,
+              "Taxes": 3000,
+              "Cleaning": 1500,
+              "Security": 1450,
+              "Parking": 1100,
+              "Management": 2100,
+              "Legal": 1400
+            }
+          },
+          "Q4 2023": {
+            "total": 41000,
+            "expenses": {
+              "Rent": 15000,
+              "Utilities": 5400,
+              "Maintenance": 7500,
+              "Insurance": 2400,
+              "Taxes": 3000,
+              "Cleaning": 1550,
+              "Security": 1450,
+              "Parking": 1100,
+              "Management": 2200,
+              "Legal": 1400
+            }
+          }
+        },
+        "categoryTrends": {
+          "Rent": {
+            "trend": "increasing",
+            "change": 7.1
+          },
+          "Utilities": {
+            "trend": "increasing",
+            "change": 42.1
+          },
+          "Maintenance": {
+            "trend": "increasing",
+            "change": 44.2
+          },
+          "Insurance": {
+            "trend": "increasing",
+            "change": 9.1
+          },
+          "Taxes": {
+            "trend": "increasing",
+            "change": 7.1
+          },
+          "Cleaning": {
+            "trend": "increasing",
+            "change": 29.2
+          },
+          "Security": {
+            "trend": "increasing",
+            "change": 20.8
+          },
+          "Parking": {
+            "trend": "increasing",
+            "change": 22.2
+          },
+          "Management": {
+            "trend": "increasing",
+            "change": 46.7
+          },
+          "Legal": {
+            "trend": "increasing",
+            "change": 55.6
+          }
+        }
+      },
+      {
+        "id": 5,
+        "name": "Medical Office Building",
+        "quarterlyData": {
+          "Q1 2021": {
+            "total": 41500,
+            "expenses": {
+              "Rent": 18000,
+              "Utilities": 4200,
+              "Maintenance": 5800,
+              "Insurance": 2800,
+              "Taxes": 3200,
+              "Cleaning": 1800,
+              "Security": 1500,
+              "Parking": 1200,
+              "Management": 1800,
+              "Legal": 1200
+            }
+          },
+          "Q2 2021": {
+            "total": 42300,
+            "expenses": {
+              "Rent": 18000,
+              "Utilities": 4500,
+              "Maintenance": 6100,
+              "Insurance": 2800,
+              "Taxes": 3200,
+              "Cleaning": 1900,
+              "Security": 1500,
+              "Parking": 1200,
+              "Management": 1900,
+              "Legal": 1200
+            }
+          },
+          "Q3 2021": {
+            "total": 43300,
+            "expenses": {
+              "Rent": 18000,
+              "Utilities": 4800,
+              "Maintenance": 6400,
+              "Insurance": 2800,
+              "Taxes": 3200,
+              "Cleaning": 2000,
+              "Security": 1600,
+              "Parking": 1200,
+              "Management": 2000,
+              "Legal": 1300
+            }
+          },
+          "Q4 2021": {
+            "total": 44100,
+            "expenses": {
+              "Rent": 18000,
+              "Utilities": 5100,
+              "Maintenance": 6700,
+              "Insurance": 2800,
+              "Taxes": 3200,
+              "Cleaning": 2100,
+              "Security": 1600,
+              "Parking": 1200,
+              "Management": 2100,
+              "Legal": 1300
+            }
+          },
+          "Q1 2022": {
+            "total": 44500,
+            "expenses": {
+              "Rent": 18500,
+              "Utilities": 4900,
+              "Maintenance": 6500,
+              "Insurance": 2900,
+              "Taxes": 3300,
+              "Cleaning": 2000,
+              "Security": 1700,
+              "Parking": 1300,
+              "Management": 2000,
+              "Legal": 1400
+            }
+          },
+          "Q2 2022": {
+            "total": 45200,
+            "expenses": {
+              "Rent": 18500,
+              "Utilities": 5100,
+              "Maintenance": 6800,
+              "Insurance": 2900,
+              "Taxes": 3300,
+              "Cleaning": 2100,
+              "Security": 1700,
+              "Parking": 1300,
+              "Management": 2100,
+              "Legal": 1400
+            }
+          },
+          "Q3 2022": {
+            "total": 46100,
+            "expenses": {
+              "Rent": 18500,
+              "Utilities": 5300,
+              "Maintenance": 7100,
+              "Insurance": 2900,
+              "Taxes": 3300,
+              "Cleaning": 2200,
+              "Security": 1800,
+              "Parking": 1300,
+              "Management": 2200,
+              "Legal": 1500
+            }
+          },
+          "Q4 2022": {
+            "total": 46800,
+            "expenses": {
+              "Rent": 18500,
+              "Utilities": 5500,
+              "Maintenance": 7400,
+              "Insurance": 2900,
+              "Taxes": 3300,
+              "Cleaning": 2300,
+              "Security": 1800,
+              "Parking": 1300,
+              "Management": 2300,
+              "Legal": 1500
+            }
+          },
+          "Q1 2023": {
+            "total": 47100,
+            "expenses": {
+              "Rent": 19000,
+              "Utilities": 5200,
+              "Maintenance": 7200,
+              "Insurance": 3000,
+              "Taxes": 3400,
+              "Cleaning": 2200,
+              "Security": 1900,
+              "Parking": 1400,
+              "Management": 2200,
+              "Legal": 1600
+            }
+          },
+          "Q2 2023": {
+            "total": 47800,
+            "expenses": {
+              "Rent": 19000,
+              "Utilities": 5400,
+              "Maintenance": 7500,
+              "Insurance": 3000,
+              "Taxes": 3400,
+              "Cleaning": 2300,
+              "Security": 1900,
+              "Parking": 1400,
+              "Management": 2300,
+              "Legal": 1600
+            }
+          },
+          "Q3 2023": {
+            "total": 48700,
+            "expenses": {
+              "Rent": 19000,
+              "Utilities": 5600,
+              "Maintenance": 7800,
+              "Insurance": 3000,
+              "Taxes": 3400,
+              "Cleaning": 2400,
+              "Security": 2000,
+              "Parking": 1400,
+              "Management": 2400,
+              "Legal": 1700
+            }
+          },
+          "Q4 2023": {
+            "total": 49400,
+            "expenses": {
+              "Rent": 19000,
+              "Utilities": 5800,
+              "Maintenance": 8100,
+              "Insurance": 3000,
+              "Taxes": 3400,
+              "Cleaning": 2500,
+              "Security": 2000,
+              "Parking": 1400,
+              "Management": 2500,
+              "Legal": 1700
+            }
+          }
+        },
+        "categoryTrends": {
+          "Rent": {
+            "trend": "increasing",
+            "change": 5.6
+          },
+          "Utilities": {
+            "trend": "increasing",
+            "change": 38.1
+          },
+          "Maintenance": {
+            "trend": "increasing",
+            "change": 39.7
+          },
+          "Insurance": {
+            "trend": "increasing",
+            "change": 7.1
+          },
+          "Taxes": {
+            "trend": "increasing",
+            "change": 6.3
+          },
+          "Cleaning": {
+            "trend": "increasing",
+            "change": 38.9
+          },
+          "Security": {
+            "trend": "increasing",
+            "change": 33.3
+          },
+          "Parking": {
+            "trend": "increasing",
+            "change": 16.7
+          },
+          "Management": {
+            "trend": "increasing",
+            "change": 38.9
+          },
+          "Legal": {
+            "trend": "increasing",
+            "change": 41.7
+          }
+        }
+      }
+    ],
+    "expenseCategories": [
+      "Rent",
+      "Utilities",
+      "Maintenance",
+      "Insurance",
+      "Taxes",
+      "Cleaning",
+      "Security",
+      "Parking",
+      "Management",
+      "Legal"
+    ],
+    "currentTimePeriod": "all",
+    "currentView": "overview"
+  },
+  "history": [
+    {
+      "id": 1,
+      "timestamp": "2025-07-29T10:00:00.000Z",
+      "name": "Initial Setup - 4 days ago",
+      "description": "Initial property portfolio setup with 3 properties",
+      "data": {
+        "properties": [
+          {
+            "id": 1,
+            "name": "Downtown Office Complex",
+            "quarterlyData": {
+              "Q1 2021": {
+                "total": 45000,
+                "expenses": {
+                  "Rent": 15000,
+                  "Utilities": 4500,
+                  "Maintenance": 6500,
+                  "Insurance": 2500,
+                  "Taxes": 3500,
+                  "Cleaning": 2200,
+                  "Security": 1800,
+                  "Parking": 2500,
+                  "Management": 2000,
+                  "Legal": 1500
+                }
+              }
+            },
+            "categoryTrends": {}
+          },
+          {
+            "id": 2,
+            "name": "Residential Apartment Building",
+            "quarterlyData": {
+              "Q1 2021": {
+                "total": 28500,
+                "expenses": {
+                  "Rent": 12000,
+                  "Utilities": 3200,
+                  "Maintenance": 4100,
+                  "Insurance": 1800,
+                  "Taxes": 2400,
+                  "Cleaning": 1500,
+                  "Security": 800,
+                  "Parking": 700,
+                  "Management": 1200,
+                  "Legal": 800
+                }
+              }
+            },
+            "categoryTrends": {}
+          },
+          {
+            "id": 3,
+            "name": "Retail Shopping Center",
+            "quarterlyData": {
+              "Q1 2021": {
+                "total": 18200,
+                "expenses": {
+                  "Rent": 8000,
+                  "Utilities": 2100,
+                  "Maintenance": 2800,
+                  "Insurance": 1200,
+                  "Taxes": 1600,
+                  "Cleaning": 900,
+                  "Security": 600,
+                  "Parking": 1000,
+                  "Management": 800,
+                  "Legal": 600
+                }
+              }
+            },
+            "categoryTrends": {}
+          }
+        ],
+        "expenseCategories": [
+          "Rent",
+          "Utilities",
+          "Maintenance",
+          "Insurance",
+          "Taxes",
+          "Cleaning",
+          "Security",
+          "Parking",
+          "Management",
+          "Legal"
+        ],
+        "currentTimePeriod": "all",
+        "currentView": "overview"
+      },
+      "totalExpenses": 91700,
+      "propertyCount": 3,
+      "categoryCount": 10
+    },
+    {
+      "id": 2,
+      "timestamp": "2025-07-31T14:30:00.000Z",
+      "name": "Q2 2021 Data Added - 2 days ago",
+      "description": "Added Q2 2021 expense data for all properties",
+      "data": {
+        "properties": [
+          {
+            "id": 1,
+            "name": "Downtown Office Complex",
+            "quarterlyData": {
+              "Q1 2021": {
+                "total": 45000,
+                "expenses": {
+                  "Rent": 15000,
+                  "Utilities": 4500,
+                  "Maintenance": 6500,
+                  "Insurance": 2500,
+                  "Taxes": 3500,
+                  "Cleaning": 2200,
+                  "Security": 1800,
+                  "Parking": 2500,
+                  "Management": 2000,
+                  "Legal": 1500
+                }
+              },
+              "Q2 2021": {
+                "total": 46500,
+                "expenses": {
+                  "Rent": 15000,
+                  "Utilities": 4800,
+                  "Maintenance": 6800,
+                  "Insurance": 2500,
+                  "Taxes": 3500,
+                  "Cleaning": 2300,
+                  "Security": 1800,
+                  "Parking": 2500,
+                  "Management": 2100,
+                  "Legal": 1500
+                }
+              }
+            },
+            "categoryTrends": {
+              "Utilities": {
+                "trend": "increasing",
+                "change": 6.7
+              },
+              "Maintenance": {
+                "trend": "increasing",
+                "change": 4.6
+              },
+              "Cleaning": {
+                "trend": "increasing",
+                "change": 4.5
+              },
+              "Management": {
+                "trend": "increasing",
+                "change": 5.0
+              }
+            }
+          },
+          {
+            "id": 2,
+            "name": "Residential Apartment Building",
+            "quarterlyData": {
+              "Q1 2021": {
+                "total": 28500,
+                "expenses": {
+                  "Rent": 12000,
+                  "Utilities": 3200,
+                  "Maintenance": 4100,
+                  "Insurance": 1800,
+                  "Taxes": 2400,
+                  "Cleaning": 1500,
+                  "Security": 800,
+                  "Parking": 700,
+                  "Management": 1200,
+                  "Legal": 800
+                }
+              },
+              "Q2 2021": {
+                "total": 29800,
+                "expenses": {
+                  "Rent": 12000,
+                  "Utilities": 3800,
+                  "Maintenance": 5200,
+                  "Insurance": 1800,
+                  "Taxes": 2400,
+                  "Cleaning": 1500,
+                  "Security": 800,
+                  "Parking": 700,
+                  "Management": 1300,
+                  "Legal": 800
+                }
+              }
+            },
+            "categoryTrends": {
+              "Utilities": {
+                "trend": "increasing",
+                "change": 18.8
+              },
+              "Maintenance": {
+                "trend": "increasing",
+                "change": 26.8
+              }
+            }
+          },
+          {
+            "id": 3,
+            "name": "Retail Shopping Center",
+            "quarterlyData": {
+              "Q1 2021": {
+                "total": 18200,
+                "expenses": {
+                  "Rent": 8000,
+                  "Utilities": 2100,
+                  "Maintenance": 2800,
+                  "Insurance": 1200,
+                  "Taxes": 1600,
+                  "Cleaning": 900,
+                  "Security": 600,
+                  "Parking": 1000,
+                  "Management": 800,
+                  "Legal": 600
+                }
+              },
+              "Q2 2021": {
+                "total": 18900,
+                "expenses": {
+                  "Rent": 8000,
+                  "Utilities": 2400,
+                  "Maintenance": 3100,
+                  "Insurance": 1200,
+                  "Taxes": 1600,
+                  "Cleaning": 900,
+                  "Security": 600,
+                  "Parking": 1000,
+                  "Management": 900,
+                  "Legal": 600
+                }
+              }
+            },
+            "categoryTrends": {
+              "Utilities": {
+                "trend": "increasing",
+                "change": 14.3
+              },
+              "Maintenance": {
+                "trend": "increasing",
+                "change": 10.7
+              },
+              "Management": {
+                "trend": "increasing",
+                "change": 12.5
+              }
+            }
+          }
+        ],
+        "expenseCategories": [
+          "Rent",
+          "Utilities",
+          "Maintenance",
+          "Insurance",
+          "Taxes",
+          "Cleaning",
+          "Security",
+          "Parking",
+          "Management",
+          "Legal"
+        ],
+        "currentTimePeriod": "all",
+        "currentView": "overview"
+      },
+      "totalExpenses": 134200,
+      "propertyCount": 3,
+      "categoryCount": 10
+    },
+    {
+      "id": 3,
+      "timestamp": "2025-08-01T09:15:00.000Z",
+      "name": "Full Year 2021 Complete - Yesterday",
+      "description": "Completed full year 2021 data for all properties",
+      "data": {
+        "properties": [
+          {
+            "id": 1,
+            "name": "Downtown Office Complex",
+            "quarterlyData": {
+              "Q1 2021": {
+                "total": 45000,
+                "expenses": {
+                  "Rent": 15000,
+                  "Utilities": 4500,
+                  "Maintenance": 6500,
+                  "Insurance": 2500,
+                  "Taxes": 3500,
+                  "Cleaning": 2200,
+                  "Security": 1800,
+                  "Parking": 2500,
+                  "Management": 2000,
+                  "Legal": 1500
+                }
+              },
+              "Q2 2021": {
+                "total": 46500,
+                "expenses": {
+                  "Rent": 15000,
+                  "Utilities": 4800,
+                  "Maintenance": 6800,
+                  "Insurance": 2500,
+                  "Taxes": 3500,
+                  "Cleaning": 2300,
+                  "Security": 1800,
+                  "Parking": 2500,
+                  "Management": 2100,
+                  "Legal": 1500
+                }
+              },
+              "Q3 2021": {
+                "total": 48200,
+                "expenses": {
+                  "Rent": 15000,
+                  "Utilities": 5200,
+                  "Maintenance": 7200,
+                  "Insurance": 2500,
+                  "Taxes": 3500,
+                  "Cleaning": 2400,
+                  "Security": 1900,
+                  "Parking": 2500,
+                  "Management": 2200,
+                  "Legal": 1600
+                }
+              },
+              "Q4 2021": {
+                "total": 49800,
+                "expenses": {
+                  "Rent": 15000,
+                  "Utilities": 5500,
+                  "Maintenance": 7500,
+                  "Insurance": 2500,
+                  "Taxes": 3500,
+                  "Cleaning": 2500,
+                  "Security": 1900,
+                  "Parking": 2500,
+                  "Management": 2300,
+                  "Legal": 1600
+                }
+              }
+            },
+            "categoryTrends": {
+              "Rent": {
+                "trend": "increasing",
+                "change": 0.0
+              },
+              "Utilities": {
+                "trend": "increasing",
+                "change": 22.2
+              },
+              "Maintenance": {
+                "trend": "increasing",
+                "change": 15.4
+              },
+              "Insurance": {
+                "trend": "increasing",
+                "change": 0.0
+              },
+              "Taxes": {
+                "trend": "increasing",
+                "change": 0.0
+              },
+              "Cleaning": {
+                "trend": "increasing",
+                "change": 13.6
+              },
+              "Security": {
+                "trend": "increasing",
+                "change": 5.6
+              },
+              "Parking": {
+                "trend": "increasing",
+                "change": 0.0
+              },
+              "Management": {
+                "trend": "increasing",
+                "change": 15.0
+              },
+              "Legal": {
+                "trend": "increasing",
+                "change": 6.7
+              }
+            }
+          },
+          {
+            "id": 2,
+            "name": "Residential Apartment Building",
+            "quarterlyData": {
+              "Q1 2021": {
+                "total": 28500,
+                "expenses": {
+                  "Rent": 12000,
+                  "Utilities": 3200,
+                  "Maintenance": 4100,
+                  "Insurance": 1800,
+                  "Taxes": 2400,
+                  "Cleaning": 1500,
+                  "Security": 800,
+                  "Parking": 700,
+                  "Management": 1200,
+                  "Legal": 800
+                }
+              },
+              "Q2 2021": {
+                "total": 29800,
+                "expenses": {
+                  "Rent": 12000,
+                  "Utilities": 3800,
+                  "Maintenance": 5200,
+                  "Insurance": 1800,
+                  "Taxes": 2400,
+                  "Cleaning": 1500,
+                  "Security": 800,
+                  "Parking": 700,
+                  "Management": 1300,
+                  "Legal": 800
+                }
+              },
+              "Q3 2021": {
+                "total": 31200,
+                "expenses": {
+                  "Rent": 12000,
+                  "Utilities": 4200,
+                  "Maintenance": 5800,
+                  "Insurance": 1800,
+                  "Taxes": 2400,
+                  "Cleaning": 1600,
+                  "Security": 800,
+                  "Parking": 700,
+                  "Management": 1400,
+                  "Legal": 900
+                }
+              },
+              "Q4 2021": {
+                "total": 33500,
+                "expenses": {
+                  "Rent": 12000,
+                  "Utilities": 4500,
+                  "Maintenance": 6200,
+                  "Insurance": 1800,
+                  "Taxes": 2400,
+                  "Cleaning": 1700,
+                  "Security": 800,
+                  "Parking": 700,
+                  "Management": 1500,
+                  "Legal": 900
+                }
+              }
+            },
+            "categoryTrends": {
+              "Rent": {
+                "trend": "increasing",
+                "change": 0.0
+              },
+              "Utilities": {
+                "trend": "increasing",
+                "change": 40.6
+              },
+              "Maintenance": {
+                "trend": "increasing",
+                "change": 51.2
+              },
+              "Insurance": {
+                "trend": "increasing",
+                "change": 0.0
+              },
+              "Taxes": {
+                "trend": "increasing",
+                "change": 0.0
+              },
+              "Cleaning": {
+                "trend": "increasing",
+                "change": 13.3
+              },
+              "Security": {
+                "trend": "increasing",
+                "change": 0.0
+              },
+              "Parking": {
+                "trend": "increasing",
+                "change": 0.0
+              },
+              "Management": {
+                "trend": "increasing",
+                "change": 25.0
+              },
+              "Legal": {
+                "trend": "increasing",
+                "change": 12.5
+              }
+            }
+          },
+          {
+            "id": 3,
+            "name": "Retail Shopping Center",
+            "quarterlyData": {
+              "Q1 2021": {
+                "total": 18200,
+                "expenses": {
+                  "Rent": 8000,
+                  "Utilities": 2100,
+                  "Maintenance": 2800,
+                  "Insurance": 1200,
+                  "Taxes": 1600,
+                  "Cleaning": 900,
+                  "Security": 600,
+                  "Parking": 1000,
+                  "Management": 800,
+                  "Legal": 600
+                }
+              },
+              "Q2 2021": {
+                "total": 18900,
+                "expenses": {
+                  "Rent": 8000,
+                  "Utilities": 2400,
+                  "Maintenance": 3100,
+                  "Insurance": 1200,
+                  "Taxes": 1600,
+                  "Cleaning": 900,
+                  "Security": 600,
+                  "Parking": 1000,
+                  "Management": 900,
+                  "Legal": 600
+                }
+              },
+              "Q3 2021": {
+                "total": 19500,
+                "expenses": {
+                  "Rent": 8000,
+                  "Utilities": 2700,
+                  "Maintenance": 3400,
+                  "Insurance": 1200,
+                  "Taxes": 1600,
+                  "Cleaning": 1000,
+                  "Security": 600,
+                  "Parking": 1000,
+                  "Management": 1000,
+                  "Legal": 700
+                }
+              },
+              "Q4 2021": {
+                "total": 20800,
+                "expenses": {
+                  "Rent": 8000,
+                  "Utilities": 2900,
+                  "Maintenance": 3800,
+                  "Insurance": 1200,
+                  "Taxes": 1600,
+                  "Cleaning": 1100,
+                  "Security": 600,
+                  "Parking": 1000,
+                  "Management": 1100,
+                  "Legal": 700
+                }
+              }
+            },
+            "categoryTrends": {
+              "Rent": {
+                "trend": "increasing",
+                "change": 0.0
+              },
+              "Utilities": {
+                "trend": "increasing",
+                "change": 38.1
+              },
+              "Maintenance": {
+                "trend": "increasing",
+                "change": 35.7
+              },
+              "Insurance": {
+                "trend": "increasing",
+                "change": 0.0
+              },
+              "Taxes": {
+                "trend": "increasing",
+                "change": 0.0
+              },
+              "Cleaning": {
+                "trend": "increasing",
+                "change": 22.2
+              },
+              "Security": {
+                "trend": "increasing",
+                "change": 16.7
+              },
+              "Parking": {
+                "trend": "increasing",
+                "change": 20.0
+              },
+              "Management": {
+                "trend": "increasing",
+                "change": 87.5
+              },
+              "Legal": {
+                "trend": "increasing",
+                "change": 83.3
+              }
+            }
+          }
+        ],
+        "expenseCategories": [
+          "Rent",
+          "Utilities",
+          "Maintenance",
+          "Insurance",
+          "Taxes",
+          "Cleaning",
+          "Security",
+          "Parking",
+          "Management",
+          "Legal"
+        ],
+        "currentTimePeriod": "all",
+        "currentView": "overview"
+      },
+      "totalExpenses": 91700,
+      "propertyCount": 3,
+      "categoryCount": 10
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "name": "sankey-property-dashboard",
+  "version": "1.0.0",
+  "description": "Interactive Property Expense Dashboard with Sankey Charts",
+  "type": "module",
+  "main": "app.js",
+  "scripts": {
+    "lint": "eslint app.js",
+    "lint:fix": "eslint app.js --fix",
+    "format": "prettier --write app.js index.html style.css",
+    "format:check": "prettier --check app.js index.html style.css",
+    "lint:staged": "eslint --fix",
+    "prepare": "husky install"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.9.0",
+    "eslint": "^9.9.0",
+    "globals": "^15.9.0",
+    "husky": "^9.1.4",
+    "lint-staged": "^15.2.9",
+    "prettier": "^3.3.3"
+  },
+  "lint-staged": {
+    "*.js": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{html,css}": [
+      "prettier --write"
+    ]
+  },
+  "keywords": [
+    "dashboard",
+    "expenses",
+    "property",
+    "visualization",
+    "d3js"
+  ],
+  "author": "",
+  "license": "MIT"
+}
