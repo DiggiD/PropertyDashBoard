@@ -66,23 +66,48 @@ class DataManager {
      * @param {Object} initialData - Initial data to load
      */
     async initialize(initialData = null) {
-        if (initialData) {
-            this.data = { ...initialData };
-        } else {
-            // Load from storage
-            const loadedData = await this.storage.load();
-            if (loadedData) {
-                this.data = { ...loadedData };
+        try {
+            console.log('🔧 [DATAMANAGER] Starting data initialization...');
+
+            if (initialData) {
+                console.log('🔧 [DATAMANAGER] Initializing with provided data');
+                this.data = this.validateAndNormalizeData(initialData);
             } else {
-                // Initialize with empty state
-                this.initializeEmptyState();
+                // Load from storage
+                console.log('🔧 [DATAMANAGER] Loading data from storage...');
+                const loadedData = await this.storage.load();
+                if (loadedData) {
+                    console.log('🔧 [DATAMANAGER] Data loaded from storage, validating...');
+                    this.data = this.validateAndNormalizeData(loadedData);
+                } else {
+                    console.log('🔧 [DATAMANAGER] No data found in storage, initializing empty state');
+                    // Initialize with empty state
+                    this.initializeEmptyState();
+                }
             }
+
+            // Ensure all properties have proper expense initialization
+            this.ensurePropertyExpensesInitialized();
+
+            this.lastSaved = new Date();
+            this.hasUnsavedChanges = false;
+
+            console.log('🔧 [DATAMANAGER] Data initialization complete');
+            console.log('🔧 [DATAMANAGER] Properties:', this.data.properties.length);
+            console.log('🔧 [DATAMANAGER] Categories:', this.data.expenseCategories.length);
+
+            // Debug: Log property details
+            this.data.properties.forEach((property, index) => {
+                console.log(`🔧 [DATAMANAGER] Property ${index + 1}: ${property.name}, Expenses:`, Object.keys(property.expenses || {}));
+            });
+
+        } catch (error) {
+            console.error('🔧 [DATAMANAGER] Error during initialization:', error);
+            // Fallback to empty state on error
+            this.initializeEmptyState();
+            this.lastSaved = new Date();
+            this.hasUnsavedChanges = false;
         }
-
-        this.lastSaved = new Date();
-        this.hasUnsavedChanges = false;
-
-        console.log('🔧 [DATAMANAGER] Data initialized with', this.data.properties.length, 'properties');
     }
 
     /**
@@ -103,6 +128,201 @@ class DataManager {
             currentTimePeriod: 'all',
             currentView: 'overview',
         };
+    }
+
+    /**
+     * Validate and normalize loaded data
+     * @param {Object} data - Raw data to validate and normalize
+     * @returns {Object} Validated and normalized data
+     */
+    validateAndNormalizeData(data) {
+        console.log('🔧 [DATAMANAGER] Validating and normalizing data...');
+
+        if (!data || typeof data !== 'object') {
+            console.warn('🔧 [DATAMANAGER] Invalid data structure, using empty state');
+            return this.getEmptyDataStructure();
+        }
+
+        const normalizedData = {
+            properties: [],
+            expenseCategories: [],
+            currentTimePeriod: 'all',
+            currentView: 'overview',
+            ...data,
+        };
+
+        // Validate and normalize properties
+        if (Array.isArray(data.properties)) {
+            normalizedData.properties = data.properties.map((property, index) => {
+                if (!property || typeof property !== 'object') {
+                    console.warn(`🔧 [DATAMANAGER] Invalid property at index ${index}, skipping`);
+                    return null;
+                }
+
+                const normalizedProperty = {
+                    id: property.id || this.generatePropertyId(),
+                    name: property.name || `Property ${index + 1}`,
+                    expenses: {},
+                    quarterlyData: property.quarterlyData || {},
+                    categoryTrends: property.categoryTrends || {},
+                };
+
+                // Ensure expenses is an object
+                if (property.expenses && typeof property.expenses === 'object') {
+                    normalizedProperty.expenses = { ...property.expenses };
+                }
+
+                return normalizedProperty;
+            }).filter(property => property !== null);
+        } else {
+            console.warn('🔧 [DATAMANAGER] Properties is not an array, initializing empty');
+            normalizedData.properties = [];
+        }
+
+        // Validate and normalize expense categories
+        if (Array.isArray(data.expenseCategories)) {
+            normalizedData.expenseCategories = data.expenseCategories.filter(category =>
+                typeof category === 'string' && category.trim().length > 0
+            );
+        } else {
+            console.warn('🔧 [DATAMANAGER] Expense categories is not an array, initializing empty');
+            normalizedData.expenseCategories = [];
+        }
+
+        // Validate time period
+        const validPeriods = ['all', 'year', 'quarter', 'month'];
+        if (!validPeriods.includes(normalizedData.currentTimePeriod)) {
+            console.warn('🔧 [DATAMANAGER] Invalid time period, defaulting to "all"');
+            normalizedData.currentTimePeriod = 'all';
+        }
+
+        // Validate view
+        const validViews = ['overview', 'trends', 'comparison', 'categories'];
+        if (!validViews.includes(normalizedData.currentView)) {
+            console.warn('🔧 [DATAMANAGER] Invalid view, defaulting to "overview"');
+            normalizedData.currentView = 'overview';
+        }
+
+        console.log('🔧 [DATAMANAGER] Data validation and normalization complete');
+        return normalizedData;
+    }
+
+    /**
+     * Get empty data structure
+     * @returns {Object} Empty data structure
+     */
+    getEmptyDataStructure() {
+        return {
+            properties: [],
+            expenseCategories: [],
+            currentTimePeriod: 'all',
+            currentView: 'overview',
+        };
+    }
+
+    /**
+     * Ensure all properties have proper expense initialization
+     */
+    ensurePropertyExpensesInitialized() {
+        console.log('🔧 [DATAMANAGER] Ensuring property expenses are initialized...');
+
+        if (!Array.isArray(this.data.properties)) {
+            console.warn('🔧 [DATAMANAGER] Properties is not an array');
+            return;
+        }
+
+        this.data.properties.forEach((property, index) => {
+            if (!property || typeof property !== 'object') {
+                console.warn(`🔧 [DATAMANAGER] Property at index ${index} is invalid`);
+                return;
+            }
+
+            // Ensure expenses object exists
+            if (!property.expenses || typeof property.expenses !== 'object') {
+                console.log(`🔧 [DATAMANAGER] Initializing expenses for property: ${property.name}`);
+                property.expenses = {};
+            }
+
+            // Initialize from quarterly data if expenses are empty
+            if (Object.keys(property.expenses).length === 0 && property.quarterlyData) {
+                console.log(`🔧 [DATAMANAGER] Initializing expenses from quarterly data for: ${property.name}`);
+                this.initializeExpensesFromQuarterlyData(property);
+            }
+
+            // Ensure all categories have entries in expenses
+            if (Array.isArray(this.data.expenseCategories)) {
+                this.data.expenseCategories.forEach(category => {
+                    if (!(category in property.expenses)) {
+                        console.log(`🔧 [DATAMANAGER] Adding missing category "${category}" to property: ${property.name}`);
+                        property.expenses[category] = 0;
+                    }
+                });
+            }
+
+            // Validate expense values
+            Object.keys(property.expenses).forEach(category => {
+                const value = property.expenses[category];
+                if (typeof value !== 'number' || isNaN(value)) {
+                    console.warn(`🔧 [DATAMANAGER] Invalid expense value for ${property.name} - ${category}: ${value}, setting to 0`);
+                    property.expenses[category] = 0;
+                }
+            });
+        });
+
+        console.log('🔧 [DATAMANAGER] Property expenses initialization complete');
+    }
+
+    /**
+     * Manually initialize expenses from quarterly data for a property
+     * This should only be called when explicitly requested by the user
+     * @param {Object} property - Property object
+     * @param {boolean} force - Whether to force initialization even if expenses already exist
+     */
+    initializeExpensesFromQuarterlyData(property, force = false) {
+        if (!property.quarterlyData || typeof property.quarterlyData !== 'object') {
+            console.warn('🔧 [DATAMANAGER] Invalid quarterly data for property:', property.name);
+            return;
+        }
+
+        try {
+            // Get all quarters and sort them
+            const quarters = Object.keys(property.quarterlyData).sort();
+
+            if (quarters.length === 0) {
+                console.warn('🔧 [DATAMANAGER] No quarters found in quarterly data for property:', property.name);
+                return;
+            }
+
+            // Use the most recent quarter
+            const latestQuarter = quarters[quarters.length - 1];
+            const latestQuarterData = property.quarterlyData[latestQuarter];
+
+            if (!latestQuarterData || !latestQuarterData.expenses) {
+                console.warn('🔧 [DATAMANAGER] No expenses found in latest quarter for property:', property.name);
+                return;
+            }
+
+            console.log(`🔧 [DATAMANAGER] Initializing expenses from quarter: ${latestQuarter} for property: ${property.name}`);
+
+            // Copy expenses from the latest quarter
+            Object.entries(latestQuarterData.expenses).forEach(([category, value]) => {
+                if (typeof value === 'object' && value !== null) {
+                    // Handle hierarchical expenses - sum the values
+                    const total = Object.values(value).reduce((sum, val) => sum + (val || 0), 0);
+                    property.expenses[category] = total;
+                    console.log(`🔧 [DATAMANAGER] Hierarchical expense ${category}: ${total}`);
+                } else if (typeof value === 'number') {
+                    property.expenses[category] = value;
+                    console.log(`🔧 [DATAMANAGER] Flat expense ${category}: ${value}`);
+                } else {
+                    console.warn(`🔧 [DATAMANAGER] Invalid expense value for ${category}: ${value}`);
+                    property.expenses[category] = 0;
+                }
+            });
+
+        } catch (error) {
+            console.error('🔧 [DATAMANAGER] Error initializing expenses from quarterly data:', error);
+        }
     }
 
     /**
@@ -506,9 +726,10 @@ class DataManager {
      * Get current period data for a property
      * @param {Object} property - Property object
      * @param {string} timePeriod - Time period ('all', 'year', 'quarter', 'month')
+     * @param {boolean} preserveHierarchy - Whether to preserve hierarchical structure for sankey charts
      * @returns {Object} Current period data
      */
-    getCurrentPeriodData(property, timePeriod = null) {
+    getCurrentPeriodData(property, timePeriod = null, preserveHierarchy = false) {
         const period = timePeriod || this.data.currentTimePeriod;
 
         if (!property) {
@@ -530,10 +751,40 @@ class DataManager {
             this.data.expenseCategories.forEach(category => {
                 let categoryTotal = 0;
                 allQuarters.forEach(quarter => {
-                    categoryTotal += quarter.expenses[category] || 0;
+                    const expenseData = quarter.expenses[category];
+                    if (preserveHierarchy && typeof expenseData === 'object' && expenseData !== null) {
+                        // Preserve hierarchical structure
+                        if (!totalExpenses[category]) {
+                            totalExpenses[category] = {};
+                        }
+                        Object.entries(expenseData).forEach(([subCategory, value]) => {
+                            totalExpenses[category][subCategory] = (totalExpenses[category][subCategory] || 0) + value;
+                            categoryTotal += value;
+                        });
+                    } else {
+                        // Sum hierarchical data or use flat value
+                        if (typeof expenseData === 'object' && expenseData !== null) {
+                            Object.values(expenseData).forEach(subAmount => {
+                                categoryTotal += subAmount || 0;
+                            });
+                        } else {
+                            categoryTotal += expenseData || 0;
+                        }
+                        if (!preserveHierarchy) {
+                            totalExpenses[category] = categoryTotal;
+                        }
+                    }
                 });
-                totalExpenses[category] = categoryTotal;
-                grandTotal += categoryTotal;
+                if (!preserveHierarchy) {
+                    grandTotal += categoryTotal;
+                } else if (typeof totalExpenses[category] !== 'object') {
+                    totalExpenses[category] = categoryTotal;
+                    grandTotal += categoryTotal;
+                } else {
+                    // For hierarchical categories, sum the subcategory totals
+                    const hierarchicalTotal = Object.values(totalExpenses[category]).reduce((sum, val) => sum + val, 0);
+                    grandTotal += hierarchicalTotal;
+                }
             });
 
             return { total: grandTotal, expenses: totalExpenses };
@@ -575,11 +826,43 @@ class DataManager {
             quartersToInclude.forEach(quarter => {
                 const quarterData = property.quarterlyData[quarter];
                 if (quarterData && quarterData.expenses) {
-                    categoryTotal += quarterData.expenses[category] || 0;
+                    const expenseData = quarterData.expenses[category];
+                    if (preserveHierarchy && typeof expenseData === 'object' && expenseData !== null) {
+                        // Preserve hierarchical structure
+                        if (!totalExpenses[category]) {
+                            totalExpenses[category] = {};
+                        }
+                        Object.entries(expenseData).forEach(([subCategory, value]) => {
+                            totalExpenses[category][subCategory] = (totalExpenses[category][subCategory] || 0) + value;
+                            categoryTotal += value;
+                        });
+                    } else {
+                        // Sum hierarchical data or use flat value
+                        if (typeof expenseData === 'object' && expenseData !== null) {
+                            Object.values(expenseData).forEach(subAmount => {
+                                categoryTotal += subAmount || 0;
+                            });
+                        } else {
+                            categoryTotal += expenseData || 0;
+                        }
+                        if (!preserveHierarchy) {
+                            totalExpenses[category] = categoryTotal;
+                        }
+                    }
                 }
             });
-            totalExpenses[category] = categoryTotal;
-            grandTotal += categoryTotal;
+
+            if (!preserveHierarchy) {
+                totalExpenses[category] = categoryTotal;
+                grandTotal += categoryTotal;
+            } else if (typeof totalExpenses[category] !== 'object') {
+                totalExpenses[category] = categoryTotal;
+                grandTotal += categoryTotal;
+            } else {
+                // For hierarchical categories, sum the subcategory totals
+                const hierarchicalTotal = Object.values(totalExpenses[category]).reduce((sum, val) => sum + val, 0);
+                grandTotal += hierarchicalTotal;
+            }
         });
 
         return { total: grandTotal, expenses: totalExpenses };
@@ -725,11 +1008,103 @@ class DataManager {
      * @returns {boolean} Success status
      */
     async importData(importData) {
-        const success = await this.storage.importData(importData);
-        if (success) {
-            await this.initialize();
+        console.log('🔧 [DATAMANAGER] Importing data...', {
+            hasProperties: !!importData.properties,
+            propertiesCount: importData.properties?.length || 0,
+            hasCategories: !!importData.expenseCategories,
+            categoriesCount: importData.expenseCategories?.length || 0
+        });
+
+        try {
+            // Validate import data
+            if (!importData || typeof importData !== 'object') {
+                console.error('🔧 [DATAMANAGER] Invalid import data');
+                return false;
+            }
+
+            // Normalize the data structure
+            const normalizedData = this.validateAndNormalizeData(importData);
+            console.log('🔧 [DATAMANAGER] Data normalized for import:', {
+                properties: normalizedData.properties.length,
+                categories: normalizedData.expenseCategories.length
+            });
+
+            // Save the data to storage
+            const success = await this.storage.importData(normalizedData);
+            console.log('🔧 [DATAMANAGER] Storage import result:', success);
+
+            if (success) {
+                // Directly set the data in memory instead of relying on initialize()
+                console.log('🔧 [DATAMANAGER] Setting data directly in memory...');
+                this.data = normalizedData;
+
+                // Ensure all properties have proper expense initialization
+                this.ensurePropertyExpensesInitialized();
+
+                // Mark as having unsaved changes (even though we just saved)
+                this.hasUnsavedChanges = false;
+                this.lastSaved = new Date();
+
+                console.log('🔧 [DATAMANAGER] Import complete. Current data:', {
+                    properties: this.data.properties.length,
+                    categories: this.data.expenseCategories.length,
+                    totalExpenses: this.calculateTotalExpenses()
+                });
+
+                // Initialize expenses from quarterly data for imported properties
+                console.log('🔧 [DATAMANAGER] Initializing expenses from quarterly data for imported properties...');
+                this.data.properties.forEach(property => {
+                    if (property.quarterlyData && Object.keys(property.expenses).length === 0) {
+                        console.log(`🔧 [DATAMANAGER] Initializing expenses for imported property: ${property.name}`);
+                        this.initializeExpensesFromQuarterlyData(property, true);
+                    }
+                });
+
+                // Automatically create a snapshot of the imported data
+                console.log('🔧 [DATAMANAGER] Creating snapshot of imported data...');
+                if (window.historyManager && typeof window.historyManager.createSnapshot === 'function') {
+                    try {
+                        const snapshotResult = await window.historyManager.createSnapshot(
+                            'Imported Data',
+                            `Data imported on ${new Date().toLocaleString()}`,
+                            true // silent mode
+                        );
+                        console.log('🔧 [DATAMANAGER] Snapshot created for imported data:', snapshotResult);
+
+                        // Force reload history from storage to ensure it's up to date
+                        if (typeof window.historyManager.loadHistoryFromStorage === 'function') {
+                            await window.historyManager.loadHistoryFromStorage();
+                            console.log('🔧 [DATAMANAGER] History reloaded from storage after snapshot');
+                        }
+                    } catch (snapshotError) {
+                        console.warn('🔧 [DATAMANAGER] Failed to create snapshot:', snapshotError);
+                    }
+                } else {
+                    console.warn('🔧 [DATAMANAGER] HistoryManager not available for snapshot creation');
+                }
+
+                // Update UI to reflect the imported data
+                console.log('🔧 [DATAMANAGER] Updating UI with imported data...');
+                if (window.uiManager && typeof window.uiManager.updateDataDisplay === 'function') {
+                    try {
+                        const stats = this.getDataStatistics();
+                        await window.uiManager.updateDataDisplay(stats);
+                        console.log('🔧 [DATAMANAGER] UI updated with imported data');
+                    } catch (uiError) {
+                        console.warn('🔧 [DATAMANAGER] Failed to update UI:', uiError);
+                    }
+                } else {
+                    console.warn('🔧 [DATAMANAGER] UIManager not available for UI update');
+                }
+            } else {
+                console.error('🔧 [DATAMANAGER] Storage import failed');
+            }
+
+            return success;
+        } catch (error) {
+            console.error('🔧 [DATAMANAGER] Error during import:', error);
+            return false;
         }
-        return success;
     }
 
     /**

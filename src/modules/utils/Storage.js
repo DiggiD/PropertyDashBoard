@@ -215,6 +215,18 @@ class Storage {
                 this.db.metadata.toArray(),
             ]);
 
+            console.log('🔧 [STORAGE] Database query results:', {
+                properties: properties.length,
+                categories: categories.length,
+                metadata: metadata.length
+            });
+
+            // If no data in database, return null to allow fallback to localStorage
+            if (properties.length === 0 && categories.length === 0) {
+                console.log('🔧 [STORAGE] No data found in database');
+                return null;
+            }
+
             const data = {
                 properties: properties.map(p => ({
                     id: p.id,
@@ -236,7 +248,10 @@ class Storage {
             data.currentView = metadataMap.currentView || 'overview';
             data._lastSaved = metadataMap.lastSaved;
 
-            console.log('🔧 [STORAGE] Data loaded from database successfully');
+            console.log('🔧 [STORAGE] Data loaded from database successfully:', {
+                properties: data.properties.length,
+                categories: data.expenseCategories.length
+            });
             return data;
         } catch (error) {
             console.error('🔧 [STORAGE] Failed to load from database:', error);
@@ -283,11 +298,24 @@ class Storage {
      * @returns {Object|null} Loaded data
      */
     async load() {
+        console.log('🔧 [STORAGE] Loading data from storage...');
+
         // Try database first, then localStorage as fallback
         let data = await this.loadFromDatabase();
 
         if (!data) {
+            console.log('🔧 [STORAGE] Database load failed or empty, trying localStorage...');
             data = this.loadFromLocalStorage();
+        }
+
+        if (data) {
+            console.log('🔧 [STORAGE] Data loaded successfully:', {
+                properties: data.properties?.length || 0,
+                categories: data.expenseCategories?.length || 0,
+                hasQuarterlyData: data.properties?.some(p => p.quarterlyData) || false
+            });
+        } else {
+            console.log('🔧 [STORAGE] No data found in any storage method');
         }
 
         return data;
@@ -302,8 +330,16 @@ class Storage {
         if (!snapshot) {return false;}
 
         try {
+            console.log('🔧 [STORAGE] Saving history snapshot:', {
+                name: snapshot.name,
+                timestamp: snapshot.timestamp,
+                dataSize: JSON.stringify(snapshot).length
+            });
+
             // Save to localStorage
             const history = this.loadHistoryFromStorage() || [];
+            console.log('🔧 [STORAGE] Current history length before save:', history.length);
+
             history.unshift(snapshot);
 
             // Keep only recent items
@@ -312,6 +348,7 @@ class Storage {
             }
 
             localStorage.setItem(this.historyStorageKey, JSON.stringify(history));
+            console.log('🔧 [STORAGE] History saved to localStorage, new length:', history.length);
 
             // Save to database if available
             if (this.db) {
@@ -321,9 +358,10 @@ class Storage {
                     description: snapshot.description,
                     data: snapshot.data,
                 });
+                console.log('🔧 [STORAGE] History also saved to database');
             }
 
-            console.log('🔧 [STORAGE] History snapshot saved');
+            console.log('🔧 [STORAGE] History snapshot saved successfully');
             return true;
         } catch (error) {
             console.error('🔧 [STORAGE] Failed to save history snapshot:', error);
@@ -338,7 +376,27 @@ class Storage {
     loadHistoryFromStorage() {
         try {
             const historyString = localStorage.getItem(this.historyStorageKey);
-            return historyString ? JSON.parse(historyString) : [];
+            console.log('🔧 [STORAGE] Loading history from localStorage:', {
+                key: this.historyStorageKey,
+                hasData: !!historyString,
+                dataLength: historyString ? historyString.length : 0
+            });
+
+            if (!historyString) {
+                console.log('🔧 [STORAGE] No history data found in localStorage');
+                return [];
+            }
+
+            const history = JSON.parse(historyString);
+            console.log('🔧 [STORAGE] History loaded successfully:', {
+                length: history.length,
+                firstItem: history[0] ? {
+                    name: history[0].name,
+                    timestamp: history[0].timestamp
+                } : null
+            });
+
+            return history;
         } catch (error) {
             console.error('🔧 [STORAGE] Failed to load history:', error);
             return [];
@@ -420,8 +478,10 @@ class Storage {
      * @param {boolean} includeBackup - Whether to clear backup too
      * @returns {boolean} Success status
      */
-    clearAllData(includeBackup = false) {
+    async clearAllData(includeBackup = false) {
         try {
+            console.log('🔧 [STORAGE] Starting data clearing process...');
+
             const keysToRemove = [
                 this.storageKey,
                 `${this.storageKey}-lastSaved`,
@@ -433,20 +493,36 @@ class Storage {
                 keysToRemove.push(this.backupStorageKey);
             }
 
+            // Clear localStorage keys
             keysToRemove.forEach(key => {
                 localStorage.removeItem(key);
+                console.log(`🔧 [STORAGE] Cleared localStorage key: ${key}`);
             });
 
-            // Clear database if available
+            // Clear database if available - make this synchronous
             if (this.db) {
-                this.db.delete().then(() => {
-                    console.log('🔧 [STORAGE] Database cleared');
+                console.log('🔧 [STORAGE] Clearing Dexie database...');
+                try {
+                    await this.db.delete();
+                    console.log('🔧 [STORAGE] Database deleted successfully');
                     this.db = null;
-                    this.initDatabase(); // Reinitialize
-                });
+                    // Don't reinitialize here - let the page reload handle it
+                } catch (dbError) {
+                    console.error('🔧 [STORAGE] Error deleting database:', dbError);
+                    // Continue with the process even if DB deletion fails
+                }
             }
 
-            console.log('🔧 [STORAGE] All data cleared');
+            // Also clear any other potential storage keys that might exist
+            const allKeys = Object.keys(localStorage);
+            allKeys.forEach(key => {
+                if (key.includes('sankey') || key.includes('ExpenseDashboard') || key.includes('property-dashboard')) {
+                    localStorage.removeItem(key);
+                    console.log(`🔧 [STORAGE] Cleared additional key: ${key}`);
+                }
+            });
+
+            console.log('🔧 [STORAGE] All data cleared successfully');
             return true;
         } catch (error) {
             console.error('🔧 [STORAGE] Failed to clear data:', error);
@@ -488,25 +564,58 @@ class Storage {
     async importData(importData) {
         if (!importData) {return false;}
 
+        console.log('🔧 [STORAGE] Importing data with structure:', Object.keys(importData));
+
         try {
-            // Import current data
+            // Handle different data formats
+            let dataToSave = null;
+
+            // Check if it's export format (with currentData, history, settings)
             if (importData.currentData) {
-                await this.save(importData.currentData);
+                console.log('🔧 [STORAGE] Detected export format');
+                dataToSave = importData.currentData;
+
+                // Import history if present
+                if (importData.history && Array.isArray(importData.history)) {
+                    localStorage.setItem(this.historyStorageKey, JSON.stringify(importData.history));
+                    console.log('🔧 [STORAGE] Imported history data');
+                }
+
+                // Import settings if present
+                if (importData.settings) {
+                    this.saveSettings(importData.settings);
+                    console.log('🔧 [STORAGE] Imported settings data');
+                }
+            }
+            // Check if it's direct data format (properties, expenseCategories)
+            else if (importData.properties || importData.expenseCategories) {
+                console.log('🔧 [STORAGE] Detected direct data format');
+                dataToSave = importData;
+            }
+            else {
+                console.error('🔧 [STORAGE] Unknown data format');
+                return false;
             }
 
-            // Import history
-            if (importData.history && Array.isArray(importData.history)) {
-                localStorage.setItem(this.historyStorageKey, JSON.stringify(importData.history));
-            }
+            // Save the main data
+            if (dataToSave) {
+                console.log('🔧 [STORAGE] Saving data:', {
+                    properties: dataToSave.properties?.length || 0,
+                    categories: dataToSave.expenseCategories?.length || 0
+                });
+                const saveResult = await this.save(dataToSave);
+                console.log('🔧 [STORAGE] Save result:', saveResult);
 
-            // Import settings
-            if (importData.settings) {
-                this.saveSettings(importData.settings);
+                if (!saveResult) {
+                    console.error('🔧 [STORAGE] Failed to save imported data');
+                    return false;
+                }
             }
 
             // Import database data if available
             if (importData.database && this.db) {
                 await this.db.import(importData.database);
+                console.log('🔧 [STORAGE] Imported database data');
             }
 
             console.log('🔧 [STORAGE] Data imported successfully');

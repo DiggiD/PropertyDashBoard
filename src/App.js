@@ -163,6 +163,10 @@ class App {
         // Setup initial UI state
         this.uiManager.setupInitialState();
 
+        // Force UI refresh to ensure loaded data is displayed
+        console.log('🔧 [APP] Forcing UI refresh after data load...');
+        await this.forceUIRefresh();
+
         console.log('🔧 [APP] Application state initialized');
     }
 
@@ -434,9 +438,51 @@ class App {
     }
 
     /**
+     * Force UI refresh after data loading
+     */
+    async forceUIRefresh() {
+        console.log('🔧 [APP] Forcing UI refresh...');
+
+        // Wait a bit for DOM to be ready
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // Update chart calculations with loaded data
+        this.updateChartCalculations();
+
+        // Force re-render of current view
+        switch (this.currentView) {
+            case 'overview':
+                this.showOverviewView();
+                break;
+            case 'expenses':
+                this.showExpensesView();
+                break;
+            case 'income':
+                this.showIncomeView();
+                break;
+            case 'properties':
+                this.showPropertiesView();
+                break;
+        }
+
+        // Update UI with data statistics
+        const stats = this.dataManager.getDataStatistics();
+        console.log('🔧 [APP] Data statistics after load:', stats);
+
+        // Force update of any UI elements that display data
+        if (this.uiManager && typeof this.uiManager.updateDataDisplay === 'function') {
+            this.uiManager.updateDataDisplay(stats);
+        }
+
+        console.log('🔧 [APP] UI refresh forced complete');
+    }
+
+    /**
      * Refresh UI after state changes
      */
     refreshUI() {
+        console.log('🔧 [APP] Refreshing UI...');
+
         // Re-render current view
         switch (this.currentView) {
             case 'overview':
@@ -452,6 +498,11 @@ class App {
                 this.showPropertiesView();
                 break;
         }
+
+        // Update chart calculations
+        this.updateChartCalculations();
+
+        console.log('🔧 [APP] UI refresh complete');
     }
 
     /**

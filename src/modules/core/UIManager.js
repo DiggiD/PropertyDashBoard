@@ -399,6 +399,34 @@ class UIManager {
     }
 
     /**
+     * Update data display after data loading
+     * @param {Object} stats - Data statistics
+     */
+    updateDataDisplay(stats = {}) {
+        console.log('🔧 [UI] Updating data display with stats:', stats);
+
+        // Update chart metrics if we have data
+        if (stats.totalProperties > 0) {
+            this.updateChartMetrics({
+                totalExpenses: stats.totalExpenses,
+                averageExpensePerProperty: stats.averageExpensePerProperty,
+                topCategory: stats.topExpenseCategory,
+            });
+
+            // Show success message
+            this.showToast(`Loaded ${stats.totalProperties} properties with ${stats.totalCategories} categories`, 'success', 3000);
+        } else {
+            // Show empty state message
+            this.showToast('No data loaded', 'warning', 3000);
+        }
+
+        // Force UI refresh
+        this.hideLoadingState();
+
+        console.log('🔧 [UI] Data display updated');
+    }
+
+    /**
      * Update undo/redo button states
      * @param {boolean} canUndo - Whether undo is available
      * @param {boolean} canRedo - Whether redo is available

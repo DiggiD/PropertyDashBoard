@@ -914,33 +914,97 @@ class ChartRenderer {
             nodeIndex++;
         });
 
-        // Add category nodes
-        categories.forEach((category, index) => {
-            const nodeId = `category-${index}`;
+        // Add category nodes and subcategory nodes
+        categories.forEach((category, categoryIndex) => {
+            const nodeId = `category-${categoryIndex}`;
             nodeMap.set(nodeId, nodeIndex);
             nodes.push({
                 id: nodeId,
                 name: category,
                 type: 'category',
-                color: this.chartConfig.colors.categories[index % this.chartConfig.colors.categories.length],
+                color: this.chartConfig.colors.categories[categoryIndex % this.chartConfig.colors.categories.length],
             });
             nodeIndex++;
+
+            // Add subcategory nodes for hierarchical categories
+            if (category === 'Utilities') {
+                ['Electricity', 'Water', 'Gas'].forEach(sub => {
+                    const subNodeId = `sub-${category}-${sub}`;
+                    nodeMap.set(subNodeId, nodeIndex);
+                    nodes.push({
+                        id: subNodeId,
+                        name: sub,
+                        type: 'subcategory',
+                        color: this.chartConfig.colors.categories[categoryIndex % this.chartConfig.colors.categories.length],
+                    });
+                    nodeIndex++;
+                });
+            } else if (category === 'Maintenance') {
+                ['Cleaning', 'Repairs', 'Landscaping'].forEach(sub => {
+                    const subNodeId = `sub-${category}-${sub}`;
+                    nodeMap.set(subNodeId, nodeIndex);
+                    nodes.push({
+                        id: subNodeId,
+                        name: sub,
+                        type: 'subcategory',
+                        color: this.chartConfig.colors.categories[categoryIndex % this.chartConfig.colors.categories.length],
+                    });
+                    nodeIndex++;
+                });
+            }
         });
 
-        // Create links from properties to categories
+        // Create links from properties to categories/subcategories
         properties.forEach(property => {
-            const propertyData = this.dataManager.getCurrentPeriodData(property);
+            const propertyData = this.dataManager.getCurrentPeriodData(property, null, true);
 
             categories.forEach((category, categoryIndex) => {
-                const value = propertyData.expenses[category] || 0;
-                if (value > 0) {
-                    links.push({
-                        source: nodeMap.get(`property-${property.id}`),
-                        target: nodeMap.get(`category-${categoryIndex}`),
-                        value,
-                        property: property.name,
-                        category,
+                const expenseData = propertyData.expenses[category];
+
+                if (typeof expenseData === 'object' && expenseData !== null) {
+                    // Hierarchical category with subcategories
+                    let categoryTotal = 0;
+                    Object.entries(expenseData).forEach(([subCategory, value]) => {
+                        if (value > 0) {
+                            const subNodeId = `sub-${category}-${subCategory}`;
+                            links.push({
+                                source: nodeMap.get(`property-${property.id}`),
+                                target: nodeMap.get(subNodeId),
+                                value,
+                                property: property.name,
+                                category: subCategory,
+                            });
+                            categoryTotal += value;
+                        }
                     });
+
+                    // Link from subcategories to main category
+                    if (categoryTotal > 0) {
+                        Object.entries(expenseData).forEach(([subCategory, value]) => {
+                            if (value > 0) {
+                                const subNodeId = `sub-${category}-${subCategory}`;
+                                links.push({
+                                    source: nodeMap.get(subNodeId),
+                                    target: nodeMap.get(`category-${categoryIndex}`),
+                                    value,
+                                    property: property.name,
+                                    category: subCategory,
+                                });
+                            }
+                        });
+                    }
+                } else {
+                    // Flat category
+                    const value = expenseData || 0;
+                    if (value > 0) {
+                        links.push({
+                            source: nodeMap.get(`property-${property.id}`),
+                            target: nodeMap.get(`category-${categoryIndex}`),
+                            value,
+                            property: property.name,
+                            category,
+                        });
+                    }
                 }
             });
         });

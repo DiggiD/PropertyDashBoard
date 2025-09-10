@@ -393,8 +393,8 @@ class EventHandler {
                 return;
             }
 
-            // Save current state for undo
-            await this.historyManager.saveState('Import data');
+            // Save current state for undo BEFORE import
+            await this.historyManager.saveState('Before import');
 
             // Import data
             const result = await this.dataManager.importData(JSON.parse(jsonData));
@@ -406,7 +406,21 @@ class EventHandler {
                 // Show success message
                 this.uiManager.showToast('Data imported successfully', 'success');
 
-                // Refresh current view
+                // IMPORTANT: Re-initialize HistoryManager to load updated history
+                if (this.historyManager && typeof this.historyManager.initialize === 'function') {
+                    await this.historyManager.initialize();
+                    console.log('🔧 [EVENT] HistoryManager re-initialized after import');
+                }
+
+                // Update undo/redo buttons after history reload
+                if (this.historyManager && typeof this.historyManager.updateUndoRedoButtons === 'function') {
+                    this.historyManager.updateUndoRedoButtons();
+                }
+
+                // Small delay to ensure all async operations complete
+                await new Promise(resolve => setTimeout(resolve, 100));
+
+                // Refresh current view with updated data
                 await this.handleViewChange(this.uiManager.currentView);
 
                 console.log('🔧 [EVENT] Data imported successfully');

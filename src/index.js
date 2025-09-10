@@ -165,6 +165,11 @@ async function initializeApplication() {
         window.moduleLoader = moduleLoader;
         window.app = app;
 
+        // Make key modules globally available for UI interactions
+        window.historyManager = moduleLoader.getModule('historyManager');
+        window.dataManager = moduleLoader.getModule('dataManager');
+        window.uiManager = moduleLoader.getModule('uiManager');
+
         // Add debug functions to window
         window.debugModules = () => moduleLoader.debug();
         window.debugApp = () => app.debug();
