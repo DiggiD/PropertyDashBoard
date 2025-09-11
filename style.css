@@ -168,8 +168,8 @@
     --color-bg-8: rgba(8, 145, 178, 0.15); /* Dark cyan */
     
     /* Semantic Color Tokens (Dark Mode) */
-    --color-background: var(--color-charcoal-700);
-    --color-surface: var(--color-charcoal-800);
+    --color-background: #000000;
+    --color-surface: #0a0a0a;
     --color-text: var(--color-gray-200);
     --color-text-secondary: rgba(var(--color-gray-300-rgb), 0.7);
     --color-primary: var(--color-teal-300);
@@ -209,8 +209,8 @@
   }
 }
 
-/* Data attribute for manual theme switching */
-[data-color-scheme="dark"] {
+/* Data attribute for manual theme switching - Higher specificity to override media queries */
+:root[data-color-scheme="dark"] {
   /* RGB versions for opacity control (dark mode) */
   --color-gray-400-rgb: 119, 124, 124;
   --color-teal-300-rgb: 50, 184, 198;
@@ -226,10 +226,10 @@
   --color-bg-6: rgba(194, 65, 12, 0.15); /* Dark orange */
   --color-bg-7: rgba(190, 24, 93, 0.15); /* Dark pink */
   --color-bg-8: rgba(8, 145, 178, 0.15); /* Dark cyan */
-  
+
   /* Semantic Color Tokens (Dark Mode) */
-  --color-background: var(--color-charcoal-700);
-  --color-surface: var(--color-charcoal-800);
+  --color-background: #000000;
+  --color-surface: #0a0a0a;
   --color-text: var(--color-gray-200);
   --color-text-secondary: rgba(var(--color-gray-300-rgb), 0.7);
   --color-primary: var(--color-teal-300);
@@ -271,12 +271,12 @@
   --color-chart-background: var(--color-charcoal-800);
 }
 
-[data-color-scheme="light"] {
+:root[data-color-scheme="light"] {
   /* RGB versions for opacity control (light mode) */
   --color-brown-600-rgb: 94, 82, 64;
   --color-teal-500-rgb: 33, 128, 141;
   --color-slate-900-rgb: 19, 52, 59;
-  
+
   /* Semantic Color Tokens (Light Mode) */
   --color-background: var(--color-cream-50);
   --color-surface: var(--color-cream-100);
@@ -545,12 +545,12 @@ select.form-control {
   }
 }
 
-/* Also handle data-color-scheme */
-[data-color-scheme="dark"] select.form-control {
+/* Also handle data-color-scheme with higher specificity */
+:root[data-color-scheme="dark"] select.form-control {
   background-image: var(--select-caret-dark);
 }
 
-[data-color-scheme="light"] select.form-control {
+:root[data-color-scheme="light"] select.form-control {
   background-image: var(--select-caret-light);
 }
 
@@ -763,8 +763,8 @@ select.form-control {
   outline-offset: 2px;
 }
 
-/* Dark mode specifics */
-[data-color-scheme="dark"] .btn--outline {
+/* Dark mode specifics with higher specificity */
+:root[data-color-scheme="dark"] .btn--outline {
   border: 1px solid var(--color-border-secondary);
 }
 
@@ -1365,6 +1365,38 @@ select.form-control {
 
 .sankey-link:hover {
     filter: brightness(1.2);
+}
+
+/* Sankey interaction styles */
+.sankey-link-selected {
+    opacity: 1 !important;
+    filter: brightness(1.08) saturate(1.1);
+}
+
+.sankey-link-highlighted {
+    opacity: 0.98 !important;
+    filter: brightness(1.02);
+}
+
+.sankey-link-dimmed {
+    opacity: 0.3 !important;
+}
+
+.sankey-node-selected {
+    filter: brightness(1.02) saturate(1.02);
+    stroke: var(--color-primary) !important;
+    stroke-width: 0.5px !important;
+}
+
+.sankey-node-highlighted {
+    filter: brightness(1.005);
+    stroke: var(--color-primary) !important;
+    stroke-width: 0.25px !important;
+}
+
+.sankey-node-dimmed {
+    opacity: 0.7 !important;
+    filter: grayscale(0.1);
 }
 
 /* Value labels */

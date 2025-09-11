@@ -434,7 +434,7 @@ class App {
      * Toggle dark mode
      */
     toggleDarkMode() {
-        this.themeManager.toggleDarkMode();
+        this.themeManager.toggleTheme();
     }
 
     /**

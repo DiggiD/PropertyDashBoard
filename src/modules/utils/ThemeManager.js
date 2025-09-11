@@ -32,8 +32,8 @@ class ThemeManager {
                 info: '#62707B',
             },
             dark: {
-                background: '#1B2D3B',
-                surface: '#243B4D',
+                background: '#000000',
+                surface: '#0a0a0a',
                 text: '#F5F5F5',
                 'text-secondary': '#B0B7BC',
                 primary: '#4FB8E5',

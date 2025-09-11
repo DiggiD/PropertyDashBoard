@@ -132,7 +132,7 @@ async function initializeApplication() {
         moduleLoader.registerModule('dataManager', DataManager, ['storage', 'validator']);
         moduleLoader.registerModule('uiManager', UIManager, ['formatter', 'themeManager']);
         moduleLoader.registerModule('historyManager', HistoryManager, ['storage', 'dataManager']);
-        moduleLoader.registerModule('eventHandler', EventHandler, ['dataManager', 'uiManager', 'historyManager']);
+        moduleLoader.registerModule('eventHandler', EventHandler, ['dataManager', 'uiManager', 'historyManager', 'themeManager']);
         moduleLoader.registerModule('chartRenderer', ChartRenderer, ['dataManager', 'uiManager', 'formatter']);
 
         // Main application orchestrator

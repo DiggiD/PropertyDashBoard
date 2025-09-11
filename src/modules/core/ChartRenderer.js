@@ -77,6 +77,10 @@ class ChartRenderer {
         this.tooltip = null;
         this.legends = new Map();
 
+        // Sankey interaction state
+        this.selectedFlow = null;
+        this.highlightedFlow = null;
+
         console.log('🔧 [CHART] ChartRenderer initialized');
     }
 
@@ -1064,8 +1068,13 @@ class ChartRenderer {
 
             const { nodes, links } = sankeyData;
 
-            // Draw links
-            svg.append('g')
+            // Store reference to SVG for interaction updates
+            this.sankeySvg = svg;
+            this.sankeyNodes = nodes;
+            this.sankeyLinks = links;
+
+            // Draw links with interactive features
+            const linkElements = svg.append('g')
                 .attr('class', 'sankey-links')
                 .selectAll('path')
                 .data(links)
@@ -1076,21 +1085,33 @@ class ChartRenderer {
                 .attr('stroke-width', d => Math.max(1, d.width || 1))
                 .attr('fill', 'none')
                 .attr('opacity', 0.6)
-                .on('mouseover', (event, d) => this.showTooltip(event, {
-                    title: `${d.property} → ${d.category}`,
-                    value: this.formatter.formatCurrency(d.value),
-                }))
-                .on('mouseout', () => this.hideTooltip());
+                .attr('class', d => this.getLinkClass(d))
+                .style('cursor', 'pointer')
+                .on('mouseover', (event, d) => {
+                    this.highlightFlow(d);
+                    this.showTooltip(event, {
+                        title: `${d.property} → ${d.category}`,
+                        value: this.formatter.formatCurrency(d.value),
+                    });
+                })
+                .on('mouseout', () => {
+                    this.clearHighlight();
+                    this.hideTooltip();
+                })
+                .on('click', (event, d) => {
+                    this.selectFlow(d);
+                });
 
-            // Draw nodes
-            const node = svg.append('g')
+            // Draw nodes with interactive features
+            const nodeElements = svg.append('g')
                 .attr('class', 'sankey-nodes')
-                .selectAll('rect')
+                .selectAll('g')
                 .data(nodes)
                 .enter()
-                .append('g');
+                .append('g')
+                .attr('class', d => this.getNodeClass(d));
 
-            node.append('rect')
+            nodeElements.append('rect')
                 .attr('x', d => d.x0)
                 .attr('y', d => d.y0)
                 .attr('height', d => d.y1 - d.y0)
@@ -1098,17 +1119,54 @@ class ChartRenderer {
                 .attr('fill', d => d.color)
                 .attr('stroke', '#fff')
                 .attr('stroke-width', 1)
-                .attr('rx', 4);
+                .attr('rx', 4)
+                .style('cursor', 'pointer')
+                .on('mouseover', (event, d) => {
+                    this.highlightNode(d);
+                    this.showTooltip(event, {
+                        title: d.name,
+                        value: d.type === 'property' ? 'Property' : d.type === 'category' ? 'Category' : 'Subcategory',
+                    });
+                })
+                .on('mouseout', () => {
+                    this.clearHighlight();
+                    this.hideTooltip();
+                })
+                .on('click', (event, d) => {
+                    this.selectNode(d);
+                });
 
             // Add node labels
-            node.append('text')
+            nodeElements.append('text')
                 .attr('x', d => d.x0 < width / 2 ? d.x1 + 6 : d.x0 - 6)
                 .attr('y', d => (d.y0 + d.y1) / 2)
                 .attr('dy', '0.35em')
                 .attr('text-anchor', d => d.x0 < width / 2 ? 'start' : 'end')
                 .style('font-size', 'var(--font-size-sm)')
                 .style('fill', 'var(--color-text)')
-                .text(d => d.name.length > 15 ? d.name.substring(0, 15) + '...' : d.name);
+                .style('cursor', 'pointer')
+                .text(d => d.name.length > 15 ? d.name.substring(0, 15) + '...' : d.name)
+                .on('mouseover', (event, d) => {
+                    this.highlightNode(d);
+                    this.showTooltip(event, {
+                        title: d.name,
+                        value: d.type === 'property' ? 'Property' : d.type === 'category' ? 'Category' : 'Subcategory',
+                    });
+                })
+                .on('mouseout', () => {
+                    this.clearHighlight();
+                    this.hideTooltip();
+                })
+                .on('click', (event, d) => {
+                    this.selectNode(d);
+                });
+
+            // Add click handler to clear selection when clicking on empty space
+            svg.on('click', (event) => {
+                if (event.target.tagName === 'svg') {
+                    this.clearSelection();
+                }
+            });
 
         } catch (error) {
             console.error('🔧 [CHART] Error creating sankey diagram:', error);
@@ -1311,6 +1369,146 @@ class ChartRenderer {
     }
 
     /**
+     * Get CSS class for a link based on current state
+     */
+    getLinkClass(link) {
+        const classes = ['sankey-link'];
+
+        if (this.selectedFlow && this.isFlowEqual(this.selectedFlow, link)) {
+            classes.push('sankey-link-selected');
+        } else if (this.highlightedFlow && this.isFlowEqual(this.highlightedFlow, link)) {
+            classes.push('sankey-link-highlighted');
+        } else if (this.selectedFlow || this.highlightedFlow) {
+            classes.push('sankey-link-dimmed');
+        }
+
+        return classes.join(' ');
+    }
+
+    /**
+     * Get CSS class for a node based on current state
+     */
+    getNodeClass(node) {
+        const classes = ['sankey-node'];
+
+        if (this.selectedFlow) {
+            if (this.isNodeInFlow(node, this.selectedFlow)) {
+                classes.push('sankey-node-selected');
+            } else {
+                classes.push('sankey-node-dimmed');
+            }
+        } else if (this.highlightedFlow) {
+            if (this.isNodeInFlow(node, this.highlightedFlow)) {
+                classes.push('sankey-node-highlighted');
+            } else {
+                classes.push('sankey-node-dimmed');
+            }
+        }
+
+        return classes.join(' ');
+    }
+
+    /**
+     * Check if two flows are equal
+     */
+    isFlowEqual(flow1, flow2) {
+        return flow1.source.id === flow2.source.id &&
+               flow1.target.id === flow2.target.id &&
+               flow1.value === flow2.value;
+    }
+
+    /**
+     * Check if a node is part of a flow
+     */
+    isNodeInFlow(node, flow) {
+        return node.id === flow.source.id || node.id === flow.target.id;
+    }
+
+    /**
+     * Highlight a flow on mouseover
+     */
+    highlightFlow(flow) {
+        this.highlightedFlow = flow;
+        this.updateSankeyVisuals();
+    }
+
+    /**
+     * Clear flow highlighting
+     */
+    clearHighlight() {
+        this.highlightedFlow = null;
+        this.updateSankeyVisuals();
+    }
+
+    /**
+     * Select/deselect a flow
+     */
+    selectFlow(flow) {
+        if (this.selectedFlow && this.isFlowEqual(this.selectedFlow, flow)) {
+            // Deselect if clicking the same flow
+            this.selectedFlow = null;
+        } else {
+            // Select the new flow
+            this.selectedFlow = flow;
+        }
+        this.updateSankeyVisuals();
+    }
+
+    /**
+     * Clear selection
+     */
+    clearSelection() {
+        this.selectedFlow = null;
+        this.updateSankeyVisuals();
+    }
+
+    /**
+     * Highlight a node (show connected flows)
+     */
+    highlightNode(node) {
+        // Find all flows connected to this node
+        const connectedFlows = this.sankeyLinks.filter(link =>
+            link.source.id === node.id || link.target.id === node.id
+        );
+
+        if (connectedFlows.length > 0) {
+            this.highlightedFlow = connectedFlows[0]; // Highlight first connected flow
+            this.updateSankeyVisuals();
+        }
+    }
+
+    /**
+     * Select a node (select first connected flow)
+     */
+    selectNode(node) {
+        // Find all flows connected to this node
+        const connectedFlows = this.sankeyLinks.filter(link =>
+            link.source.id === node.id || link.target.id === node.id
+        );
+
+        if (connectedFlows.length > 0) {
+            this.selectFlow(connectedFlows[0]);
+        }
+    }
+
+    /**
+     * Update sankey diagram visuals based on current state
+     */
+    updateSankeyVisuals() {
+        if (!this.sankeySvg || !this.sankeyLinks || !this.sankeyNodes) {
+            return;
+        }
+
+        // Update link classes
+        this.sankeySvg.selectAll('.sankey-links path')
+            .attr('class', d => this.getLinkClass(d));
+
+        // Update node classes
+        this.sankeySvg.selectAll('.sankey-nodes g')
+            .attr('class', d => this.getNodeClass(d));
+    }
+
+    /**
      * Debug chart information
      */
     debug() {
@@ -1319,6 +1517,8 @@ class ChartRenderer {
         console.log('🔧 [CHART DEBUG] Tooltip available:', !!this.tooltip);
         console.log('🔧 [CHART DEBUG] Legends count:', this.legends.size);
         console.log('🔧 [CHART DEBUG] Chart config:', this.chartConfig);
+        console.log('🔧 [CHART DEBUG] Selected flow:', this.selectedFlow);
+        console.log('🔧 [CHART DEBUG] Highlighted flow:', this.highlightedFlow);
         console.log('🔧 [CHART DEBUG] === END DEBUG ===');
     }
 }

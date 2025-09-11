@@ -262,7 +262,12 @@ class DataManager {
             // Validate expense values
             Object.keys(property.expenses).forEach(category => {
                 const value = property.expenses[category];
-                if (typeof value !== 'number' || isNaN(value)) {
+                if (typeof value === 'object' && value !== null) {
+                    // Handle hierarchical expenses - sum the values
+                    const total = Object.values(value).reduce((sum, val) => sum + (val || 0), 0);
+                    console.log(`🔧 [DATAMANAGER] Converting hierarchical expense ${category} to total: ${total}`);
+                    property.expenses[category] = total;
+                } else if (typeof value !== 'number' || isNaN(value)) {
                     console.warn(`🔧 [DATAMANAGER] Invalid expense value for ${property.name} - ${category}: ${value}, setting to 0`);
                     property.expenses[category] = 0;
                 }
