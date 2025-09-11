@@ -1049,11 +1049,12 @@ class ChartRenderer {
         }
 
         try {
-            // Create sankey layout
+            // Create sankey layout with improved settings for flow alignment
             const sankey = d3.sankey()
                 .nodeWidth(20)
-                .nodePadding(10)
-                .extent([[20, 20], [width - 20, height - 20]]);
+                .nodePadding(10)  // Reduced padding for better flow continuity
+                .iterations(128)  // Increased iterations for better flow symmetry
+                .extent([[25, 25], [width - 25, height - 25]]);
 
             // Process data
             const sankeyData = sankey({
@@ -1091,7 +1092,6 @@ class ChartRenderer {
                     this.highlightFlow(d);
                     this.showTooltip(event, {
                         title: `${d.property} → ${d.category}`,
-                        value: this.formatter.formatCurrency(d.value),
                     });
                 })
                 .on('mouseout', () => {
@@ -1306,7 +1306,10 @@ class ChartRenderer {
         if (typeof data === 'string') {
             content = data;
         } else {
-            content = `<strong>${data.title}</strong><br/>${data.value}`;
+            content = `<strong>${data.title}</strong>`;
+            if (data.value && data.value !== 'undefined') {
+                content += `<br/>${data.value}`;
+            }
             if (data.percentage) {content += `<br/>${data.percentage}`;}
             if (data.quarters) {content += `<br/>${data.quarters}`;}
         }
@@ -1374,11 +1377,16 @@ class ChartRenderer {
     getLinkClass(link) {
         const classes = ['sankey-link'];
 
-        if (this.selectedFlow && this.isFlowEqual(this.selectedFlow, link)) {
+        // Check if this link is part of the selected flow path
+        if (this.selectedFlowPath && this.selectedFlowPath.links.some(selectedLink => this.isFlowEqual(selectedLink, link))) {
             classes.push('sankey-link-selected');
+        } else if (this.selectedFlow && this.isFlowEqual(this.selectedFlow, link)) {
+            classes.push('sankey-link-selected');
+        } else if (this.highlightedFlowPath && this.highlightedFlowPath.links.some(highlightedLink => this.isFlowEqual(highlightedLink, link))) {
+            classes.push('sankey-link-highlighted');
         } else if (this.highlightedFlow && this.isFlowEqual(this.highlightedFlow, link)) {
             classes.push('sankey-link-highlighted');
-        } else if (this.selectedFlow || this.highlightedFlow) {
+        } else if (this.selectedFlowPath || this.selectedFlow || this.highlightedFlowPath || this.highlightedFlow) {
             classes.push('sankey-link-dimmed');
         }
 
@@ -1391,18 +1399,17 @@ class ChartRenderer {
     getNodeClass(node) {
         const classes = ['sankey-node'];
 
-        if (this.selectedFlow) {
-            if (this.isNodeInFlow(node, this.selectedFlow)) {
-                classes.push('sankey-node-selected');
-            } else {
-                classes.push('sankey-node-dimmed');
-            }
-        } else if (this.highlightedFlow) {
-            if (this.isNodeInFlow(node, this.highlightedFlow)) {
-                classes.push('sankey-node-highlighted');
-            } else {
-                classes.push('sankey-node-dimmed');
-            }
+        // Check if this node is part of the selected flow path
+        if (this.selectedFlowPath && this.selectedFlowPath.nodes.some(selectedNode => selectedNode.id === node.id)) {
+            classes.push('sankey-node-selected');
+        } else if (this.selectedFlow && this.isNodeInFlow(node, this.selectedFlow)) {
+            classes.push('sankey-node-selected');
+        } else if (this.highlightedFlowPath && this.highlightedFlowPath.nodes.some(highlightedNode => highlightedNode.id === node.id)) {
+            classes.push('sankey-node-highlighted');
+        } else if (this.highlightedFlow && this.isNodeInFlow(node, this.highlightedFlow)) {
+            classes.push('sankey-node-highlighted');
+        } else if (this.selectedFlowPath || this.selectedFlow || this.highlightedFlowPath || this.highlightedFlow) {
+            classes.push('sankey-node-dimmed');
         }
 
         return classes.join(' ');
@@ -1428,7 +1435,9 @@ class ChartRenderer {
      * Highlight a flow on mouseover
      */
     highlightFlow(flow) {
+        // Trace the complete flow path for the hovered flow's property
         this.highlightedFlow = flow;
+        this.highlightedFlowPath = this.traceCompleteFlowPath(flow);
         this.updateSankeyVisuals();
     }
 
@@ -1447,9 +1456,11 @@ class ChartRenderer {
         if (this.selectedFlow && this.isFlowEqual(this.selectedFlow, flow)) {
             // Deselect if clicking the same flow
             this.selectedFlow = null;
+            this.selectedFlowPath = null;
         } else {
-            // Select the new flow
+            // Select the new flow and trace the complete path
             this.selectedFlow = flow;
+            this.selectedFlowPath = this.traceCompleteFlowPath(flow);
         }
         this.updateSankeyVisuals();
     }
@@ -1459,7 +1470,84 @@ class ChartRenderer {
      */
     clearSelection() {
         this.selectedFlow = null;
+        this.selectedFlowPath = null;
         this.updateSankeyVisuals();
+    }
+
+    /**
+     * Trace the complete flow path from a clicked link
+     */
+    traceCompleteFlowPath(clickedLink) {
+        if (!this.sankeyLinks || !this.sankeyNodes) {
+            return { links: [], nodes: [] };
+        }
+
+        const flowPath = {
+            links: new Set(),
+            nodes: new Set(),
+        };
+
+        // Add the clicked link
+        flowPath.links.add(clickedLink);
+
+        // Get the property identity from the clicked link
+        const propertyName = clickedLink.property;
+
+        // Trace backward from source to find incoming flows for the same property
+        this.traceBackward(clickedLink.source, flowPath, propertyName);
+
+        // Trace forward from target to find outgoing flows for the same property
+        this.traceForward(clickedLink.target, flowPath, propertyName);
+
+        // Convert sets to arrays for easier processing
+        return {
+            links: Array.from(flowPath.links),
+            nodes: Array.from(flowPath.nodes),
+        };
+    }
+
+    /**
+     * Trace backward through the flow path for a specific property
+     */
+    traceBackward(node, flowPath, propertyName) {
+        // Add the current node
+        flowPath.nodes.add(node);
+
+        // Find links that flow into this node AND belong to the same property
+        const incomingLinks = this.sankeyLinks.filter(link =>
+            link.target.id === node.id && link.property === propertyName
+        );
+
+        incomingLinks.forEach(link => {
+            // Avoid infinite loops by checking if we've already processed this link
+            if (!flowPath.links.has(link)) {
+                flowPath.links.add(link);
+                // Recursively trace backward from the source of this link
+                this.traceBackward(link.source, flowPath, propertyName);
+            }
+        });
+    }
+
+    /**
+     * Trace forward through the flow path for a specific property
+     */
+    traceForward(node, flowPath, propertyName) {
+        // Add the current node
+        flowPath.nodes.add(node);
+
+        // Find links that flow out from this node AND belong to the same property
+        const outgoingLinks = this.sankeyLinks.filter(link =>
+            link.source.id === node.id && link.property === propertyName
+        );
+
+        outgoingLinks.forEach(link => {
+            // Avoid infinite loops by checking if we've already processed this link
+            if (!flowPath.links.has(link)) {
+                flowPath.links.add(link);
+                // Recursively trace forward from the target of this link
+                this.traceForward(link.target, flowPath, propertyName);
+            }
+        });
     }
 
     /**
@@ -1507,6 +1595,8 @@ class ChartRenderer {
         this.sankeySvg.selectAll('.sankey-nodes g')
             .attr('class', d => this.getNodeClass(d));
     }
+
+
 
     /**
      * Debug chart information
