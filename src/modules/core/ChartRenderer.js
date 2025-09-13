@@ -902,103 +902,179 @@ class ChartRenderer {
 
         const nodes = [];
         const links = [];
-        let nodeIndex = 0;
         const nodeMap = new Map();
 
-        // Add property nodes
+        // Define hierarchical categories and their subcategories
+        const hierarchicalCategories = {
+            'Utilities': ['Electricity', 'Water', 'Gas'],
+            'Maintenance': ['Cleaning', 'Repairs', 'Landscaping']
+        };
+
+        // Step 1: Create property nodes (Level 1) - ordered by property index
         properties.forEach((property, index) => {
             const nodeId = `property-${property.id}`;
-            nodeMap.set(nodeId, nodeIndex);
+            nodeMap.set(nodeId, nodes.length);
             nodes.push({
                 id: nodeId,
                 name: property.name,
                 type: 'property',
+                level: 1,
                 color: this.chartConfig.colors.properties[index % this.chartConfig.colors.properties.length],
+                propertyIndex: index,
+                originalIndex: nodes.length
             });
-            nodeIndex++;
         });
 
-        // Add category nodes and subcategory nodes
+        // Step 2: Create category nodes (Level 2) - ordered by first property that flows to them
+        const categoryOrder = [];
         categories.forEach((category, categoryIndex) => {
+            // Find the first property that has expenses in this category
+            let firstPropertyIndex = Infinity;
+            properties.forEach((property, propIndex) => {
+                const propertyData = this.dataManager.getCurrentPeriodData(property, null, true);
+                const expenseData = propertyData.expenses[category];
+                if ((typeof expenseData === 'object' && expenseData && Object.values(expenseData).some(v => v > 0)) ||
+                    (typeof expenseData === 'number' && expenseData > 0)) {
+                    firstPropertyIndex = Math.min(firstPropertyIndex, propIndex);
+                }
+            });
+
+            categoryOrder.push({
+                category,
+                categoryIndex,
+                firstPropertyIndex,
+                hasSubcategories: hierarchicalCategories[category] !== undefined
+            });
+        });
+
+        // Sort categories by first property index, then by category name
+        categoryOrder.sort((a, b) => {
+            if (a.firstPropertyIndex !== b.firstPropertyIndex) {
+                return a.firstPropertyIndex - b.firstPropertyIndex;
+            }
+            return a.category.localeCompare(b.category);
+        });
+
+        // Create category nodes in sorted order
+        categoryOrder.forEach(({ category, categoryIndex, hasSubcategories }) => {
             const nodeId = `category-${categoryIndex}`;
-            nodeMap.set(nodeId, nodeIndex);
+            nodeMap.set(nodeId, nodes.length);
             nodes.push({
                 id: nodeId,
                 name: category,
                 type: 'category',
+                level: 2,
                 color: this.chartConfig.colors.categories[categoryIndex % this.chartConfig.colors.categories.length],
+                hasSubcategories,
+                categoryIndex,
+                originalIndex: nodes.length
             });
-            nodeIndex++;
+        });
 
-            // Add subcategory nodes for hierarchical categories
-            if (category === 'Utilities') {
-                ['Electricity', 'Water', 'Gas'].forEach(sub => {
-                    const subNodeId = `sub-${category}-${sub}`;
-                    nodeMap.set(subNodeId, nodeIndex);
-                    nodes.push({
-                        id: subNodeId,
-                        name: sub,
-                        type: 'subcategory',
-                        color: this.chartConfig.colors.categories[categoryIndex % this.chartConfig.colors.categories.length],
+        // Step 3: Create subcategory nodes (Level 3) - grouped by parent category, ordered by property flow
+        categoryOrder.forEach(({ category, categoryIndex, hasSubcategories }) => {
+            if (hasSubcategories) {
+                const subcategories = hierarchicalCategories[category];
+
+                // Order subcategories by first property that flows to them
+                const subcategoryOrder = subcategories.map(subCategory => {
+                    // Find the first property that has expenses in this subcategory
+                    let firstPropertyIndex = Infinity;
+                    properties.forEach((property, propIndex) => {
+                        const propertyData = this.dataManager.getCurrentPeriodData(property, null, true);
+                        const expenseData = propertyData.expenses[category];
+                        if (typeof expenseData === 'object' && expenseData && expenseData[subCategory] > 0) {
+                            firstPropertyIndex = Math.min(firstPropertyIndex, propIndex);
+                        }
                     });
-                    nodeIndex++;
+
+                    return {
+                        subCategory,
+                        firstPropertyIndex
+                    };
                 });
-            } else if (category === 'Maintenance') {
-                ['Cleaning', 'Repairs', 'Landscaping'].forEach(sub => {
-                    const subNodeId = `sub-${category}-${sub}`;
-                    nodeMap.set(subNodeId, nodeIndex);
+
+                // Sort subcategories by first property index
+                subcategoryOrder.sort((a, b) => a.firstPropertyIndex - b.firstPropertyIndex);
+
+                // Create subcategory nodes in sorted order
+                subcategoryOrder.forEach(({ subCategory }) => {
+                    const subNodeId = `sub-${category}-${subCategory}`;
+                    nodeMap.set(subNodeId, nodes.length);
                     nodes.push({
                         id: subNodeId,
-                        name: sub,
+                        name: subCategory,
                         type: 'subcategory',
+                        level: 3,
                         color: this.chartConfig.colors.categories[categoryIndex % this.chartConfig.colors.categories.length],
+                        parentCategory: category,
+                        parentCategoryIndex: categoryIndex,
+                        originalIndex: nodes.length
                     });
-                    nodeIndex++;
                 });
             }
         });
 
-        // Create links from properties to categories/subcategories
-        properties.forEach(property => {
+        // Step 3.5: Add dummy sink node for flat categories to ensure they're on level 2
+        const dummySinkId = 'dummy-sink';
+        nodeMap.set(dummySinkId, nodes.length);
+        nodes.push({
+            id: dummySinkId,
+            name: '',
+            type: 'dummy',
+            level: 3,
+            color: 'transparent',
+            isDummy: true
+        });
+
+        // Step 4: Create links with laminar flow
+        properties.forEach((property, propIndex) => {
             const propertyData = this.dataManager.getCurrentPeriodData(property, null, true);
 
             categories.forEach((category, categoryIndex) => {
                 const expenseData = propertyData.expenses[category];
 
-                if (typeof expenseData === 'object' && expenseData !== null) {
-                    // Hierarchical category with subcategories
-                    let categoryTotal = 0;
-                    Object.entries(expenseData).forEach(([subCategory, value]) => {
-                        if (value > 0) {
-                            const subNodeId = `sub-${category}-${subCategory}`;
-                            links.push({
-                                source: nodeMap.get(`property-${property.id}`),
-                                target: nodeMap.get(subNodeId),
-                                value,
-                                property: property.name,
-                                category: subCategory,
-                            });
-                            categoryTotal += value;
-                        }
-                    });
-
-                    // Link from subcategories to main category
-                    if (categoryTotal > 0) {
+                if (hierarchicalCategories[category]) {
+                    // Hierarchical category - flows to subcategories through category node
+                    if (typeof expenseData === 'object' && expenseData !== null) {
+                        let categoryTotal = 0;
                         Object.entries(expenseData).forEach(([subCategory, value]) => {
                             if (value > 0) {
-                                const subNodeId = `sub-${category}-${subCategory}`;
-                                links.push({
-                                    source: nodeMap.get(subNodeId),
-                                    target: nodeMap.get(`category-${categoryIndex}`),
-                                    value,
-                                    property: property.name,
-                                    category: subCategory,
-                                });
+                                categoryTotal += value;
                             }
                         });
+
+                        // Link property -> category (intermediate node)
+                        if (categoryTotal > 0) {
+                            links.push({
+                                source: nodeMap.get(`property-${property.id}`),
+                                target: nodeMap.get(`category-${categoryIndex}`),
+                                value: categoryTotal,
+                                property: property.name,
+                                category,
+                                flowType: 'property-to-category',
+                                propertyIndex: propIndex
+                            });
+
+                            // Link category -> subcategories
+                            Object.entries(expenseData).forEach(([subCategory, value]) => {
+                                if (value > 0) {
+                                    const subNodeId = `sub-${category}-${subCategory}`;
+                                    links.push({
+                                        source: nodeMap.get(`category-${categoryIndex}`),
+                                        target: nodeMap.get(subNodeId),
+                                        value,
+                                        property: property.name,
+                                        category: subCategory,
+                                        flowType: 'category-to-subcategory',
+                                        propertyIndex: propIndex
+                                    });
+                                }
+                            });
+                        }
                     }
                 } else {
-                    // Flat category
+                    // Flat category - direct flow to category node
                     const value = expenseData || 0;
                     if (value > 0) {
                         links.push({
@@ -1007,6 +1083,17 @@ class ChartRenderer {
                             value,
                             property: property.name,
                             category,
+                            flowType: 'property-to-category-flat'
+                        });
+
+                        // Add dummy link from flat category to dummy sink to ensure it's on level 2
+                        links.push({
+                            source: nodeMap.get(`category-${categoryIndex}`),
+                            target: nodeMap.get(dummySinkId),
+                            value: 0.001, // Very small value
+                            property: '',
+                            category: '',
+                            flowType: 'dummy'
                         });
                     }
                 }
@@ -1049,17 +1136,37 @@ class ChartRenderer {
         }
 
         try {
-            // Create sankey layout with improved settings for flow alignment
+            // Sort links to ensure laminar flow - same target nodes get inputs in property order
+            const sortedLinks = data.links.slice().sort((a, b) => {
+                // Primary: sort by target node index (ensures laminar flow to same targets)
+                if (a.target !== b.target) {
+                    return a.target - b.target;
+                }
+                // Secondary: for same target, sort by source node index
+                if (a.source !== b.source) {
+                    return a.source - b.source;
+                }
+                // Tertiary: for category-to-subcategory links, sort by property index (property order)
+                if (a.flowType === 'category-to-subcategory' && b.flowType === 'category-to-subcategory') {
+                    return (a.propertyIndex || 0) - (b.propertyIndex || 0);
+                }
+                // Otherwise sort by value descending
+                return b.value - a.value;
+            });
+
+            // Create sankey layout with laminar flow settings
             const sankey = d3.sankey()
                 .nodeWidth(20)
-                .nodePadding(10)  // Reduced padding for better flow continuity
-                .iterations(128)  // Increased iterations for better flow symmetry
+                .nodePadding(15)
+                .iterations(32)  // Fewer iterations for more predictable layout
+                .nodeSort((a, b) => (a.originalIndex || 0) - (b.originalIndex || 0))  // Preserve original order
+                .linkSort(null)  // Use our pre-sorted links
                 .extent([[25, 25], [width - 25, height - 25]]);
 
-            // Process data
+            // Process data - nodes are already in correct order from prepareSankeyData
             const sankeyData = sankey({
                 nodes: data.nodes.map(d => ({ ...d })),
-                links: data.links.map(d => ({ ...d })),
+                links: sortedLinks.map(d => ({ ...d })),
             });
 
             // Validate sankey output
@@ -1074,11 +1181,15 @@ class ChartRenderer {
             this.sankeyNodes = nodes;
             this.sankeyLinks = links;
 
+            // Filter out dummy elements for rendering
+            const visibleLinks = links.filter(l => l.flowType !== 'dummy');
+            const visibleNodes = nodes.filter(n => !n.isDummy);
+
             // Draw links with interactive features
             const linkElements = svg.append('g')
                 .attr('class', 'sankey-links')
                 .selectAll('path')
-                .data(links)
+                .data(visibleLinks)
                 .enter()
                 .append('path')
                 .attr('d', d3.sankeyLinkHorizontal())
@@ -1090,9 +1201,6 @@ class ChartRenderer {
                 .style('cursor', 'pointer')
                 .on('mouseover', (event, d) => {
                     this.highlightFlow(d);
-                    this.showTooltip(event, {
-                        title: `${d.property} → ${d.category}`,
-                    });
                 })
                 .on('mouseout', () => {
                     this.clearHighlight();
@@ -1106,7 +1214,7 @@ class ChartRenderer {
             const nodeElements = svg.append('g')
                 .attr('class', 'sankey-nodes')
                 .selectAll('g')
-                .data(nodes)
+                .data(visibleNodes)
                 .enter()
                 .append('g')
                 .attr('class', d => this.getNodeClass(d));
@@ -1123,10 +1231,6 @@ class ChartRenderer {
                 .style('cursor', 'pointer')
                 .on('mouseover', (event, d) => {
                     this.highlightNode(d);
-                    this.showTooltip(event, {
-                        title: d.name,
-                        value: d.type === 'property' ? 'Property' : d.type === 'category' ? 'Category' : 'Subcategory',
-                    });
                 })
                 .on('mouseout', () => {
                     this.clearHighlight();
@@ -1148,10 +1252,6 @@ class ChartRenderer {
                 .text(d => d.name.length > 15 ? d.name.substring(0, 15) + '...' : d.name)
                 .on('mouseover', (event, d) => {
                     this.highlightNode(d);
-                    this.showTooltip(event, {
-                        title: d.name,
-                        value: d.type === 'property' ? 'Property' : d.type === 'category' ? 'Category' : 'Subcategory',
-                    });
                 })
                 .on('mouseout', () => {
                     this.clearHighlight();
@@ -1377,14 +1477,14 @@ class ChartRenderer {
     getLinkClass(link) {
         const classes = ['sankey-link'];
 
-        // Check if this link is part of the selected flow path
-        if (this.selectedFlowPath && this.selectedFlowPath.links.some(selectedLink => this.isFlowEqual(selectedLink, link))) {
+        // Check if this link is in the selected flow path by direct reference comparison
+        if (this.selectedFlowPath && this.selectedFlowPath.links.includes(link)) {
             classes.push('sankey-link-selected');
-        } else if (this.selectedFlow && this.isFlowEqual(this.selectedFlow, link)) {
+        } else if (this.selectedFlow === link) {
             classes.push('sankey-link-selected');
-        } else if (this.highlightedFlowPath && this.highlightedFlowPath.links.some(highlightedLink => this.isFlowEqual(highlightedLink, link))) {
+        } else if (this.highlightedFlowPath && this.highlightedFlowPath.links.includes(link)) {
             classes.push('sankey-link-highlighted');
-        } else if (this.highlightedFlow && this.isFlowEqual(this.highlightedFlow, link)) {
+        } else if (this.highlightedFlow === link) {
             classes.push('sankey-link-highlighted');
         } else if (this.selectedFlowPath || this.selectedFlow || this.highlightedFlowPath || this.highlightedFlow) {
             classes.push('sankey-link-dimmed');
@@ -1399,12 +1499,12 @@ class ChartRenderer {
     getNodeClass(node) {
         const classes = ['sankey-node'];
 
-        // Check if this node is part of the selected flow path
-        if (this.selectedFlowPath && this.selectedFlowPath.nodes.some(selectedNode => selectedNode.id === node.id)) {
+        // Check if this node is in the selected flow path by direct reference comparison
+        if (this.selectedFlowPath && this.selectedFlowPath.nodes.includes(node)) {
             classes.push('sankey-node-selected');
         } else if (this.selectedFlow && this.isNodeInFlow(node, this.selectedFlow)) {
             classes.push('sankey-node-selected');
-        } else if (this.highlightedFlowPath && this.highlightedFlowPath.nodes.some(highlightedNode => highlightedNode.id === node.id)) {
+        } else if (this.highlightedFlowPath && this.highlightedFlowPath.nodes.includes(node)) {
             classes.push('sankey-node-highlighted');
         } else if (this.highlightedFlow && this.isNodeInFlow(node, this.highlightedFlow)) {
             classes.push('sankey-node-highlighted');
@@ -1419,9 +1519,25 @@ class ChartRenderer {
      * Check if two flows are equal
      */
     isFlowEqual(flow1, flow2) {
-        return flow1.source.id === flow2.source.id &&
-               flow1.target.id === flow2.target.id &&
-               flow1.value === flow2.value;
+        // Handle cases where flow1 or flow2 might be undefined or null
+        if (!flow1 || !flow2) return false;
+
+        // Check if they are the same object reference first (fastest check)
+        if (flow1 === flow2) return true;
+
+        // Check if both have the required properties
+        if (!flow1.source || !flow2.source || !flow1.target || !flow2.target) return false;
+
+        // Compare by source/target node IDs and flow properties
+        const sourceId1 = typeof flow1.source === 'object' ? flow1.source.id : flow1.source;
+        const sourceId2 = typeof flow2.source === 'object' ? flow2.source.id : flow2.source;
+        const targetId1 = typeof flow1.target === 'object' ? flow1.target.id : flow1.target;
+        const targetId2 = typeof flow2.target === 'object' ? flow2.target.id : flow2.target;
+
+        return sourceId1 === sourceId2 &&
+               targetId1 === targetId2 &&
+               flow1.value === flow2.value &&
+               flow1.property === flow2.property;
     }
 
     /**
@@ -1429,6 +1545,58 @@ class ChartRenderer {
      */
     isNodeInFlow(node, flow) {
         return node.id === flow.source.id || node.id === flow.target.id;
+    }
+
+    /**
+     * Get opacity for a link based on current state
+     */
+    getLinkOpacity(link) {
+        // Selected flows have full opacity (1.0)
+        if (this.selectedFlowPath && this.selectedFlowPath.links.includes(link)) {
+            return 1.0;
+        } else if (this.selectedFlow === link) {
+            return 1.0;
+        }
+        // Highlighted flows have 30% lesser dim (0.7)
+        else if (this.highlightedFlowPath && this.highlightedFlowPath.links.includes(link)) {
+            return 0.7;
+        } else if (this.highlightedFlow === link) {
+            return 0.7;
+        }
+        // Dimmed flows have 90% dim when selected (0.1), 30% dim when highlighted (0.2)
+        else if (this.selectedFlowPath || this.selectedFlow) {
+            return 0.1; // 90% dimming for selected state
+        } else if (this.highlightedFlowPath || this.highlightedFlow) {
+            return 0.2; // 30% dimming for highlighted state
+        }
+        // Default opacity
+        return 0.6;
+    }
+
+    /**
+     * Get opacity for a node based on current state
+     */
+    getNodeOpacity(node) {
+        // Selected nodes have full opacity (1.0)
+        if (this.selectedFlowPath && this.selectedFlowPath.nodes.includes(node)) {
+            return 1.0;
+        } else if (this.selectedFlow && this.isNodeInFlow(node, this.selectedFlow)) {
+            return 1.0;
+        }
+        // Highlighted nodes have 30% lesser dim (0.7)
+        else if (this.highlightedFlowPath && this.highlightedFlowPath.nodes.includes(node)) {
+            return 0.7;
+        } else if (this.highlightedFlow && this.isNodeInFlow(node, this.highlightedFlow)) {
+            return 0.7;
+        }
+        // Dimmed nodes have 90% dim when selected (0.1), 30% dim when highlighted (0.2)
+        else if (this.selectedFlowPath || this.selectedFlow) {
+            return 0.1; // 90% dimming for selected state
+        } else if (this.highlightedFlowPath || this.highlightedFlow) {
+            return 0.2; // 30% dimming for highlighted state
+        }
+        // Default opacity
+        return 1.0;
     }
 
     /**
@@ -1446,6 +1614,7 @@ class ChartRenderer {
      */
     clearHighlight() {
         this.highlightedFlow = null;
+        this.highlightedFlowPath = null;
         this.updateSankeyVisuals();
     }
 
@@ -1453,12 +1622,12 @@ class ChartRenderer {
      * Select/deselect a flow
      */
     selectFlow(flow) {
-        if (this.selectedFlow && this.isFlowEqual(this.selectedFlow, flow)) {
+        if (this.selectedFlow === flow) {
             // Deselect if clicking the same flow
             this.selectedFlow = null;
             this.selectedFlowPath = null;
         } else {
-            // Select the new flow and trace the complete path
+            // Select the clicked flow and trace the complete path including all nodes
             this.selectedFlow = flow;
             this.selectedFlowPath = this.traceCompleteFlowPath(flow);
         }
@@ -1483,27 +1652,52 @@ class ChartRenderer {
         }
 
         const flowPath = {
-            links: new Set(),
-            nodes: new Set(),
+            links: [],
+            nodes: [],
         };
 
-        // Add the clicked link
-        flowPath.links.add(clickedLink);
+        // Add the clicked link and its nodes
+        flowPath.links.push(clickedLink);
+        flowPath.nodes.push(clickedLink.source);
+        flowPath.nodes.push(clickedLink.target);
 
-        // Get the property identity from the clicked link
+        // For hierarchical flows, find the connected links in the same flow path
         const propertyName = clickedLink.property;
 
-        // Trace backward from source to find incoming flows for the same property
-        this.traceBackward(clickedLink.source, flowPath, propertyName);
+        // If this is a property->category link, find all subcategory links for this property and category
+        if (clickedLink.source.type === 'property' && clickedLink.target.type === 'category') {
+            // Find all subcategory links that come from this category for the same property
+            const subcategoryLinks = this.sankeyLinks.filter(link =>
+                link.source.id === clickedLink.target.id && // From the category
+                link.property === propertyName && // Same property
+                link.target.type === 'subcategory' // To subcategory
+            );
 
-        // Trace forward from target to find outgoing flows for the same property
-        this.traceForward(clickedLink.target, flowPath, propertyName);
+            subcategoryLinks.forEach(link => {
+                flowPath.links.push(link);
+                if (!flowPath.nodes.some(n => n.id === link.target.id)) {
+                    flowPath.nodes.push(link.target);
+                }
+            });
+        }
+        // If this is a category->subcategory link, find the property->category link
+        else if (clickedLink.source.type === 'category' && clickedLink.target.type === 'subcategory') {
+            // Find the property link that connects to this category for the same property
+            const propertyLink = this.sankeyLinks.find(link =>
+                link.target.id === clickedLink.source.id &&
+                link.property === propertyName &&
+                link.source.type === 'property'
+            );
 
-        // Convert sets to arrays for easier processing
-        return {
-            links: Array.from(flowPath.links),
-            nodes: Array.from(flowPath.nodes),
-        };
+            if (propertyLink) {
+                flowPath.links.push(propertyLink);
+                if (!flowPath.nodes.some(n => n.id === propertyLink.source.id)) {
+                    flowPath.nodes.push(propertyLink.source);
+                }
+            }
+        }
+
+        return flowPath;
     }
 
     /**
@@ -1566,18 +1760,67 @@ class ChartRenderer {
     }
 
     /**
-     * Select a node (select first connected flow)
+     * Select a node (highlight all paths flowing through it)
      */
     selectNode(node) {
-        // Find all flows connected to this node
-        const connectedFlows = this.sankeyLinks.filter(link =>
-            link.source.id === node.id || link.target.id === node.id
+        // Clear any existing selection
+        this.clearSelection();
+
+        // Trace all paths flowing through this node
+        const allPaths = this.traceAllPathsThroughNode(node);
+
+        // Set the selection to include all paths through this node
+        this.selectedFlow = null;
+        this.selectedFlowPath = allPaths;
+
+        this.updateSankeyVisuals();
+    }
+
+    /**
+     * Trace all paths flowing through a node
+     */
+    traceAllPathsThroughNode(selectedNode) {
+        if (!this.sankeyLinks || !this.sankeyNodes) {
+            return { links: [], nodes: [] };
+        }
+
+        const allPaths = {
+            links: [],
+            nodes: [],
+        };
+
+        // Find all links connected to this node (both incoming and outgoing)
+        const connectedLinks = this.sankeyLinks.filter(link =>
+            link.source.id === selectedNode.id || link.target.id === selectedNode.id
         );
 
-        if (connectedFlows.length > 0) {
-            this.selectFlow(connectedFlows[0]);
-        }
+        // For each connected link, trace its complete path
+        connectedLinks.forEach(link => {
+            const path = this.traceCompleteFlowPath(link);
+
+            // Add all links from this path (avoid duplicates)
+            path.links.forEach(link => {
+                if (!allPaths.links.some(existingLink =>
+                    existingLink.source.id === link.source.id &&
+                    existingLink.target.id === link.target.id &&
+                    existingLink.property === link.property
+                )) {
+                    allPaths.links.push(link);
+                }
+            });
+
+            // Add all nodes from this path (avoid duplicates)
+            path.nodes.forEach(node => {
+                if (!allPaths.nodes.some(existingNode => existingNode.id === node.id)) {
+                    allPaths.nodes.push(node);
+                }
+            });
+        });
+
+        return allPaths;
     }
+
+
 
     /**
      * Update sankey diagram visuals based on current state
@@ -1587,13 +1830,15 @@ class ChartRenderer {
             return;
         }
 
-        // Update link classes
+        // Update link classes and opacity
         this.sankeySvg.selectAll('.sankey-links path')
-            .attr('class', d => this.getLinkClass(d));
+            .attr('class', d => this.getLinkClass(d))
+            .style('opacity', d => this.getLinkOpacity(d));
 
-        // Update node classes
-        this.sankeySvg.selectAll('.sankey-nodes g')
-            .attr('class', d => this.getNodeClass(d));
+        // Update node classes and opacity
+        this.sankeySvg.selectAll('.sankey-nodes rect')
+            .attr('class', d => this.getNodeClass(d))
+            .style('opacity', d => this.getNodeOpacity(d));
     }
 
 
