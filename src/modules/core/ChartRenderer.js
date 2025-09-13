@@ -910,8 +910,28 @@ class ChartRenderer {
             'Maintenance': ['Cleaning', 'Repairs', 'Landscaping']
         };
 
-        // Step 1: Create property nodes (Level 1) - ordered by property index
+        // Step 1: Create property nodes (Level 1) - sorted by amount
+        const propertyNodes = [];
+        const propertyTotals = new Map();
+
+        // Calculate property totals first
         properties.forEach((property, index) => {
+            const propertyData = this.dataManager.getCurrentPeriodData(property);
+            propertyTotals.set(property.id, propertyData.total);
+        });
+
+        // Sort properties by total amount descending
+        const sortedProperties = properties.slice().sort((a, b) => {
+            const totalA = propertyTotals.get(a.id) || 0;
+            const totalB = propertyTotals.get(b.id) || 0;
+            if (totalA !== totalB) {
+                return totalB - totalA; // Descending
+            }
+            return a.name.localeCompare(b.name); // Stable sort
+        });
+
+        // Create property nodes in sorted order
+        sortedProperties.forEach((property, index) => {
             const nodeId = `property-${property.id}`;
             nodeMap.set(nodeId, nodes.length);
             nodes.push({
@@ -925,80 +945,102 @@ class ChartRenderer {
             });
         });
 
-        // Step 2: Create category nodes (Level 2) - ordered by first property that flows to them
-        const categoryOrder = [];
-        categories.forEach((category, categoryIndex) => {
-            // Find the first property that has expenses in this category
-            let firstPropertyIndex = Infinity;
-            properties.forEach((property, propIndex) => {
-                const propertyData = this.dataManager.getCurrentPeriodData(property, null, true);
-                const expenseData = propertyData.expenses[category];
-                if ((typeof expenseData === 'object' && expenseData && Object.values(expenseData).some(v => v > 0)) ||
-                    (typeof expenseData === 'number' && expenseData > 0)) {
-                    firstPropertyIndex = Math.min(firstPropertyIndex, propIndex);
-                }
-            });
-
-            categoryOrder.push({
-                category,
-                categoryIndex,
-                firstPropertyIndex,
-                hasSubcategories: hierarchicalCategories[category] !== undefined
-            });
+        // Create a map of property ID to its sorted index
+        const propertySortedIndex = new Map();
+        sortedProperties.forEach((property, sortedIndex) => {
+            propertySortedIndex.set(property.id, sortedIndex);
         });
 
-        // Sort categories by first property index, then by category name
-        categoryOrder.sort((a, b) => {
-            if (a.firstPropertyIndex !== b.firstPropertyIndex) {
-                return a.firstPropertyIndex - b.firstPropertyIndex;
+        // Step 2: Create category nodes (Level 2) - sorted by amount
+        const categoryTotals = new Map();
+
+        // Calculate category totals
+        categories.forEach((category, categoryIndex) => {
+            let total = 0;
+            properties.forEach(property => {
+                const propertyData = this.dataManager.getCurrentPeriodData(property, null, true);
+                const expenseData = propertyData.expenses[category];
+
+                if (hierarchicalCategories[category]) {
+                    // Hierarchical category - sum subcategory values
+                    if (typeof expenseData === 'object' && expenseData !== null) {
+                        Object.values(expenseData).forEach(value => {
+                            if (value > 0) total += value;
+                        });
+                    }
+                } else {
+                    // Flat category - direct value
+                    const value = expenseData || 0;
+                    if (value > 0) total += value;
+                }
+            });
+            categoryTotals.set(category, total);
+        });
+
+        // Sort categories by total amount descending
+        const sortedCategories = categories.slice().sort((a, b) => {
+            const totalA = categoryTotals.get(a) || 0;
+            const totalB = categoryTotals.get(b) || 0;
+            if (totalA !== totalB) {
+                return totalB - totalA; // Descending
             }
-            return a.category.localeCompare(b.category);
+            return a.localeCompare(b); // Stable sort
+        });
+
+        // Create a map of category to its sorted index
+        const categorySortedIndex = new Map();
+        sortedCategories.forEach((category, sortedIndex) => {
+            categorySortedIndex.set(category, sortedIndex);
         });
 
         // Create category nodes in sorted order
-        categoryOrder.forEach(({ category, categoryIndex, hasSubcategories }) => {
-            const nodeId = `category-${categoryIndex}`;
+        sortedCategories.forEach((category, sortedIndex) => {
+            const nodeId = `category-${categories.indexOf(category)}`; // Use original index for consistency
             nodeMap.set(nodeId, nodes.length);
             nodes.push({
                 id: nodeId,
                 name: category,
                 type: 'category',
                 level: 2,
-                color: this.chartConfig.colors.categories[categoryIndex % this.chartConfig.colors.categories.length],
-                hasSubcategories,
-                categoryIndex,
+                color: this.chartConfig.colors.categories[categories.indexOf(category) % this.chartConfig.colors.categories.length],
+                hasSubcategories: hierarchicalCategories[category] !== undefined,
+                categoryIndex: categories.indexOf(category),
+                sortedIndex: sortedIndex, // Add sorted index for proper grouping
                 originalIndex: nodes.length
             });
         });
 
-        // Step 3: Create subcategory nodes (Level 3) - grouped by parent category, ordered by property flow
-        categoryOrder.forEach(({ category, categoryIndex, hasSubcategories }) => {
-            if (hasSubcategories) {
+        // Step 3: Create subcategory nodes (Level 3) - grouped by parent, sorted by amount within each group
+        sortedCategories.forEach((category) => {
+            if (hierarchicalCategories[category]) {
                 const subcategories = hierarchicalCategories[category];
 
-                // Order subcategories by first property that flows to them
-                const subcategoryOrder = subcategories.map(subCategory => {
-                    // Find the first property that has expenses in this subcategory
-                    let firstPropertyIndex = Infinity;
-                    properties.forEach((property, propIndex) => {
+                // Calculate subcategory totals
+                const subcategoryTotals = new Map();
+                subcategories.forEach(subCategory => {
+                    let total = 0;
+                    properties.forEach(property => {
                         const propertyData = this.dataManager.getCurrentPeriodData(property, null, true);
                         const expenseData = propertyData.expenses[category];
-                        if (typeof expenseData === 'object' && expenseData && expenseData[subCategory] > 0) {
-                            firstPropertyIndex = Math.min(firstPropertyIndex, propIndex);
+                        if (typeof expenseData === 'object' && expenseData && expenseData[subCategory]) {
+                            total += expenseData[subCategory];
                         }
                     });
-
-                    return {
-                        subCategory,
-                        firstPropertyIndex
-                    };
+                    subcategoryTotals.set(subCategory, total);
                 });
 
-                // Sort subcategories by first property index
-                subcategoryOrder.sort((a, b) => a.firstPropertyIndex - b.firstPropertyIndex);
+                // Sort subcategories by amount descending
+                const sortedSubcategories = subcategories.slice().sort((a, b) => {
+                    const totalA = subcategoryTotals.get(a) || 0;
+                    const totalB = subcategoryTotals.get(b) || 0;
+                    if (totalA !== totalB) {
+                        return totalB - totalA; // Descending
+                    }
+                    return a.localeCompare(b); // Stable sort
+                });
 
                 // Create subcategory nodes in sorted order
-                subcategoryOrder.forEach(({ subCategory }) => {
+                sortedSubcategories.forEach((subCategory) => {
                     const subNodeId = `sub-${category}-${subCategory}`;
                     nodeMap.set(subNodeId, nodes.length);
                     nodes.push({
@@ -1006,9 +1048,9 @@ class ChartRenderer {
                         name: subCategory,
                         type: 'subcategory',
                         level: 3,
-                        color: this.chartConfig.colors.categories[categoryIndex % this.chartConfig.colors.categories.length],
+                        color: this.chartConfig.colors.categories[categories.indexOf(category) % this.chartConfig.colors.categories.length],
                         parentCategory: category,
-                        parentCategoryIndex: categoryIndex,
+                        parentCategoryIndex: categories.indexOf(category),
                         originalIndex: nodes.length
                     });
                 });
@@ -1030,6 +1072,7 @@ class ChartRenderer {
         // Step 4: Create links with laminar flow
         properties.forEach((property, propIndex) => {
             const propertyData = this.dataManager.getCurrentPeriodData(property, null, true);
+            const sortedPropertyIndex = propertySortedIndex.get(property.id);
 
             categories.forEach((category, categoryIndex) => {
                 const expenseData = propertyData.expenses[category];
@@ -1053,7 +1096,7 @@ class ChartRenderer {
                                 property: property.name,
                                 category,
                                 flowType: 'property-to-category',
-                                propertyIndex: propIndex
+                                propertyIndex: sortedPropertyIndex
                             });
 
                             // Link category -> subcategories
@@ -1067,7 +1110,7 @@ class ChartRenderer {
                                         property: property.name,
                                         category: subCategory,
                                         flowType: 'category-to-subcategory',
-                                        propertyIndex: propIndex
+                                        propertyIndex: sortedPropertyIndex
                                     });
                                 }
                             });
@@ -1159,7 +1202,26 @@ class ChartRenderer {
                 .nodeWidth(20)
                 .nodePadding(15)
                 .iterations(32)  // Fewer iterations for more predictable layout
-                .nodeSort((a, b) => (a.originalIndex || 0) - (b.originalIndex || 0))  // Preserve original order
+                .nodeSort((a, b) => {
+                    // First sort by level
+                    if (a.level !== b.level) {
+                        return a.level - b.level;
+                    }
+
+                    // For level 3 (subcategories), group by parent category's sorted index first
+                    if (a.level === 3 && b.level === 3) {
+                        // Find the parent category node to get its sorted index
+                        const parentA = data.nodes.find(n => n.level === 2 && n.name === a.parentCategory);
+                        const parentB = data.nodes.find(n => n.level === 2 && n.name === b.parentCategory);
+
+                        if (parentA && parentB && parentA.sortedIndex !== parentB.sortedIndex) {
+                            return parentA.sortedIndex - parentB.sortedIndex;
+                        }
+                    }
+
+                    // Then sort by originalIndex (which preserves our amount-based sorting)
+                    return a.originalIndex - b.originalIndex;
+                })
                 .linkSort(null)  // Use our pre-sorted links
                 .extent([[25, 25], [width - 25, height - 25]]);
 
@@ -1840,6 +1902,8 @@ class ChartRenderer {
             .attr('class', d => this.getNodeClass(d))
             .style('opacity', d => this.getNodeOpacity(d));
     }
+
+
 
 
 
