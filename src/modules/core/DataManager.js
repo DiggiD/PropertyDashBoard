@@ -410,7 +410,7 @@ class DataManager {
      * @param {string} name - Property name
      * @returns {Object} Result with success status and property data
      */
-    addProperty(name) {
+    async addProperty(name) {
         // Validate input
         const validation = this.validator.validatePropertyName(name);
         if (!validation.isValid) {
@@ -461,7 +461,20 @@ class DataManager {
         this.data.properties.push(newProperty);
         this.markAsChanged();
 
-        console.log('[DATAMANAGER] Property added:', newProperty.name);
+        // Save to storage immediately
+        const saveResult = await this.save();
+        if (!saveResult) {
+            console.error('[DATAMANAGER] Failed to save new property to storage');
+            // Remove the property from memory if save failed
+            this.data.properties.pop();
+            return {
+                success: false,
+                message: 'Failed to save property to storage',
+                property: null,
+            };
+        }
+
+        console.log('[DATAMANAGER] Property added and saved:', newProperty.name);
 
         return {
             success: true,

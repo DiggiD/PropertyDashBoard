@@ -1425,7 +1425,7 @@ class PropertiesManager {
     /**
      * Handle add property
      */
-    handleAddProperty() {
+    async handleAddProperty() {
         this.showAddPropertyModal();
     }
 
@@ -2019,11 +2019,26 @@ class PropertiesManager {
     /**
      * Add property
      */
-    addProperty(name) {
-        const result = this.dataManager.addProperty(name);
+    async addProperty(name) {
+        const result = await this.dataManager.addProperty(name);
         if (result.success) {
             this.historyManager.createSnapshot(`Added property "${name}"`, '', false);
+
+            // Auto-select the newly added property
+            const properties = this.dataManager.getProperties();
+            const newProperty = properties.find(p => p.name === name);
+            if (newProperty) {
+                this.currentPropertyId = newProperty.id;
+                this.currentCategoryPath = null; // Clear any previous category selection
+            }
+
             this.renderPropertiesDashboard();
+
+            // Refresh charts after a short delay to ensure data is saved
+            setTimeout(() => {
+                this.refreshChartsIfNeeded();
+            }, 100);
+
             this.uiManager.showToast(result.message, 'success');
         } else {
             this.uiManager.showToast(result.message, 'error');
