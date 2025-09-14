@@ -1136,6 +1136,7 @@ class ChartRenderer {
                 // Create subcategory nodes in sorted order
                 sortedSubcategories.forEach((subCategory) => {
                     const subNodeId = `sub-${category}-${subCategory}`;
+                    const totalAmount = subcategoryTotals.get(subCategory) || 0;
                     nodeMap.set(subNodeId, nodes.length);
                     nodes.push({
                         id: subNodeId,
@@ -1145,7 +1146,8 @@ class ChartRenderer {
                         color: this.chartConfig.colors.categories[categories.indexOf(category) % this.chartConfig.colors.categories.length],
                         parentCategory: category,
                         parentCategoryIndex: categories.indexOf(category),
-                        originalIndex: nodes.length
+                        originalIndex: nodes.length,
+                        totalAmount: totalAmount
                     });
                 });
             }
@@ -1291,32 +1293,58 @@ class ChartRenderer {
                 return b.value - a.value;
             });
 
-            // Create sankey layout with laminar flow settings
+            // Group subcategories by parent category for consistent spacing
+            const categoryGroups = {};
+            data.nodes.forEach(node => {
+                if (node.level === 3 && node.parentCategory) {
+                    if (!categoryGroups[node.parentCategory]) {
+                        categoryGroups[node.parentCategory] = [];
+                    }
+                    categoryGroups[node.parentCategory].push(node);
+                }
+            });
+
+            // Calculate spacing between category groups
+            const categoryGroupKeys = Object.keys(categoryGroups).sort((a, b) => {
+                const parentA = data.nodes.find(n => n.level === 2 && n.name === a);
+                const parentB = data.nodes.find(n => n.level === 2 && n.name === b);
+                return (parentA?.sortedIndex || 0) - (parentB?.sortedIndex || 0);
+            });
+
+            // Create sankey layout with custom node sorting for consistent spacing
             const sankey = d3.sankey()
                 .nodeWidth(20)
-                .nodePadding(15)
-                .iterations(32)  // Fewer iterations for more predictable layout
+                .nodePadding(6)  // Even tighter padding
+                .iterations(32)
                 .nodeSort((a, b) => {
                     // First sort by level
                     if (a.level !== b.level) {
                         return a.level - b.level;
                     }
 
-                    // For level 3 (subcategories), group by parent category's sorted index first
+                    // For level 3 (subcategories), ensure consistent grouping by parent category
                     if (a.level === 3 && b.level === 3) {
-                        // Find the parent category node to get its sorted index
-                        const parentA = data.nodes.find(n => n.level === 2 && n.name === a.parentCategory);
-                        const parentB = data.nodes.find(n => n.level === 2 && n.name === b.parentCategory);
+                        // Get parent category indices for consistent ordering
+                        const parentAIndex = categoryGroupKeys.indexOf(a.parentCategory);
+                        const parentBIndex = categoryGroupKeys.indexOf(b.parentCategory);
 
-                        if (parentA && parentB && parentA.sortedIndex !== parentB.sortedIndex) {
-                            return parentA.sortedIndex - parentB.sortedIndex;
+                        if (parentAIndex !== parentBIndex) {
+                            return parentAIndex - parentBIndex;
                         }
+
+                        // Within the same parent category, sort by amount (descending)
+                        return (b.totalAmount || 0) - (a.totalAmount || 0);
                     }
 
-                    // Then sort by originalIndex (which preserves our amount-based sorting)
+                    // For level 2 (categories), maintain amount-based sorting
+                    if (a.level === 2 && b.level === 2) {
+                        return a.originalIndex - b.originalIndex;
+                    }
+
+                    // For level 1 (properties), maintain amount-based sorting
                     return a.originalIndex - b.originalIndex;
                 })
-                .linkSort(null)  // Use our pre-sorted links
+                .linkSort(null)
                 .extent([[25, 25], [width - 25, height - 25]]);
 
             // Process data - nodes are already in correct order from prepareSankeyData
@@ -1331,6 +1359,8 @@ class ChartRenderer {
             }
 
             const { nodes, links } = sankeyData;
+
+            // Note: Node spacing is handled by the custom nodeSort function above
 
             // Store reference to SVG for interaction updates
             this.sankeySvg = svg;
@@ -1432,6 +1462,8 @@ class ChartRenderer {
                     this.clearSelection();
                 }
             });
+
+
 
         } catch (error) {
             console.error('[CHART] Error creating sankey diagram:', error);
@@ -2216,6 +2248,10 @@ class ChartRenderer {
             .style('left', finalX + 'px')
             .style('top', finalY + 'px');
     }
+
+
+
+
 
 
 
