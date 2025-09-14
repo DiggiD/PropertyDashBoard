@@ -2039,8 +2039,17 @@ class PropertiesManager {
         // Create snapshot
         this.historyManager.createSnapshot(`Deleted category "${category}" from ${property.name}`, '', false);
 
-        // Remove category
+        // Remove category from property expenses
         delete property.expenses[category];
+
+        // Remove from quarterly data to prevent cached hierarchical data from persisting
+        if (property.quarterlyData) {
+            Object.keys(property.quarterlyData).forEach(quarter => {
+                if (property.quarterlyData[quarter] && property.quarterlyData[quarter].expenses) {
+                    delete property.quarterlyData[quarter].expenses[category];
+                }
+            });
+        }
 
         // Save and refresh
         this.dataManager.save();
