@@ -2685,6 +2685,11 @@ input[type="number"].expense-input[type="number"],
   display: none !important;
 }
 
+/* Delete button visibility */
+.delete-hidden {
+  display: none !important;
+}
+
 @media (max-width: 480px) {
   .chart-calculations {
     padding: var(--space-6) var(--space-8);

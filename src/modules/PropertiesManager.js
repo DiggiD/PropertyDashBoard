@@ -23,6 +23,12 @@ class PropertiesManager {
         this.clickCounters = new Map();
         this.pendingSelections = new Map();
 
+        // Long press detection
+        this.longPressTimers = new Map();
+        this.pendingLongPresses = new Map();
+        this.longPressDuration = 500; // ms
+        this.visibleDeleteButtons = new Map();
+
         console.log('[PROPERTIES] PropertiesManager initialized');
     }
 
@@ -61,6 +67,20 @@ class PropertiesManager {
         // Use event delegation on the properties dashboard container
         const container = this.uiManager.getElement('propertiesDashboard');
         if (container) {
+            // Remove existing event listeners to prevent duplicates
+            this.uiManager.removeEventListener(container, 'dblclick');
+            this.uiManager.removeEventListener(container, 'click');
+            this.uiManager.removeEventListener(container, 'mouseover');
+            this.uiManager.removeEventListener(container, 'mouseout');
+            this.uiManager.removeEventListener(container, 'blur');
+            this.uiManager.removeEventListener(container, 'keydown');
+            this.uiManager.removeEventListener(container, 'mousedown');
+            this.uiManager.removeEventListener(container, 'mouseup');
+            this.uiManager.removeEventListener(container, 'mousemove');
+            this.uiManager.removeEventListener(container, 'touchstart');
+            this.uiManager.removeEventListener(container, 'touchend');
+            this.uiManager.removeEventListener(container, 'touchmove');
+
             // Double-click for inline editing of names
             this.uiManager.addEventListener(container, 'dblclick', (e) => {
                 const editableElement = e.target.closest('.property-name.editable, .category-name.editable, .subcategory-name.editable');
@@ -104,12 +124,39 @@ class PropertiesManager {
 
             // Single-click for other interactions (with double-click protection)
             this.uiManager.addEventListener(container, 'click', (e) => {
+                // Ensure we're working with an element, not a text node
+                const target = e.target.nodeType === Node.TEXT_NODE ? e.target.parentElement : e.target;
+
+                // First, handle delete button clicks to prevent them from being hidden
+                const deleteAction = target.closest('.property-action[data-action="delete"], .category-action[data-action="delete"]');
+                if (deleteAction) {
+                    // Route to appropriate handler based on button type
+                    if (deleteAction.classList.contains('property-action')) {
+                        this.handlePropertyAction(e);
+                    } else if (deleteAction.classList.contains('category-action')) {
+                        this.handleCategoryAction(e);
+                    }
+                    return; // Don't process further click logic for delete actions
+                }
+
+                // Check if there's a visible delete button and click is outside the item
+                if (this.currentVisibleDeleteItem) {
+                    const isClickOnDeleteButton = target.closest('[data-action="delete"]') !== null;
+                    const isClickInsideItem = this.currentVisibleDeleteItem.contains(target);
+                    const isClickOnConfirmation = target.closest('.delete-confirmation-overlay') !== null;
+
+                    if (!isClickOnDeleteButton && !isClickInsideItem && !isClickOnConfirmation) {
+                        this.hideDeleteButtons();
+                        this.currentVisibleDeleteItem = null;
+                    }
+                }
+
                 // Check if this click is part of a double-click sequence
                 const editableElement = e.target.closest('.property-name.editable, .category-name.editable, .subcategory-name.editable');
                 if (editableElement) {
                     // For editable names, delay selection to allow double-click to cancel it
                     const itemElement = editableElement.closest('.property-item');
-                    if (itemElement) {
+                    if (itemElement && !this.currentVisibleDeleteItem) {
                         const itemId = itemElement.dataset.propertyId || itemElement.dataset.category || itemElement.dataset.subcategory;
                         if (this.pendingSelections.has(itemId)) {
                             clearTimeout(this.pendingSelections.get(itemId));
@@ -123,25 +170,28 @@ class PropertiesManager {
                     return;
                 }
 
-                if (e.target.closest('.expense-value')) {
-                    this.handleExpenseEdit(e);
-                } else if (e.target.closest('.property-action')) {
-                    this.handlePropertyAction(e);
-                } else if (e.target.closest('.category-action')) {
-                    this.handleCategoryAction(e);
-                } else if (e.target.closest('.property-item')) {
-                    this.handleItemClick(e);
-                } else if (e.target.closest('#add-property-btn')) {
-                    this.handleAddProperty();
-                } else if (e.target.closest('#add-category-btn')) {
-                    this.handleAddCategory();
-                } else if (e.target.closest('#add-subcategory-btn')) {
-                    this.handleAddSubcategory();
-                } else if (e.target.closest('.back-btn')) {
-                    this.handleBackNavigation();
-                } else {
-                    // Clear selection when clicking outside button tiles
-                    this.clearSelection();
+                // Only process other interactions if no delete button is visible
+                if (!this.currentVisibleDeleteItem) {
+                    if (e.target.closest('.expense-value')) {
+                        this.handleExpenseEdit(e);
+                    } else if (e.target.closest('.property-action')) {
+                        this.handlePropertyAction(e);
+                    } else if (e.target.closest('.category-action')) {
+                        this.handleCategoryAction(e);
+                    } else if (e.target.closest('.property-item')) {
+                        this.handleItemClick(e);
+                    } else if (e.target.closest('#add-property-btn')) {
+                        this.handleAddProperty();
+                    } else if (e.target.closest('#add-category-btn')) {
+                        this.handleAddCategory();
+                    } else if (e.target.closest('#add-subcategory-btn')) {
+                        this.handleAddSubcategory();
+                    } else if (e.target.closest('.back-btn')) {
+                        this.handleBackNavigation();
+                    } else {
+                        // Clear selection when clicking outside button tiles
+                        this.clearSelection();
+                    }
                 }
             });
 
@@ -188,6 +238,37 @@ class PropertiesManager {
                     this.handleCategoryNameKeydown(e);
                 } else if (e.target.closest('.subcategory-name-input')) {
                     this.handleSubcategoryNameKeydown(e);
+                }
+            });
+
+            // Long press detection for delete buttons
+            this.uiManager.addEventListener(container, 'mousedown', (e) => {
+                const propertyItem = e.target.closest('.property-item');
+                if (propertyItem && !e.target.closest('.property-action, .category-action')) {
+                    this.startLongPressDetection(propertyItem, e);
+                }
+            });
+
+            this.uiManager.addEventListener(container, 'mouseup', (e) => {
+                this.cancelLongPressDetection();
+            });
+
+            // Touch events for mobile
+            this.uiManager.addEventListener(container, 'touchstart', (e) => {
+                const propertyItem = e.target.closest('.property-item');
+                if (propertyItem && !e.target.closest('.property-action, .category-action')) {
+                    this.startLongPressDetection(propertyItem, e.touches[0]);
+                }
+            });
+
+            this.uiManager.addEventListener(container, 'touchend', (e) => {
+                this.cancelLongPressDetection();
+            });
+
+            this.uiManager.addEventListener(container, 'touchmove', (e) => {
+                if (this.longPressTimers.size > 0) {
+                    // Cancel long press if touch moves significantly
+                    this.cancelLongPressDetection();
                 }
             });
         }
@@ -293,11 +374,25 @@ class PropertiesManager {
             `;
         }
 
-        const hasSelected = properties.some(property => property.id === this.currentPropertyId);
+        // Sort properties by total amount (highest to lowest)
+        const sortedProperties = properties.slice().sort((a, b) => {
+            const dataA = this.dataManager.getCurrentPeriodData(a);
+            const dataB = this.dataManager.getCurrentPeriodData(b);
+            const totalA = dataA && dataA.total !== undefined ? dataA.total : 0;
+            const totalB = dataB && dataB.total !== undefined ? dataB.total : 0;
+
+            // Sort by amount descending, then by name ascending for stable sort
+            if (totalB !== totalA) {
+                return totalB - totalA;
+            }
+            return (a.name || '').localeCompare(b.name || '');
+        });
+
+        const hasSelected = sortedProperties.some(property => property.id === this.currentPropertyId);
 
         return `
             <div class="properties-list ${hasSelected ? 'has-selected' : ''}">
-                ${properties.map(property => {
+                ${sortedProperties.map(property => {
                     const isSelected = property.id === this.currentPropertyId;
                     const currentData = this.dataManager.getCurrentPeriodData(property);
                     const categoryCount = Object.keys(property.expenses || {}).length;
@@ -313,7 +408,7 @@ class PropertiesManager {
                                 </div>
                             </div>
                             <div class="property-actions">
-                                <button class="property-action" data-action="delete" data-property-id="${property.id || ''}" title="Delete property">
+                                <button class="property-action delete-hidden" data-action="delete" data-property-id="${property.id || ''}" title="Delete property">
                                     Delete
                                 </button>
                             </div>
@@ -343,11 +438,27 @@ class PropertiesManager {
             `;
         }
 
-        const hasSelected = categories.some(category => category === this.currentCategoryPath?.category);
+        // Sort categories by expense value (highest to lowest)
+        const sortedCategories = categories.slice().sort((a, b) => {
+            const valueA = this.getCategoryExpenseValue(property, a);
+            const valueB = this.getCategoryExpenseValue(property, b);
+
+            // Calculate actual amounts for comparison
+            const amountA = typeof valueA === 'object' && valueA !== null ? this.sumObjectValues(valueA) : (valueA || 0);
+            const amountB = typeof valueB === 'object' && valueB !== null ? this.sumObjectValues(valueB) : (valueB || 0);
+
+            // Sort by amount descending, then by name ascending for stable sort
+            if (amountB !== amountA) {
+                return amountB - amountA;
+            }
+            return (a || '').localeCompare(b || '');
+        });
+
+        const hasSelected = sortedCategories.some(category => category === this.currentCategoryPath?.category);
 
         return `
             <div class="properties-list ${hasSelected ? 'has-selected' : ''}">
-                ${categories.map(category => {
+                ${sortedCategories.map(category => {
                     const isSelected = category === this.currentCategoryPath?.category;
                     const expenseValue = this.getCategoryExpenseValue(property, category);
                     const isHierarchical = typeof expenseValue === 'object' && expenseValue !== null;
@@ -366,7 +477,7 @@ class PropertiesManager {
                                     </div>
                                 </div>
                                 <div class="category-actions">
-                                    <button class="category-action" data-action="delete" data-category="${category || ''}" title="Delete category">
+                                    <button class="category-action delete-hidden" data-action="delete" data-category="${category || ''}" title="Delete category">
                                         Delete
                                     </button>
                                 </div>
@@ -385,7 +496,7 @@ class PropertiesManager {
                                     </div>
                                 </div>
                                 <div class="category-actions">
-                                    <button class="category-action" data-action="delete" data-category="${category || ''}" title="Delete category">
+                                    <button class="category-action delete-hidden" data-action="delete" data-category="${category || ''}" title="Delete category">
                                         Delete
                                     </button>
                                 </div>
@@ -423,27 +534,43 @@ class PropertiesManager {
             `;
         } else {
             // Hierarchical category - show subcategories as selectable items
-            const subcategories = Object.entries(expenseValue);
-            const hasSelected = subcategories.some(([subcat]) => subcat === subcategory);
+            // Sort subcategories by value (highest to lowest)
+            const sortedSubcategories = Object.entries(expenseValue).sort((a, b) => {
+                const valueA = a[1] || 0;
+                const valueB = b[1] || 0;
+
+                // Sort by amount descending, then by name ascending for stable sort
+                if (valueB !== valueA) {
+                    return valueB - valueA;
+                }
+                return (a[0] || '').localeCompare(b[0] || '');
+            });
+
+            const hasSelected = sortedSubcategories.some(([subcat]) => subcat === subcategory);
 
             return `
                 <div class="properties-list ${hasSelected ? 'has-selected' : ''}">
-                    ${subcategories.map(([subcat, value]) => {
+                    ${sortedSubcategories.map(([subcat, value]) => {
                         const isSelected = subcat === subcategory;
                         const displayValue = `₹${this.uiManager.formatter ? this.uiManager.formatter.formatNumber(value || 0) : (value || 0)}`;
 
-                        return `
-                            <div class="property-item ${isSelected ? 'selected' : ''}" data-category="${category}" data-subcategory="${subcat}">
-                                <div class="property-info">
-                                    <div class="subcategory-inline">
-                                        <span class="subcategory-name editable" data-category="${category}" data-subcategory="${subcat}" title="Click to edit subcategory name">${subcat}</span>
-                                        <div class="expense-value editable" data-category="${category}" data-subcategory="${subcat}" title="Click to edit value">
-                                            ${displayValue}
-                                        </div>
-                                    </div>
+                return `
+                    <div class="property-item ${isSelected ? 'selected' : ''}" data-category="${category}" data-subcategory="${subcat}">
+                        <div class="property-info">
+                            <div class="subcategory-inline">
+                                <span class="subcategory-name editable" data-category="${category}" data-subcategory="${subcat}" title="Click to edit subcategory name">${subcat}</span>
+                                <div class="expense-value editable" data-category="${category}" data-subcategory="${subcat}" title="Click to edit value">
+                                    ${displayValue}
                                 </div>
                             </div>
-                        `;
+                        </div>
+                        <div class="subcategory-actions">
+                            <button class="category-action delete-hidden" data-action="delete" data-category="${category}" data-subcategory="${subcat}" title="Delete subcategory">
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                `;
                     }).join('')}
                 </div>
             `;
@@ -822,10 +949,15 @@ class PropertiesManager {
 
         const action = button.dataset.action;
         const category = button.dataset.category;
+        const subcategory = button.dataset.subcategory;
 
         switch (action) {
             case 'delete':
-                this.confirmDeleteCategory(category);
+                if (subcategory) {
+                    this.confirmDeleteSubcategory(category, subcategory);
+                } else {
+                    this.confirmDeleteCategory(category);
+                }
                 break;
         }
     }
@@ -1912,9 +2044,44 @@ class PropertiesManager {
     }
 
     /**
+     * Confirm delete subcategory
+     */
+    confirmDeleteSubcategory(category, subcategory) {
+        // Show inline confirmation instead of browser popup
+        this.showInlineDeleteConfirmation(this.currentPropertyId, 'subcategory', subcategory, category);
+    }
+
+    /**
+     * Delete subcategory
+     */
+    deleteSubcategory(category, subcategory) {
+        const property = this.dataManager.getPropertyById(this.currentPropertyId);
+        if (!property || !property.expenses.hasOwnProperty(category)) return;
+
+        const categoryValue = property.expenses[category];
+        if (typeof categoryValue !== 'object' || !categoryValue.hasOwnProperty(subcategory)) return;
+
+        // Create snapshot
+        this.historyManager.createSnapshot(`Deleted subcategory "${subcategory}" from ${category}`, '', false);
+
+        // Remove subcategory
+        delete categoryValue[subcategory];
+
+        // If category becomes empty, convert it to flat category
+        if (Object.keys(categoryValue).length === 0) {
+            property.expenses[category] = 0;
+        }
+
+        // Save and refresh
+        this.dataManager.save();
+        this.renderPropertiesDashboard();
+        this.uiManager.showToast(`Subcategory "${subcategory}" deleted successfully`, 'success');
+    }
+
+    /**
      * Show inline delete confirmation
      */
-    showInlineDeleteConfirmation(itemId, itemType, itemName) {
+    showInlineDeleteConfirmation(itemId, itemType, itemName, category = null) {
         const container = this.uiManager.getElement('propertiesDashboard');
         if (!container) return;
 
@@ -1967,6 +2134,8 @@ class PropertiesManager {
                 this.deleteProperty(itemId);
             } else if (itemType === 'category') {
                 this.deleteCategory(itemName);
+            } else if (itemType === 'subcategory') {
+                this.deleteSubcategory(category, itemName);
             }
         });
 
@@ -1988,9 +2157,143 @@ class PropertiesManager {
     }
 
     /**
+     * Start long press detection
+     */
+    startLongPressDetection(propertyItem, event) {
+        // Clear any existing timers
+        this.cancelLongPressDetection();
+
+        // Create a unique id for this long press
+        const longPressId = `lp-${Date.now()}-${Math.random()}`;
+
+        // Store the item data
+        this.pendingLongPresses.set(longPressId, {
+            propertyId: propertyItem.dataset.propertyId,
+            category: propertyItem.dataset.category,
+            subcategory: propertyItem.dataset.subcategory
+        });
+
+        // Set up the long press timer
+        const timerId = setTimeout(() => {
+            // Get the stored data
+            const data = this.pendingLongPresses.get(longPressId);
+            if (!data) return;
+
+            this.pendingLongPresses.delete(longPressId);
+
+            // Find the current element
+            let currentItem = this.findItemElement(data.propertyId, data.category, data.subcategory);
+
+            if (currentItem) {
+                this.showDeleteButton(currentItem);
+            }
+        }, this.longPressDuration);
+
+        // Store the timer
+        this.longPressTimers.set(longPressId, timerId);
+    }
+
+    /**
+     * Cancel long press detection
+     */
+    cancelLongPressDetection() {
+        // Clear all pending timers
+        for (const [itemId, timerId] of this.longPressTimers) {
+            clearTimeout(timerId);
+        }
+        this.longPressTimers.clear();
+        this.pendingLongPresses.clear();
+    }
+
+    /**
+     * Show delete button for a specific item
+     */
+    showDeleteButton(propertyItem) {
+        // First, hide any other visible delete buttons
+        this.hideDeleteButtons();
+
+        // Update selection state based on the item type
+        if (propertyItem.dataset.propertyId) {
+            this.currentPropertyId = parseInt(propertyItem.dataset.propertyId);
+            this.currentCategoryPath = null;
+        } else if (propertyItem.dataset.category && !propertyItem.dataset.subcategory) {
+            this.currentCategoryPath = { category: propertyItem.dataset.category };
+        } else if (propertyItem.dataset.category && propertyItem.dataset.subcategory) {
+            this.currentCategoryPath = {
+                category: propertyItem.dataset.category,
+                subcategory: propertyItem.dataset.subcategory
+            };
+        }
+
+        // Re-render to update selection styling
+        this.renderPropertiesDashboard();
+
+        // After re-render, find the current element again using consistent approach
+        let currentItem = this.findItemElement(propertyItem.dataset.propertyId, propertyItem.dataset.category, propertyItem.dataset.subcategory);
+
+        if (currentItem) {
+            // Find the delete button within this item
+            const deleteButton = currentItem.querySelector('.property-action[data-action="delete"], .category-action[data-action="delete"]');
+            if (deleteButton) {
+                // Remove the hidden class to show the button
+                deleteButton.classList.remove('delete-hidden');
+
+                // Add to visible map for tracking
+                this.visibleDeleteButtons.set(currentItem, {
+                    propertyId: currentItem.dataset.propertyId,
+                    category: currentItem.dataset.category,
+                    subcategory: currentItem.dataset.subcategory
+                });
+
+                // Store reference to the item with visible delete button
+                this.currentVisibleDeleteItem = currentItem;
+            }
+        }
+    }
+
+    /**
+     * Find item element using consistent approach across all panels
+     */
+    findItemElement(propertyId, category, subcategory) {
+        if (propertyId) {
+            // Properties panel - use simple selector
+            return document.querySelector(`[data-property-id="${propertyId}"]`);
+        } else if (category && subcategory) {
+            // Subcategories panel - use compound selector
+            return document.querySelector(`[data-category="${CSS.escape(category)}"][data-subcategory="${CSS.escape(subcategory)}"]`);
+        } else if (category && !subcategory) {
+            // Categories panel - use precise CSS selector
+            return document.querySelector(`.property-item[data-category="${CSS.escape(category)}"]:not([data-subcategory])`);
+        }
+        return null;
+    }
+
+    /**
+     * Hide all visible delete buttons
+     */
+    hideDeleteButtons() {
+        // Add hidden class back to all visible delete buttons
+        for (const [item, itemData] of this.visibleDeleteButtons) {
+            const deleteButton = item.querySelector('.property-action[data-action="delete"], .category-action[data-action="delete"]');
+            if (deleteButton) {
+                deleteButton.classList.add('delete-hidden');
+            }
+            // Also remove selected class if it was added manually
+            item.classList.remove('selected');
+        }
+
+        // Clear the visible map
+        this.visibleDeleteButtons.clear();
+    }
+
+    /**
      * Cleanup resources
      */
     cleanup() {
+        // Cancel any pending long press timers
+        this.cancelLongPressDetection();
+        this.hideDeleteButtons();
+
         // Remove event listeners if needed
         console.log('[PROPERTIES] PropertiesManager cleaned up');
     }
