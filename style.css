@@ -145,7 +145,7 @@
 
   --color-chart-text: var(--color-text);
   --color-chart-text-secondary: var(--color-text-secondary);
-  --color-chart-background: var(--color-surface);
+  --color-chart-background: #ffffff;
 }
 
 /* Dark mode colors */
@@ -268,7 +268,7 @@
 
   --color-chart-text: var(--color-gray-200);
   --color-chart-text-secondary: rgba(var(--color-gray-300-rgb), 0.8);
-  --color-chart-background: var(--color-charcoal-800);
+  --color-chart-background: #000000;
 }
 
 :root[data-color-scheme="light"] {
@@ -1376,21 +1376,24 @@ select.form-control {
 
 .sankey-link {
     transition: all var(--duration-fast) var(--ease-standard);
+    /* Ensure gradients are not affected by CSS filters */
+    filter: none;
 }
 
 .sankey-link:hover {
-    filter: brightness(1.2);
+    /* Remove brightness filter that interferes with gradients */
+    opacity: 0.9;
 }
 
 /* Sankey interaction styles */
 .sankey-link-selected {
     opacity: 1 !important;
-    filter: brightness(1.08) saturate(1.1);
+    /* Remove filters that interfere with gradients */
 }
 
 .sankey-link-highlighted {
     opacity: 0.98 !important;
-    filter: brightness(1.02);
+    /* Remove filters that interfere with gradients */
 }
 
 .sankey-link-dimmed {
@@ -1398,20 +1401,17 @@ select.form-control {
 }
 
 .sankey-node-selected {
-    filter: brightness(1.02) saturate(1.02);
     stroke: var(--color-primary) !important;
     stroke-width: 0.5px !important;
 }
 
 .sankey-node-highlighted {
-    filter: brightness(1.005);
     stroke: var(--color-primary) !important;
     stroke-width: 0.25px !important;
 }
 
 .sankey-node-dimmed {
     opacity: 0.7 !important;
-    filter: grayscale(0.1);
 }
 
 /* Value labels */

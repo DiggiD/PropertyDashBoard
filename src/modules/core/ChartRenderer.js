@@ -49,28 +49,41 @@
  */
 
 class ChartRenderer {
-    constructor(dataManager, uiManager, formatter) {
+    constructor(dataManager, uiManager, formatter, themeManager) {
         this.dataManager = dataManager;
         this.uiManager = uiManager;
         this.formatter = formatter;
+        this.themeManager = themeManager;
 
         // Chart configuration
         this.chartConfig = {
             margins: { top: 40, right: 80, bottom: 60, left: 160 },
-            colors: {
-                properties: ['#1FB8CD', '#FFC185', '#B4413C'],
-                categories: ['#5D878F', '#DB4545', '#D2BA4C', '#964325', '#944454', '#13343B', '#ECEBD5', '#33808D', '#C0152F', '#A84B2F'],
-                trends: {
-                    increasing: '#10B981',
-                    decreasing: '#EF4444',
-                    stable: '#6B7280',
-                },
-            },
             animations: {
                 duration: 750,
                 ease: d3.easeCubicInOut,
             },
         };
+
+        // Initialize D3 color schemes
+        this.d3ColorSchemes = {
+            Viridis: d3.interpolateViridis,
+            Inferno: d3.interpolateInferno,
+            Magma: d3.interpolateMagma,
+            Plasma: d3.interpolatePlasma,
+            Cividis: d3.interpolateCividis,
+            Turbo: d3.interpolateTurbo,
+            Blues: d3.interpolateBlues,
+            Greens: d3.interpolateGreens,
+            Oranges: d3.interpolateOranges,
+            Purples: d3.interpolatePurples,
+            Reds: d3.interpolateReds,
+        };
+
+        // Initialize colors from theme manager
+        this.updateChartColors();
+
+        // Listen for color theme changes
+        document.addEventListener('colorThemeChange', this.handleColorThemeChange.bind(this));
 
         // Chart state
         this.currentChart = null;
@@ -977,6 +990,7 @@ class ChartRenderer {
         const nodes = [];
         const links = [];
         const nodeMap = new Map();
+        let subcategoryIndex = 0;
 
         // Dynamically detect hierarchical categories and their subcategories from current expenses
         const hierarchicalCategories = {};
@@ -1096,7 +1110,7 @@ class ChartRenderer {
                 name: category.toUpperCase(),
                 type: 'category',
                 level: 2,
-                color: this.chartConfig.colors.categories[categories.indexOf(category) % this.chartConfig.colors.categories.length],
+                color: this.chartConfig.colors.categories[sortedIndex % this.chartConfig.colors.categories.length],
                 hasSubcategories: hierarchicalCategories[category] !== undefined,
                 categoryIndex: categories.indexOf(category),
                 sortedIndex: sortedIndex, // Add sorted index for proper grouping
@@ -1143,7 +1157,7 @@ class ChartRenderer {
                         name: subCategory.toUpperCase(),
                         type: 'subcategory',
                         level: 3,
-                        color: this.chartConfig.colors.categories[categories.indexOf(category) % this.chartConfig.colors.categories.length],
+                        color: this.chartConfig.colors.categories[subcategoryIndex++ % this.chartConfig.colors.categories.length],
                         parentCategory: category,
                         parentCategoryIndex: categories.indexOf(category),
                         originalIndex: nodes.length,
@@ -1360,6 +1374,35 @@ class ChartRenderer {
 
             const { nodes, links } = sankeyData;
 
+            // Apply consistent colors based on node type
+            // Get the current color theme
+            const currentTheme = this.themeManager ? this.themeManager.getCurrentColorTheme() : 'default';
+            const themeColors = this.themeManager ? this.themeManager.getColorTheme() : this.themeManager.getColorTheme('default');
+
+            // Group nodes by type for consistent color assignment
+            const propertyNodes = nodes.filter(d => d.type === 'property');
+            const categoryNodes = nodes.filter(d => d.type === 'category');
+            const subcategoryNodes = nodes.filter(d => d.type === 'subcategory');
+
+            nodes.forEach(d => {
+                if (d.type === 'property') {
+                    // Properties use property colors
+                    const propertyIndex = d.propertyIndex !== undefined ? d.propertyIndex : propertyNodes.indexOf(d);
+                    d.color = themeColors.properties[propertyIndex % themeColors.properties.length];
+                } else if (d.type === 'category') {
+                    // Categories use category colors
+                    const categoryIndex = d.categoryIndex !== undefined ? d.categoryIndex : categoryNodes.indexOf(d);
+                    d.color = themeColors.categories[categoryIndex % themeColors.categories.length];
+                } else if (d.type === 'subcategory') {
+                    // Subcategories use parent category colors
+                    const parentIndex = d.parentCategoryIndex !== undefined ? d.parentCategoryIndex : 0;
+                    d.color = themeColors.categories[parentIndex % themeColors.categories.length];
+                } else {
+                    // Fallback for any other node types
+                    d.color = d.color || '#666666';
+                }
+            });
+
             // Note: Node spacing is handled by the custom nodeSort function above
 
             // Store reference to SVG for interaction updates
@@ -1371,17 +1414,72 @@ class ChartRenderer {
             const visibleLinks = links.filter(l => l.flowType !== 'dummy');
             const visibleNodes = nodes.filter(n => !n.isDummy);
 
-            // Draw links with interactive features
+            // Create gradients for links with proper direction
+            const defs = svg.append('defs');
+
+            // Create individual gradients for each link
+            visibleLinks.forEach((d, i) => {
+                const deltaX = Math.abs(d.target.x0 - d.source.x1);
+                const deltaY = Math.abs((d.target.y0 + d.target.y1) / 2 - (d.source.y0 + d.source.y1) / 2);
+
+                if (deltaY > deltaX) {
+                    // Vertical gradient - create per link
+                    const gradient = defs.append('linearGradient')
+                        .attr('id', `vertical-gradient-${i}`)
+                        .attr('gradientUnits', 'userSpaceOnUse');
+
+                    const sourceCenterX = (d.source.x0 + d.source.x1) / 2;
+                    gradient
+                        .attr('x1', sourceCenterX)
+                        .attr('x2', sourceCenterX)
+                        .attr('y1', d.source.y0 + (d.source.y1 - d.source.y0) / 2)  // source center y
+                        .attr('y2', d.target.y0 + (d.target.y1 - d.target.y0) / 2); // target center y
+
+                    gradient.append('stop')
+                        .attr('offset', '0%')
+                        .attr('stop-color', d.source.color);
+
+                    gradient.append('stop')
+                        .attr('offset', '100%')
+                        .attr('stop-color', d.target.color);
+
+                    d.gradientId = `vertical-gradient-${i}`;
+                } else {
+                    // Horizontal gradient - create per link
+                    const gradient = defs.append('linearGradient')
+                        .attr('id', `horizontal-gradient-${i}`)
+                        .attr('gradientUnits', 'userSpaceOnUse');
+
+                    const sourceCenterY = (d.source.y0 + d.source.y1) / 2;
+                    gradient
+                        .attr('x1', d.source.x1)
+                        .attr('x2', d.target.x0)
+                        .attr('y1', sourceCenterY)
+                        .attr('y2', sourceCenterY);
+
+                    gradient.append('stop')
+                        .attr('offset', '0%')
+                        .attr('stop-color', d.source.color);
+
+                    gradient.append('stop')
+                        .attr('offset', '100%')
+                        .attr('stop-color', d.target.color);
+
+                    d.gradientId = `horizontal-gradient-${i}`;
+                }
+            });
+
+            // Draw links with gradients (like the original HTML example)
             const linkElements = svg.append('g')
                 .attr('class', 'sankey-links')
+                .attr('fill', 'none')
                 .selectAll('path')
                 .data(visibleLinks)
                 .enter()
                 .append('path')
                 .attr('d', d3.sankeyLinkHorizontal())
-                .attr('stroke', d => d.source.color)
+                .attr('stroke', d => `url(#${d.gradientId})`)
                 .attr('stroke-width', d => Math.max(5, d.width || 1))
-                .attr('fill', 'none')
                 .attr('opacity', 0.6)
                 .attr('class', d => this.getLinkClass(d))
                 .style('cursor', 'pointer')
@@ -2258,6 +2356,88 @@ class ChartRenderer {
 
 
     /**
+     * Set theme manager reference
+     * @param {ThemeManager} themeManager - Theme manager instance
+     */
+    setThemeManager(themeManager) {
+        this.themeManager = themeManager;
+        this.updateChartColors();
+        console.log('[CHART] Theme manager set');
+    }
+
+    /**
+     * Update chart colors from theme manager
+     */
+    updateChartColors() {
+        if (!this.themeManager) {
+            console.warn('[CHART] Theme manager not available for color updates');
+            return;
+        }
+
+        const chartColors = this.themeManager.getChartColors();
+        this.chartConfig.colors = {
+            properties: chartColors.categories || ['#5D878F', '#DB4545', '#D2BA4C', '#964325', '#944454', '#13343B', '#ECEBD5', '#33808D', '#C0152F', '#A84B2F'],
+            categories: chartColors.categories || ['#5D878F', '#DB4545', '#D2BA4C', '#964325', '#944454', '#13343B', '#ECEBD5', '#33808D', '#C0152F', '#A84B2F'],
+            trends: chartColors.trends || {
+                increasing: '#10B981',
+                decreasing: '#EF4444',
+                stable: '#6B7280',
+            },
+        };
+
+        console.log('[CHART] Updated chart colors from theme:', this.themeManager.getCurrentColorTheme());
+    }
+
+    /**
+     * Handle color theme change event
+     */
+    handleColorThemeChange(event) {
+        console.log('[CHART] Color theme changed, updating chart colors');
+        this.updateChartColors();
+
+        // Re-render current charts if they exist
+        const overviewContainer = this.uiManager.getElement('overviewChartContent');
+        const analyticsContainer = this.uiManager.getElement('analyticsChartContent');
+
+        if (overviewContainer && !overviewContainer.querySelector('.coming-soon')) {
+            this.renderOverviewSankey();
+        }
+
+        if (analyticsContainer && analyticsContainer.children.length > 0) {
+            this.renderExpenseChart();
+        }
+    }
+
+    /**
+     * Adjust color brightness for gradient variations
+     * @param {string} color - Hex color string
+     * @param {number} factor - Brightness factor (0.1 = 10% brighter, -0.1 = 10% darker)
+     * @returns {string} Adjusted hex color
+     */
+    adjustColorBrightness(color, factor) {
+        // Remove # if present
+        color = color.replace(/^#/, '');
+
+        // Parse RGB components
+        const r = parseInt(color.substr(0, 2), 16);
+        const g = parseInt(color.substr(2, 2), 16);
+        const b = parseInt(color.substr(4, 2), 16);
+
+        // Adjust brightness
+        const adjust = (component) => {
+            const adjusted = Math.round(component + (255 - component) * factor);
+            return Math.min(255, Math.max(0, adjusted));
+        };
+
+        const newR = adjust(r);
+        const newG = adjust(g);
+        const newB = adjust(b);
+
+        // Convert back to hex
+        return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
+    }
+
+    /**
      * Debug chart information
      */
     debug() {
@@ -2268,6 +2448,7 @@ class ChartRenderer {
         console.log('[CHART DEBUG] Chart config:', this.chartConfig);
         console.log('[CHART DEBUG] Selected flow:', this.selectedFlow);
         console.log('[CHART DEBUG] Highlighted flow:', this.highlightedFlow);
+        console.log('[CHART DEBUG] Current color theme:', this.themeManager ? this.themeManager.getCurrentColorTheme() : 'N/A');
         console.log('[CHART DEBUG] === END DEBUG ===');
     }
 }

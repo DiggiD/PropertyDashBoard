@@ -17,6 +17,11 @@ class App {
         this.historyManager = historyManager;
         this.propertiesManager = propertiesManager;
 
+        // Pass themeManager to chartRenderer
+        if (this.chartRenderer && typeof this.chartRenderer.setThemeManager === 'function') {
+            this.chartRenderer.setThemeManager(themeManager);
+        }
+
         // Utility modules
         this.formatter = formatter;
         this.storage = storage;

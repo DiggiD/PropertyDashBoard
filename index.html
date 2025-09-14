@@ -17,7 +17,17 @@
                 <h1>Real Estate Dashboard</h1>
             </div>
             <nav class="header-actions" role="navigation" aria-label="Main actions">
-                <button class="btn btn--outline btn--sm" id="undoBtn" 
+                <div class="dropdown" id="colorThemeDropdown">
+                    <button class="btn btn--outline btn--sm dropdown-btn" id="colorThemeBtn"
+                            aria-label="Select color theme" aria-haspopup="true" aria-expanded="false">
+                        🎨 Theme
+                    </button>
+                    <div class="dropdown-menu" id="colorThemeMenu" role="menu" aria-hidden="true">
+                        <!-- Options will be populated dynamically by JavaScript -->
+                    </div>
+                </div>
+
+                <button class="btn btn--outline btn--sm" id="undoBtn"
                         aria-label="Undo last action" disabled>
                     Undo
                 </button>

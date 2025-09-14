@@ -71,6 +71,11 @@ class UIManager {
             'darkModeToggle': '#darkModeToggle',
             'historyBtn': '#historyBtn',
 
+            // Color theme dropdown
+            'colorThemeDropdown': '#colorThemeDropdown',
+            'colorThemeBtn': '#colorThemeBtn',
+            'colorThemeMenu': '#colorThemeMenu',
+
             // Summary buttons
             'overviewBtn': '#overviewBtn',
             'analyticsBtn': '#analyticsBtn',
@@ -156,6 +161,9 @@ class UIManager {
         // Theme change listener
         this.addEventListener(document, 'themeChange', this.handleThemeChange.bind(this));
 
+        // Color theme change listener
+        this.addEventListener(document, 'colorThemeChange', this.handleColorThemeChange.bind(this));
+
         console.log('[UI] Event listeners setup complete');
     }
 
@@ -200,6 +208,9 @@ class UIManager {
         // Update button states
         this.updateUndoRedoButtons(false, false);
         this.updateThemeToggle();
+
+        // Setup color theme dropdown
+        this.setupColorThemeDropdown();
 
         // Hide loading states
         this.hideLoadingState();
@@ -941,6 +952,103 @@ class UIManager {
         this.updateThemeAwareElements(theme, colors);
 
         console.log(`[UI] Theme changed to: ${theme}`);
+    }
+
+    /**
+     * Handle color theme change
+     * @param {CustomEvent} event - Color theme change event
+     */
+    handleColorThemeChange(event) {
+        const { theme, colors } = event.detail;
+
+        // Update color theme button text
+        this.updateColorThemeButton(theme);
+
+        console.log(`[UI] Color theme changed to: ${theme}`);
+    }
+
+    /**
+     * Update color theme button
+     * @param {string} themeName - Current color theme name
+     */
+    updateColorThemeButton(themeName) {
+        const colorThemeBtn = this.getElement('colorThemeBtn');
+        if (colorThemeBtn) {
+            const themeData = this.themeManager.getColorTheme(themeName);
+            const displayName = themeData ? themeData.name : 'Default';
+            colorThemeBtn.innerHTML = `🎨 ${displayName}`;
+            colorThemeBtn.setAttribute('aria-label', `Current color theme: ${displayName}`);
+        }
+    }
+
+    /**
+     * Setup color theme dropdown
+     */
+    setupColorThemeDropdown() {
+        const colorThemeBtn = this.getElement('colorThemeBtn');
+        const colorThemeMenu = this.getElement('colorThemeMenu');
+
+        if (colorThemeBtn && colorThemeMenu) {
+            // Generate dropdown options dynamically from theme definitions
+            this.populateColorThemeDropdown();
+
+            // Toggle dropdown on button click
+            this.addEventListener(colorThemeBtn, 'click', (event) => {
+                event.preventDefault();
+                this.toggleDropdown('colorThemeDropdown');
+            });
+
+            // Handle menu item clicks (using event delegation for dynamic content)
+            this.addEventListener(colorThemeMenu, 'click', (event) => {
+                const menuItem = event.target.closest('.dropdown-item');
+                if (menuItem) {
+                    event.preventDefault();
+                    const themeName = menuItem.getAttribute('data-theme');
+                    if (themeName) {
+                        this.themeManager.setColorTheme(themeName);
+                        this.closeDropdown('colorThemeDropdown');
+                    }
+                }
+            });
+
+            // Close dropdown when clicking outside
+            this.addEventListener(document, 'click', (event) => {
+                const dropdown = this.getElement('colorThemeDropdown');
+                if (dropdown && !dropdown.contains(event.target)) {
+                    this.closeDropdown('colorThemeDropdown');
+                }
+            });
+
+            // Update button with current theme
+            this.updateColorThemeButton(this.themeManager.getCurrentColorTheme());
+        }
+    }
+
+    /**
+     * Populate color theme dropdown with options from theme definitions
+     */
+    populateColorThemeDropdown() {
+        const colorThemeMenu = this.getElement('colorThemeMenu');
+        if (!colorThemeMenu) return;
+
+        // Clear existing options
+        colorThemeMenu.innerHTML = '';
+
+        // Get available themes from ThemeManager
+        const themeOptions = this.themeManager.getColorThemeOptions();
+
+        // Create dropdown items for each theme
+        themeOptions.forEach(theme => {
+            const menuItem = document.createElement('div');
+            menuItem.className = 'dropdown-item';
+            menuItem.setAttribute('role', 'menuitem');
+            menuItem.setAttribute('data-theme', theme.id);
+            menuItem.textContent = theme.name;
+
+            colorThemeMenu.appendChild(menuItem);
+        });
+
+        console.log(`[UI] Populated color theme dropdown with ${themeOptions.length} themes`);
     }
 
     /**
