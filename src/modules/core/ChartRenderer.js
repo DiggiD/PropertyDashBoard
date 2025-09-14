@@ -1360,8 +1360,8 @@ class ChartRenderer {
                 })
                 .on('mouseout', () => {
                     this.clearHighlight();
-                    // Only hide tooltip if no flow is selected
-                    if (!this.selectedFlow) {
+                    // Only hide tooltip if no flow or node is selected
+                    if (!this.selectedFlow && !this.selectedNode) {
                         this.hideTooltip();
                     }
                 })
@@ -1393,8 +1393,8 @@ class ChartRenderer {
                 })
                 .on('mouseout', () => {
                     this.clearHighlight();
-                    // Only hide tooltip if no flow is selected
-                    if (!this.selectedFlow) {
+                    // Only hide tooltip if no flow or node is selected
+                    if (!this.selectedFlow && !this.selectedNode) {
                         this.hideTooltip();
                     }
                 })
@@ -1417,8 +1417,8 @@ class ChartRenderer {
                 })
                 .on('mouseout', () => {
                     this.clearHighlight();
-                    // Only hide tooltip if no flow is selected
-                    if (!this.selectedFlow) {
+                    // Only hide tooltip if no flow or node is selected
+                    if (!this.selectedFlow && !this.selectedNode) {
                         this.hideTooltip();
                     }
                 })
@@ -2155,21 +2155,66 @@ class ChartRenderer {
             content += `<br/>${this.formatter.formatCurrency(totalValue)}`;
         }
 
-        // Add node type information
-        if (this.selectedNode.type === 'property') {
-            content += `<br/><em>Property</em>`;
-        } else if (this.selectedNode.type === 'category') {
-            content += `<br/><em>Category</em>`;
-        } else if (this.selectedNode.type === 'subcategory') {
-            content += `<br/><em>Subcategory</em>`;
+
+
+        // Set tooltip content first to get its dimensions
+        this.tooltip
+            .style('opacity', 1)
+            .html(content);
+
+        // Get tooltip dimensions
+        const tooltipRect = this.tooltip.node().getBoundingClientRect();
+        const tooltipWidth = tooltipRect.width;
+        const tooltipHeight = tooltipRect.height;
+
+        // Get viewport dimensions
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+
+        // Smart positioning based on node location and viewport constraints
+        let finalX = tooltipX;
+        let finalY = tooltipY;
+
+        // Check if node is on the right side of the chart (level 3 nodes are typically here)
+        const container = this.uiManager.getElement('overviewChartContent');
+        if (container) {
+            const containerRect = container.getBoundingClientRect();
+            const svgRect = container.querySelector('svg')?.getBoundingClientRect();
+
+            if (svgRect) {
+                // Calculate node's position relative to container center
+                const nodeCenterX = (this.selectedNode.x0 + this.selectedNode.x1) / 2;
+                const containerCenterX = container.clientWidth / 2;
+
+                // If node is on the right side, position tooltip to the left
+                if (nodeCenterX > containerCenterX) {
+                    finalX = tooltipX - tooltipWidth - 15; // Position to the left with margin
+                } else {
+                    finalX = tooltipX + 15; // Position to the right with margin
+                }
+            }
+        }
+
+        // Ensure tooltip doesn't go off-screen horizontally
+        if (finalX + tooltipWidth > viewportWidth) {
+            finalX = viewportWidth - tooltipWidth - 10;
+        }
+        if (finalX < 10) {
+            finalX = 10;
+        }
+
+        // Ensure tooltip doesn't go off-screen vertically
+        if (finalY + tooltipHeight > viewportHeight) {
+            finalY = viewportHeight - tooltipHeight - 10;
+        }
+        if (finalY < 10) {
+            finalY = 10;
         }
 
         // Position and show tooltip
         this.tooltip
-            .style('opacity', 1)
-            .html(content)
-            .style('left', (tooltipX + 10) + 'px')
-            .style('top', (tooltipY - 10) + 'px');
+            .style('left', finalX + 'px')
+            .style('top', finalY + 'px');
     }
 
 

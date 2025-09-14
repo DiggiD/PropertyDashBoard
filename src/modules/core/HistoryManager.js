@@ -1189,70 +1189,93 @@ class HistoryManager {
             style.textContent = `
                 .history-modal {
                     max-width: 900px;
-                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    font-family: var(--font-family-base);
+                    background: var(--color-background);
+                }
+
+                .history-modal .modal-header {
+                    padding: var(--space-8) var(--space-20);
+                }
+
+                .history-modal h2,
+                .history-modal h3,
+                .history-modal .panel-title {
+                    font-family: var(--font-family-base);
+                    font-size: var(--font-size-sm);
+                    font-weight: var(--font-weight-semibold);
+                    color: var(--color-text);
+                    margin: 0;
+                    line-height: var(--line-height-tight);
+                    letter-spacing: var(--letter-spacing-tight);
+                    text-transform: uppercase;
+                }
+
+                .history-modal .panel-header {
+                    margin-bottom: 0;
                 }
 
                 .history-toolbar {
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
-                    padding: 16px 20px;
-                    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-                    border-radius: 8px;
-                    margin-bottom: 20px;
-                    border: 1px solid #dee2e6;
+                    padding: var(--space-8) var(--space-20);
+                    background: var(--color-background);
+                    border-radius: var(--radius-base);
+                    margin-bottom: var(--space-20);
+                    border: 1px solid var(--color-border);
+                    font-family: var(--font-family-base);
+                    font-size: var(--font-size-base);
                 }
 
                 .history-actions-left {
                     display: flex;
                     align-items: center;
-                    gap: 8px;
+                    gap: var(--space-8);
                 }
 
                 .history-actions-right {
                     display: flex;
                     align-items: center;
-                    gap: 8px;
+                    gap: var(--space-8);
                 }
 
                 .toolbar-separator {
                     width: 1px;
                     height: 24px;
-                    background: #dee2e6;
-                    margin: 0 8px;
+                    background: var(--color-border);
+                    margin: 0 var(--space-8);
                 }
 
                 .history-btn {
-                    padding: 8px 16px;
-                    border: none;
-                    border-radius: 6px;
-                    cursor: pointer;
-                    font-size: 14px;
-                    font-weight: 500;
-                    transition: all 0.2s ease;
+                    font-size: var(--font-size-sm);
+                    padding: var(--space-4) var(--space-8);
+                    min-width: 32px;
+                    height: 32px;
+                    background: var(--color-background);
+                    color: var(--color-text);
+                    border: 1px solid var(--color-primary);
                     display: flex;
                     align-items: center;
-                    gap: 6px;
+                    justify-content: center;
+                    font-weight: var(--font-weight-bold);
+                    border-radius: var(--radius-sm);
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    gap: var(--space-6);
                 }
 
-                .history-btn.primary {
-                    background: #007bff;
-                    color: white;
-                }
-
-                .history-btn.primary:hover:not(:disabled) {
-                    background: #0056b3;
+                .history-btn:hover:not(:disabled) {
+                    background: var(--color-text);
+                    color: var(--color-background);
+                    border-color: var(--color-text);
                     transform: translateY(-1px);
                 }
 
-                .history-btn.secondary {
-                    background: #6c757d;
-                    color: white;
-                }
-
-                .history-btn.secondary:hover:not(:disabled) {
-                    background: #545b62;
-                    transform: translateY(-1px);
+                .history-btn:focus {
+                    background: var(--color-text);
+                    color: var(--color-background);
+                    border-color: var(--color-text);
+                    box-shadow: 0 0 0 2px var(--color-focus-ring);
                 }
 
                 .history-btn:disabled {
@@ -1262,62 +1285,60 @@ class HistoryManager {
                 }
 
                 .history-btn.danger {
-                    background: #dc3545;
-                    color: white;
-                }
-
-                .history-btn.danger:hover:not(:disabled) {
-                    background: #c82333;
-                    transform: translateY(-1px);
+                    color: var(--color-error);
                 }
 
                 .history-stats {
                     display: flex;
-                    gap: 16px;
+                    gap: var(--space-16);
                 }
 
                 .stat-item {
-                    font-size: 13px;
-                    color: #6c757d;
-                    background: white;
-                    padding: 4px 12px;
-                    border-radius: 12px;
-                    border: 1px solid #dee2e6;
+                    font-size: var(--font-size-sm);
+                    color: var(--color-text-secondary);
+                    background: var(--color-surface);
+                    padding: var(--space-4) var(--space-12);
+                    border-radius: var(--radius-full);
+                    border: 1px solid var(--color-border);
                 }
 
                 .history-content {
                     display: grid;
                     grid-template-columns: 1fr 1fr;
-                    gap: 24px;
+                    gap: var(--space-24);
                 }
 
                 .history-panel, .snapshots-panel {
-                    background: #f8f9fa;
-                    border-radius: 8px;
-                    padding: 20px;
-                    border: 1px solid #dee2e6;
+                    background: var(--color-background);
+                    border-radius: var(--radius-base);
+                    padding: 0;
+                    border: 1px solid var(--color-border);
+                    font-family: var(--font-family-base);
+                    font-size: var(--font-size-base);
                 }
 
                 .panel-header {
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
-                    margin-bottom: 16px;
-                    border-bottom: 2px solid #007bff;
-                    padding-bottom: 8px;
+                    margin-bottom: var(--space-16);
+                    padding-bottom: var(--space-8);
+                    width: 100%;
                 }
 
                 .panel-title {
                     margin: 0;
-                    font-size: 16px;
-                    font-weight: 600;
-                    color: #495057;
+                    font-size: var(--font-size-lg);
+                    font-weight: var(--font-weight-semibold);
+                    color: var(--color-text);
+                    flex: 1;
                 }
 
                 .panel-actions {
                     display: flex;
                     align-items: center;
                     gap: 8px;
+                    justify-content: flex-end;
                 }
 
                 .history-list, .snapshots-list {
@@ -1326,83 +1347,67 @@ class HistoryManager {
                     gap: 8px;
                     max-height: 300px;
                     overflow-y: auto;
-                    padding-right: 8px;
+                    scrollbar-width: none; /* Firefox */
+                    -ms-overflow-style: none; /* IE and Edge */
                 }
 
                 .history-list::-webkit-scrollbar,
                 .snapshots-list::-webkit-scrollbar {
-                    width: 6px;
-                }
-
-                .history-list::-webkit-scrollbar-track,
-                .snapshots-list::-webkit-scrollbar-track {
-                    background: #f1f1f1;
-                    border-radius: 3px;
-                }
-
-                .history-list::-webkit-scrollbar-thumb,
-                .snapshots-list::-webkit-scrollbar-thumb {
-                    background: #c1c1c1;
-                    border-radius: 3px;
-                }
-
-                .history-list::-webkit-scrollbar-thumb:hover,
-                .snapshots-list::-webkit-scrollbar-thumb:hover {
-                    background: #a8a8a8;
+                    display: none; /* Chrome, Safari, and Opera */
                 }
 
                 .history-entry {
-                    background: white;
-                    border-radius: 6px;
-                    padding: 12px 16px;
-                    border: 1px solid #e9ecef;
+                    background: var(--color-background);
+                    border-radius: var(--radius-sm);
+                    padding: var(--space-12) var(--space-16);
+                    border: 1px solid var(--color-card-border-inner);
                     transition: all 0.2s ease;
                     position: relative;
                 }
 
                 .history-entry:hover {
-                    border-color: #007bff;
-                    box-shadow: 0 2px 4px rgba(0,123,255,0.1);
+                    border-color: var(--color-primary);
+                    box-shadow: 0 2px 4px rgba(var(--color-teal-500-rgb), 0.1);
                 }
 
                 .history-entry.current {
-                    border-color: #007bff;
-                    background: linear-gradient(135deg, #e7f3ff 0%, #f8f9fa 100%);
-                    box-shadow: 0 2px 8px rgba(0,123,255,0.15);
+                    border-color: var(--color-primary);
+                    background: linear-gradient(135deg, rgba(var(--color-teal-500-rgb), 0.06) 0%, var(--color-surface) 100%);
+                    box-shadow: 0 2px 8px rgba(var(--color-teal-500-rgb), 0.15);
                 }
 
                 .entry-content {
                     display: flex;
                     flex-direction: column;
-                    gap: 4px;
+                    gap: var(--space-4);
                 }
 
                 .entry-title {
-                    font-weight: 500;
-                    color: #495057;
-                    font-size: 14px;
+                    font-weight: var(--font-weight-medium);
+                    color: var(--color-text);
+                    font-size: var(--font-size-base);
                 }
 
                 .entry-meta {
-                    font-size: 12px;
-                    color: #6c757d;
+                    font-size: var(--font-size-sm);
+                    color: var(--color-text-secondary);
                 }
 
                 .current-indicator {
                     position: absolute;
-                    right: 12px;
+                    right: var(--space-12);
                     top: 50%;
                     transform: translateY(-50%);
-                    color: #007bff;
-                    font-size: 12px;
-                    font-weight: bold;
+                    color: var(--color-primary);
+                    font-size: var(--font-size-sm);
+                    font-weight: var(--font-weight-bold);
                 }
 
                 .snapshot-entry {
-                    background: white;
-                    border-radius: 6px;
-                    padding: 16px;
-                    border: 1px solid #e9ecef;
+                    background: var(--color-background);
+                    border-radius: var(--radius-sm);
+                    padding: var(--space-16);
+                    border: 1px solid var(--color-card-border-inner);
                     transition: all 0.2s ease;
                     display: flex;
                     justify-content: space-between;
@@ -1410,8 +1415,8 @@ class HistoryManager {
                 }
 
                 .snapshot-entry:hover {
-                    border-color: #28a745;
-                    box-shadow: 0 2px 4px rgba(40,167,69,0.1);
+                    border-color: var(--color-success);
+                    box-shadow: 0 2px 4px rgba(var(--color-success-rgb), 0.1);
                 }
 
                 .snapshot-info {
@@ -1419,118 +1424,112 @@ class HistoryManager {
                     min-width: 0; /* Allow text to wrap properly */
                     display: flex;
                     flex-direction: column;
-                    gap: 4px;
+                    gap: var(--space-4);
                     text-align: left;
                 }
 
                 .snapshot-date {
-                    font-size: 12px;
-                    color: #868e96;
-                    font-weight: 500;
+                    font-size: var(--font-size-sm);
+                    color: var(--color-text-secondary);
+                    font-weight: var(--font-weight-medium);
                     text-align: left;
                 }
 
                 .snapshot-title {
-                    font-weight: 600;
-                    color: #495057;
-                    font-size: 14px;
+                    font-weight: var(--font-weight-semibold);
+                    color: var(--color-text);
+                    font-size: var(--font-size-base);
                     line-height: 1.3;
                     cursor: pointer;
-                    padding: 2px 4px;
-                    border-radius: 3px;
+                    padding: var(--space-2) var(--space-4);
+                    border-radius: var(--radius-sm);
                     transition: background-color 0.2s ease;
                     text-align: left;
                 }
 
                 .snapshot-title:hover {
-                    background-color: #f8f9fa;
+                    background-color: var(--color-secondary);
                 }
 
                 .snapshot-title.editing {
-                    background-color: #fff;
-                    border: 1px solid #007bff;
+                    background-color: var(--color-surface);
+                    border: 1px solid var(--color-primary);
                     outline: none;
                 }
 
                 .snapshot-summary {
-                    font-size: 12px;
-                    color: #6c757d;
-                    font-weight: 500;
+                    font-size: var(--font-size-sm);
+                    color: var(--color-text-secondary);
+                    font-weight: var(--font-weight-medium);
                     text-align: left;
                 }
 
                 .snapshot-actions {
                     display: flex;
                     flex-direction: column;
-                    gap: 4px;
+                    gap: var(--space-4);
                     align-items: flex-end;
                     justify-content: flex-start;
                     min-width: 80px;
                 }
 
                 .action-btn {
-                    padding: 6px 12px;
-                    border: none;
-                    border-radius: 4px;
+                    font-size: var(--font-size-sm);
+                    padding: var(--space-4) var(--space-8);
+                    min-width: 60px;
+                    height: 32px;
+                    background: var(--color-background);
+                    color: var(--color-text);
+                    border: 1px solid var(--color-primary);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-weight: var(--font-weight-bold);
+                    border-radius: var(--radius-sm);
                     cursor: pointer;
-                    font-size: 12px;
-                    font-weight: 500;
                     transition: all 0.2s ease;
-                    min-width: 70px;
-                    text-align: center;
+                    gap: var(--space-6);
                 }
 
-                .load-btn {
-                    background: #28a745;
-                    color: white;
-                }
-
-                .load-btn:hover {
-                    background: #218838;
+                .action-btn:hover:not(:disabled) {
+                    background: var(--color-text);
+                    color: var(--color-background);
+                    border-color: var(--color-text);
                     transform: translateY(-1px);
                 }
 
-                .rename-btn {
-                    background: #ffc107;
-                    color: #212529;
-                }
-
-                .rename-btn:hover {
-                    background: #e0a800;
-                    transform: translateY(-1px);
+                .action-btn:focus {
+                    background: var(--color-text);
+                    color: var(--color-background);
+                    border-color: var(--color-text);
+                    box-shadow: 0 0 0 2px var(--color-focus-ring);
                 }
 
                 .delete-btn {
-                    background: #dc3545;
-                    color: white;
-                }
-
-                .delete-btn:hover {
-                    background: #c82333;
-                    transform: translateY(-1px);
+                    color: var(--color-error);
                 }
 
                 .empty-state {
                     text-align: center;
-                    color: #6c757d;
+                    color: var(--color-text-secondary);
                     font-style: italic;
-                    padding: 40px 20px;
-                    background: white;
-                    border-radius: 6px;
-                    border: 1px solid #e9ecef;
+                    padding: var(--space-40) var(--space-20);
+                    background: var(--color-surface);
+                    border-radius: var(--radius-sm);
+                    border: 1px solid var(--color-card-border-inner);
                 }
 
                 .close-btn {
                     background: none;
                     border: none;
-                    font-size: 24px;
+                    font-size: var(--font-size-2xl);
                     cursor: pointer;
-                    color: #6c757d;
+                    color: var(--color-text-secondary);
                     transition: color 0.2s ease;
                 }
 
                 .close-btn:hover {
-                    color: #495057;
+                    color: var(--color-text);
                 }
 
                 @media (max-width: 768px) {
@@ -1558,6 +1557,8 @@ class HistoryManager {
                 modal.classList.add('open');
                 // Bind close button after modal is shown
                 this.bindCloseButton();
+                // Bind outside click to close modal
+                this.bindOutsideClickToClose();
             }, 10);
 
             console.log('[HISTORY] History manager opened');
@@ -1588,7 +1589,7 @@ class HistoryManager {
             <div class="history-toolbar">
                 <div class="history-actions-left">
                     <button class="history-btn danger" onclick="window.historyManager.deleteAllData()" title="Delete all data (irreversible)">
-                        🗑️ Delete All
+                        Delete All
                     </button>
                 </div>
                 <div class="history-actions-right">
@@ -2102,6 +2103,29 @@ class HistoryManager {
             }
         } catch (error) {
             console.error('[HISTORY] Failed to bind close button:', error);
+        }
+    }
+
+    /**
+     * Bind outside click to close modal
+     */
+    bindOutsideClickToClose() {
+        try {
+            const modal = document.getElementById('historyManagerModal');
+            if (modal) {
+                modal.addEventListener('click', (e) => {
+                    // Only close if the click target is the modal itself (not its children)
+                    if (e.target === modal) {
+                        modal.remove();
+                        console.log('[HISTORY] History manager modal closed by outside click');
+                    }
+                });
+                console.log('[HISTORY] Outside click to close bound');
+            } else {
+                console.error('[HISTORY] Modal not found for outside click binding');
+            }
+        } catch (error) {
+            console.error('[HISTORY] Failed to bind outside click to close:', error);
         }
     }
 
