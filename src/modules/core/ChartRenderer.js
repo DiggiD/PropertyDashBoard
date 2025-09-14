@@ -277,7 +277,7 @@ class ChartRenderer {
                 .attr('dominant-baseline', 'middle')
                 .style('font-weight', 'bold')
                 .style('fill', this.chartConfig.colors.properties[propertyIndex % this.chartConfig.colors.properties.length])
-                .text(property.name)
+                .text(property.name.toUpperCase())
                 .style('cursor', 'pointer')
                 .on('click', () => this.handlePropertyClick(property));
 
@@ -301,7 +301,7 @@ class ChartRenderer {
                     .attr('stroke-width', 1)
                     .style('cursor', 'pointer')
                     .on('mouseover', (event) => this.showTooltip(event, {
-                        title: `${property.name} - ${category}`,
+                        title: `${property.name.toUpperCase()} - ${category}`,
                         value: this.formatter.formatCurrency(value),
                         percentage: this.formatter.formatPercentageOfTotal(value, propertyData.total),
                     }))
@@ -981,7 +981,7 @@ class ChartRenderer {
             nodeMap.set(nodeId, nodes.length);
             nodes.push({
                 id: nodeId,
-                name: property.name,
+                name: property.name.toUpperCase(),
                 type: 'property',
                 level: 1,
                 color: this.chartConfig.colors.properties[index % this.chartConfig.colors.properties.length],
@@ -1044,7 +1044,7 @@ class ChartRenderer {
             nodeMap.set(nodeId, nodes.length);
             nodes.push({
                 id: nodeId,
-                name: category,
+                name: category.toUpperCase(),
                 type: 'category',
                 level: 2,
                 color: this.chartConfig.colors.categories[categories.indexOf(category) % this.chartConfig.colors.categories.length],
@@ -1090,7 +1090,7 @@ class ChartRenderer {
                     nodeMap.set(subNodeId, nodes.length);
                     nodes.push({
                         id: subNodeId,
-                        name: subCategory,
+                        name: subCategory.toUpperCase(),
                         type: 'subcategory',
                         level: 3,
                         color: this.chartConfig.colors.categories[categories.indexOf(category) % this.chartConfig.colors.categories.length],

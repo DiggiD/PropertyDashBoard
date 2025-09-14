@@ -19,6 +19,10 @@ class PropertiesManager {
         this.currentCategoryPath = null; // For hierarchical navigation
         this.isEditMode = false;
 
+        // Double-click detection and single-click delay
+        this.clickCounters = new Map();
+        this.pendingSelections = new Map();
+
         console.log('[PROPERTIES] PropertiesManager initialized');
     }
 
@@ -57,22 +61,76 @@ class PropertiesManager {
         // Use event delegation on the properties dashboard container
         const container = this.uiManager.getElement('propertiesDashboard');
         if (container) {
-            // Property actions
-            this.uiManager.addEventListener(container, 'click', (e) => {
-                if (e.target.closest('.property-name.editable')) {
+            // Double-click for inline editing of names
+            this.uiManager.addEventListener(container, 'dblclick', (e) => {
+                const editableElement = e.target.closest('.property-name.editable, .category-name.editable, .subcategory-name.editable');
+                if (!editableElement) return;
+
+                // Constrain to direct clicks on the name text (not padding/margins)
+                const rect = editableElement.getBoundingClientRect();
+                const clickX = e.clientX;
+                const clickY = e.clientY;
+
+                // Check if click is within the text bounds (rough approximation)
+                const textWidth = editableElement.scrollWidth;
+                const textHeight = editableElement.scrollHeight;
+                const isInTextArea = clickX >= rect.left && clickX <= rect.left + textWidth &&
+                                   clickY >= rect.top && clickY <= rect.top + textHeight;
+
+                if (!isInTextArea) return;
+
+                // Cancel any pending selection for this item
+                const itemElement = editableElement.closest('.property-item');
+                if (itemElement) {
+                    const itemId = itemElement.dataset.propertyId || itemElement.dataset.category || itemElement.dataset.subcategory;
+                    if (this.pendingSelections.has(itemId)) {
+                        clearTimeout(this.pendingSelections.get(itemId));
+                        this.pendingSelections.delete(itemId);
+                    }
+                }
+
+                // Double-click detected on name text
+                if (editableElement.classList.contains('property-name')) {
                     this.handlePropertyNameEdit(e);
-                } else if (e.target.closest('.category-name.editable')) {
+                } else if (editableElement.classList.contains('category-name')) {
                     this.handleCategoryNameEdit(e);
-                } else if (e.target.closest('.subcategory-name.editable')) {
+                } else if (editableElement.classList.contains('subcategory-name')) {
                     this.handleSubcategoryNameEdit(e);
-                } else if (e.target.closest('.property-item')) {
-                    this.handleItemClick(e);
+                }
+
+                // Stop propagation to prevent selection from interfering with editing
+                e.stopImmediatePropagation();
+            });
+
+            // Single-click for other interactions (with double-click protection)
+            this.uiManager.addEventListener(container, 'click', (e) => {
+                // Check if this click is part of a double-click sequence
+                const editableElement = e.target.closest('.property-name.editable, .category-name.editable, .subcategory-name.editable');
+                if (editableElement) {
+                    // For editable names, delay selection to allow double-click to cancel it
+                    const itemElement = editableElement.closest('.property-item');
+                    if (itemElement) {
+                        const itemId = itemElement.dataset.propertyId || itemElement.dataset.category || itemElement.dataset.subcategory;
+                        if (this.pendingSelections.has(itemId)) {
+                            clearTimeout(this.pendingSelections.get(itemId));
+                        }
+                        const timeoutId = setTimeout(() => {
+                            this.pendingSelections.delete(itemId);
+                            this.handleItemClick(e);
+                        }, 300);
+                        this.pendingSelections.set(itemId, timeoutId);
+                    }
+                    return;
+                }
+
+                if (e.target.closest('.expense-value')) {
+                    this.handleExpenseEdit(e);
                 } else if (e.target.closest('.property-action')) {
                     this.handlePropertyAction(e);
                 } else if (e.target.closest('.category-action')) {
                     this.handleCategoryAction(e);
-                } else if (e.target.closest('.expense-value')) {
-                    this.handleExpenseEdit(e);
+                } else if (e.target.closest('.property-item')) {
+                    this.handleItemClick(e);
                 } else if (e.target.closest('#add-property-btn')) {
                     this.handleAddProperty();
                 } else if (e.target.closest('#add-category-btn')) {
@@ -170,6 +228,13 @@ class PropertiesManager {
         const selectedCategory = this.currentCategoryPath ? this.currentCategoryPath.category : null;
         const selectedSubcategory = this.currentCategoryPath ? this.currentCategoryPath.subcategory : null;
 
+        // Determine if selected category is hierarchical
+        let isSelectedCategoryHierarchical = false;
+        if (selectedCategory && selectedProperty) {
+            const expenseValue = this.getCategoryExpenseValue(selectedProperty, selectedCategory);
+            isSelectedCategoryHierarchical = typeof expenseValue === 'object' && expenseValue !== null;
+        }
+
         return `
             <div class="properties-multi-panel">
                 <!-- Panel 1: Properties -->
@@ -201,14 +266,14 @@ class PropertiesManager {
                 <!-- Panel 3: Subcategories -->
                 <div class="panel values-panel">
                     <div class="panel-header">
-                        ${selectedCategory && selectedProperty ? `
+                        ${selectedCategory && selectedProperty && isSelectedCategoryHierarchical ? `
                             <button class="btn btn--outline btn--sm" id="add-subcategory-btn" title="Add Subcategory">
                                 +
                             </button>
                         ` : ''}
                     </div>
                     <div class="panel-content">
-                        ${selectedCategory ? this.renderValuesPanel(selectedProperty, selectedCategory, selectedSubcategory) : ''}
+                        ${selectedCategory && isSelectedCategoryHierarchical ? this.renderValuesPanel(selectedProperty, selectedCategory, selectedSubcategory) : ''}
                     </div>
                 </div>
             </div>
@@ -228,8 +293,10 @@ class PropertiesManager {
             `;
         }
 
+        const hasSelected = properties.some(property => property.id === this.currentPropertyId);
+
         return `
-            <div class="properties-list">
+            <div class="properties-list ${hasSelected ? 'has-selected' : ''}">
                 ${properties.map(property => {
                     const isSelected = property.id === this.currentPropertyId;
                     const currentData = this.dataManager.getCurrentPeriodData(property);
@@ -276,8 +343,10 @@ class PropertiesManager {
             `;
         }
 
+        const hasSelected = categories.some(category => category === this.currentCategoryPath?.category);
+
         return `
-            <div class="properties-list">
+            <div class="properties-list ${hasSelected ? 'has-selected' : ''}">
                 ${categories.map(category => {
                     const isSelected = category === this.currentCategoryPath?.category;
                     const expenseValue = this.getCategoryExpenseValue(property, category);
@@ -355,8 +424,10 @@ class PropertiesManager {
         } else {
             // Hierarchical category - show subcategories as selectable items
             const subcategories = Object.entries(expenseValue);
+            const hasSelected = subcategories.some(([subcat]) => subcat === subcategory);
+
             return `
-                <div class="properties-list">
+                <div class="properties-list ${hasSelected ? 'has-selected' : ''}">
                     ${subcategories.map(([subcat, value]) => {
                         const isSelected = subcat === subcategory;
                         const displayValue = `₹${this.uiManager.formatter ? this.uiManager.formatter.formatNumber(value || 0) : (value || 0)}`;
@@ -667,11 +738,9 @@ class PropertiesManager {
                         this.currentCategoryPath = { category };
                         this.renderPropertiesDashboard();
                     } else {
-                        // Flat category - trigger inline editing
-                        const valueElement = propertyItem.querySelector('.expense-value');
-                        if (valueElement) {
-                            this.handleExpenseEdit({ target: valueElement });
-                        }
+                        // Flat category - allow selection but don't populate third panel
+                        this.currentCategoryPath = { category };
+                        this.renderPropertiesDashboard();
                     }
                 }
             }
@@ -683,11 +752,9 @@ class PropertiesManager {
             const category = propertyItem.dataset.category;
             const subcategory = propertyItem.dataset.subcategory;
             if (category && subcategory) {
-                // Trigger inline editing of the subcategory value
-                const valueElement = propertyItem.querySelector('.expense-value');
-                if (valueElement) {
-                    this.handleExpenseEdit({ target: valueElement });
-                }
+                // Set as selected for dimming effect
+                this.currentCategoryPath = { category, subcategory };
+                this.renderPropertiesDashboard();
             }
             return;
         }
@@ -770,14 +837,60 @@ class PropertiesManager {
         const valueElement = event.target.closest('.expense-value');
         if (!valueElement || this.isEditMode) return;
 
+        // Stop event propagation to prevent parent click handlers
+        event.stopPropagation();
+
         // Prevent focus on the value element itself to avoid accessibility issues
         if (event.preventDefault) {
             event.preventDefault();
         }
 
-        this.isEditMode = true;
         const category = valueElement.dataset.category;
         const subcategory = valueElement.dataset.subcategory;
+
+        // Check if the target entity is currently selected
+        let needsSelection = false;
+        if (subcategory) {
+            // For subcategories, check if both category and subcategory are selected
+            needsSelection = !this.currentCategoryPath ||
+                           this.currentCategoryPath.category !== category ||
+                           this.currentCategoryPath.subcategory !== subcategory;
+        } else {
+            // For categories, check if the category is selected
+            needsSelection = !this.currentCategoryPath ||
+                           this.currentCategoryPath.category !== category;
+        }
+
+        if (needsSelection) {
+            // Select the entity first
+            if (subcategory) {
+                this.currentCategoryPath = { category, subcategory };
+            } else {
+                this.currentCategoryPath = { category };
+            }
+            this.renderPropertiesDashboard();
+
+            // Re-find the element after re-render and start editing
+            const container = this.uiManager.getElement('propertiesDashboard');
+            let selector = `.expense-value[data-category="${category}"]`;
+            if (subcategory) {
+                selector += `[data-subcategory="${subcategory}"]`;
+            }
+            const updatedElement = container.querySelector(selector);
+            if (updatedElement) {
+                this.startExpenseEdit(updatedElement, category, subcategory);
+            }
+            return;
+        }
+
+        this.startExpenseEdit(valueElement, category, subcategory);
+    }
+
+    /**
+     * Start expense edit (helper method)
+     */
+    startExpenseEdit(valueElement, category, subcategory) {
+        this.isEditMode = true;
         const currentValue = this.getCurrentExpenseValue(category, subcategory);
 
         // Create input element
@@ -791,6 +904,11 @@ class PropertiesManager {
         if (subcategory) {
             input.dataset.subcategory = subcategory;
         }
+
+        // Remove number input arrows by setting CSS properties directly
+        input.style.setProperty('-webkit-appearance', 'none', 'important');
+        input.style.setProperty('-moz-appearance', 'textfield', 'important');
+        input.style.setProperty('appearance', 'none', 'important');
 
         // Add event listeners directly to the input
         input.addEventListener('blur', () => {
@@ -1074,8 +1192,31 @@ class PropertiesManager {
         const propertyNameElement = event.target.closest('.property-name.editable');
         if (!propertyNameElement || this.isEditMode) return;
 
-        this.isEditMode = true;
         const propertyId = parseInt(propertyNameElement.dataset.propertyId);
+
+        // If this property is not currently selected, select it first
+        if (this.currentPropertyId !== propertyId) {
+            this.currentPropertyId = propertyId;
+            this.currentCategoryPath = null;
+            this.renderPropertiesDashboard();
+            // Re-find the element after re-render
+            const container = this.uiManager.getElement('propertiesDashboard');
+            const updatedElement = container.querySelector(`.property-name.editable[data-property-id="${propertyId}"]`);
+            if (updatedElement) {
+                // Start edit mode on the updated element
+                this.startPropertyNameEdit(updatedElement, propertyId);
+            }
+            return;
+        }
+
+        this.startPropertyNameEdit(propertyNameElement, propertyId);
+    }
+
+    /**
+     * Start property name edit (helper method)
+     */
+    startPropertyNameEdit(propertyNameElement, propertyId) {
+        this.isEditMode = true;
         const property = this.dataManager.getPropertyById(propertyId);
         if (!property) return;
 
@@ -1141,8 +1282,30 @@ class PropertiesManager {
         const categoryNameElement = event.target.closest('.category-name.editable');
         if (!categoryNameElement || this.isEditMode) return;
 
-        this.isEditMode = true;
         const category = categoryNameElement.dataset.category;
+
+        // If this category is not currently selected, select it first
+        if (!this.currentCategoryPath || this.currentCategoryPath.category !== category) {
+            this.currentCategoryPath = { category };
+            this.renderPropertiesDashboard();
+            // Re-find the element after re-render
+            const container = this.uiManager.getElement('propertiesDashboard');
+            const updatedElement = container.querySelector(`.category-name.editable[data-category="${category}"]`);
+            if (updatedElement) {
+                // Start edit mode on the updated element
+                this.startCategoryNameEdit(updatedElement, category);
+            }
+            return;
+        }
+
+        this.startCategoryNameEdit(categoryNameElement, category);
+    }
+
+    /**
+     * Start category name edit (helper method)
+     */
+    startCategoryNameEdit(categoryNameElement, category) {
+        this.isEditMode = true;
         const property = this.dataManager.getPropertyById(this.currentPropertyId);
         if (!property || !category) return;
 
@@ -1204,9 +1367,33 @@ class PropertiesManager {
         const subcategoryNameElement = event.target.closest('.subcategory-name.editable');
         if (!subcategoryNameElement || this.isEditMode) return;
 
-        this.isEditMode = true;
         const category = subcategoryNameElement.dataset.category;
         const subcategory = subcategoryNameElement.dataset.subcategory;
+
+        // If this subcategory is not currently selected, select it first
+        if (!this.currentCategoryPath ||
+            this.currentCategoryPath.category !== category ||
+            this.currentCategoryPath.subcategory !== subcategory) {
+            this.currentCategoryPath = { category, subcategory };
+            this.renderPropertiesDashboard();
+            // Re-find the element after re-render
+            const container = this.uiManager.getElement('propertiesDashboard');
+            const updatedElement = container.querySelector(`.subcategory-name.editable[data-category="${category}"][data-subcategory="${subcategory}"]`);
+            if (updatedElement) {
+                // Start edit mode on the updated element
+                this.startSubcategoryNameEdit(updatedElement, category, subcategory);
+            }
+            return;
+        }
+
+        this.startSubcategoryNameEdit(subcategoryNameElement, category, subcategory);
+    }
+
+    /**
+     * Start subcategory name edit (helper method)
+     */
+    startSubcategoryNameEdit(subcategoryNameElement, category, subcategory) {
+        this.isEditMode = true;
         const property = this.dataManager.getPropertyById(this.currentPropertyId);
         if (!property || !category || !subcategory) return;
 
@@ -1448,6 +1635,11 @@ class PropertiesManager {
         const confirmBtn = document.getElementById(`confirm-add-subcategory-${timestamp}`);
         const nameInput = document.getElementById(`new-subcategory-name-${timestamp}`);
         const valueInput = document.getElementById(`new-subcategory-value-${timestamp}`);
+
+        // Remove number input arrows from value input
+        valueInput.style.setProperty('-webkit-appearance', 'none', 'important');
+        valueInput.style.setProperty('-moz-appearance', 'textfield', 'important');
+        valueInput.style.setProperty('appearance', 'none', 'important');
 
         const handleConfirm = () => {
             const name = nameInput.value.trim();

@@ -798,11 +798,13 @@ select.form-control {
 }
 
 .header-left h1 {
-  font-size: var(--font-size-2xl);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-sm);
   margin: 0;
   color: var(--color-text);
   font-weight: var(--font-weight-semibold);
   text-align: center;
+  text-transform: uppercase;
 }
 
 .header-left .subtitle {
@@ -857,11 +859,12 @@ select.form-control {
 
 .property-label {
   font-family: var(--font-family-base);
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
   fill: var(--color-text);
   cursor: pointer;
   transition: all var(--duration-fast) var(--ease-standard);
+  text-transform: uppercase;
 }
 
 .property-label:hover {
@@ -870,16 +873,20 @@ select.form-control {
 }
 
 .segment-label {
-  font-family: var(--font-family-mono);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-xs);
   fill: var(--color-text); /* Use theme-aware text color instead of hardcoded white */
   text-shadow: 0 0 3px rgba(0,0,0,0.5);
   pointer-events: none;
+  text-transform: uppercase;
 }
 
 .total-label {
-  font-family: var(--font-family-mono);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-xs);
   fill: var(--color-text-secondary);
   font-weight: var(--font-weight-medium);
+  text-transform: uppercase;
 }
 
 /* Tooltip */
@@ -1239,9 +1246,10 @@ select.form-control {
     right: -100%;
   }
 
-  .node-label {
+.node-label {
+    font-family: var(--font-family-base);
     font-size: var(--font-size-xs);
-  }
+}
 
   .modal-content {
     margin: var(--space-16);
@@ -1404,7 +1412,8 @@ select.form-control {
 
 /* Value labels */
 .node-value-label {
-    font-family: var(--font-family-mono);
+    font-family: var(--font-family-base);
+    font-size: var(--font-size-xs);
     fill: var(--color-text-secondary);
     pointer-events: none;
 }
@@ -1441,6 +1450,7 @@ select.form-control {
     display: flex;
     flex-direction: column;
     gap: var(--space-16);
+    font-family: var(--font-family-base);
 }
 
 .properties-header {
@@ -1453,7 +1463,7 @@ select.form-control {
 .properties-header h3 {
     margin: 0;
     color: var(--color-text);
-    font-size: var(--font-size-xl);
+    font-size: var(--font-size-sm);
 }
 
 .properties-grid {
@@ -1464,28 +1474,43 @@ select.form-control {
 
 .property-item {
     background: transparent;
-    border: none;
+    border: 2px solid transparent;
     border-radius: 0;
-    padding: var(--space-20);
+    padding: var(--space-12) var(--space-8);
     cursor: pointer;
-    transition: all var(--duration-normal) var(--ease-standard);
+    transition: all 0.3s ease;
     position: relative;
-    overflow: hidden;
-    width: 70%; /* Reduce width by 30% */
-    margin: 0 auto; /* Center the reduced width items */
+    overflow: visible;
+    width: 100%;
+    margin: 0;
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    font-family: var(--font-family-base);
 }
 
 .property-item:hover,
 .property-item.hovered {
-    border-color: var(--color-primary);
-    box-shadow: var(--shadow-md);
-    transform: translateY(-2px);
+    background: rgba(var(--color-teal-500-rgb), 0.06);
 }
 
 .property-item.selected {
-    border-color: var(--color-primary);
-    box-shadow: 0 0 0 2px var(--color-focus-ring);
-    background: rgba(var(--color-teal-500-rgb), 0.02);
+    background: rgba(var(--color-teal-500-rgb), 0.06);
+}
+
+/* Dim and blur unselected items when there is a selection */
+.properties-list.has-selected .property-item:not(.selected) {
+    opacity: 0.4;
+    filter: blur(0.5px);
+    transform: scale(0.98);
+    transition: all 0.3s ease;
+}
+
+.properties-list.has-selected .property-item:not(.selected):hover {
+    opacity: 0.6;
+    filter: blur(0.25px);
+    transform: scale(0.99);
 }
 
 
@@ -1502,11 +1527,13 @@ select.form-control {
 }
 
 .property-name {
-    font-size: var(--font-size-lg);
-    font-weight: var(--font-weight-semibold);
-    color: var(--color-text);
-    margin-bottom: var(--space-8);
-    display: block;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+  margin-bottom: var(--space-8);
+  display: inline-block;
+  font-family: var(--font-family-base);
+  text-transform: uppercase;
 }
 
 .property-meta {
@@ -1515,6 +1542,7 @@ select.form-control {
     gap: var(--space-4);
     font-size: var(--font-size-sm);
     color: var(--color-text-secondary);
+    font-family: var(--font-family-base);
 }
 
 .property-categories,
@@ -1522,6 +1550,7 @@ select.form-control {
     display: flex;
     align-items: center;
     gap: var(--space-4);
+    font-family: var(--font-family-base);
 }
 
 .property-actions {
@@ -1572,6 +1601,7 @@ select.form-control {
     flex-direction: column;
     overflow: hidden;
     transition: all var(--duration-normal) var(--ease-standard);
+    font-family: var(--font-family-base);
 }
 
 .panel.empty {
@@ -1585,6 +1615,7 @@ select.form-control {
     align-items: center;
     padding: var(--space-12) var(--space-16);
     background: transparent;
+    font-family: var(--font-family-base);
 }
 
 /* Panel header '+' buttons styling */
@@ -1623,6 +1654,7 @@ select.form-control {
     /* Hide scrollbar while keeping functionality */
     scrollbar-width: none; /* Firefox */
     -ms-overflow-style: none; /* IE and Edge */
+    font-family: var(--font-family-base);
 }
 
 /* Hide scrollbar for WebKit browsers (Chrome, Safari, newer Edge) */
@@ -1676,11 +1708,14 @@ select.form-control {
 }
 
 .category-name {
-    font-size: var(--font-size-lg);
+    font-size: var(--font-size-sm);
     font-weight: var(--font-weight-medium);
     color: var(--color-text);
     margin: 0;
     flex: 1;
+    display: inline-block;
+    font-family: var(--font-family-base);
+    text-transform: uppercase;
 }
 
 .category-value {
@@ -1693,6 +1728,7 @@ select.form-control {
     transition: all var(--duration-fast) var(--ease-standard);
     min-width: 80px;
     text-align: right;
+    font-family: var(--font-family-base);
 }
 
 .category-value:hover,
@@ -1703,6 +1739,7 @@ select.form-control {
 .category-indicator {
     font-size: var(--font-size-sm);
     opacity: 0.7;
+    font-family: var(--font-family-base);
 }
 
 /* Values Panel */
@@ -1746,11 +1783,12 @@ select.form-control {
 }
 
 .value-name {
-    font-size: var(--font-size-base);
+    font-size: var(--font-size-xs);
     font-weight: var(--font-weight-medium);
     color: var(--color-text);
     margin: 0;
     flex: 1;
+    font-family: var(--font-family-base);
 }
 
 .expense-value {
@@ -1763,6 +1801,7 @@ select.form-control {
     transition: all var(--duration-fast) var(--ease-standard);
     min-width: 80px;
     text-align: right;
+    font-family: var(--font-family-base);
 }
 
 .expense-value:hover,
@@ -1788,6 +1827,43 @@ select.form-control {
     text-align: right;
     width: 100px;
     transition: all var(--duration-fast) var(--ease-standard);
+}
+
+/* Remove number input arrows - comprehensive approach */
+input[type="number"] {
+    -webkit-appearance: none !important;
+    -moz-appearance: textfield !important;
+    appearance: none !important;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none !important;
+    margin: 0 !important;
+    display: none !important;
+}
+
+input[type="number"].expense-input,
+.expense-input[type="number"],
+.expense-input {
+    -webkit-appearance: none !important;
+    -moz-appearance: textfield !important;
+    appearance: none !important;
+}
+
+input[type="number"].expense-input::-webkit-outer-spin-button,
+input[type="number"].expense-input::-webkit-inner-spin-button,
+.expense-input::-webkit-outer-spin-button,
+.expense-input::-webkit-inner-spin-button {
+    -webkit-appearance: none !important;
+    margin: 0 !important;
+    display: none !important;
+}
+
+input[type="number"].expense-input[type="number"],
+.expense-input[type="number"] {
+    appearance: none !important;
+    -moz-appearance: textfield !important;
 }
 
 .expense-input:focus {
@@ -1824,7 +1900,9 @@ select.form-control {
 .property-title h3 {
     margin: 0 0 var(--space-8) 0;
     color: var(--color-text);
-    font-size: var(--font-size-xl);
+    font-size: var(--font-size-sm);
+    text-transform: uppercase;
+    font-family: var(--font-family-base);
 }
 
 .property-summary {
@@ -1839,6 +1917,7 @@ select.form-control {
     display: flex;
     align-items: center;
     gap: var(--space-4);
+    font-family: var(--font-family-base);
 }
 
 /* Categories Section */
@@ -1888,14 +1967,14 @@ select.form-control {
 }
 
 .category-name {
-    font-size: var(--font-size-lg);
+    font-size: var(--font-size-sm);
     font-weight: var(--font-weight-semibold);
     color: var(--color-text);
     margin: 0;
 }
 
 .category-value {
-    font-size: var(--font-size-lg);
+    font-size: var(--font-size-sm);
     font-weight: var(--font-weight-bold);
     color: var(--color-primary);
     cursor: pointer;
@@ -1939,14 +2018,14 @@ select.form-control {
 }
 
 .subcategory-inline .subcategory-name {
-    font-size: var(--font-size-lg);
+    font-size: var(--font-size-sm);
     font-weight: var(--font-weight-medium);
     color: var(--color-text);
     flex: 1;
 }
 
 .subcategory-inline .expense-value {
-    font-size: var(--font-size-lg);
+    font-size: var(--font-size-sm);
     font-weight: var(--font-weight-semibold);
     color: var(--color-primary);
     cursor: pointer;
@@ -1968,6 +2047,7 @@ select.form-control {
     align-items: center;
     padding: var(--space-8) 0;
     border-bottom: 1px solid var(--color-card-border-inner);
+    font-family: var(--font-family-base);
 }
 
 .subcategory-item:last-child {
@@ -1978,6 +2058,9 @@ select.form-control {
     font-weight: var(--font-weight-medium);
     color: var(--color-text);
     font-size: var(--font-size-sm);
+    display: inline-block;
+    font-family: var(--font-family-base);
+    text-transform: uppercase;
 }
 
 .subcategory-value {
@@ -1989,6 +2072,7 @@ select.form-control {
     transition: all var(--duration-fast) var(--ease-standard);
     min-width: 80px;
     text-align: right;
+    font-family: var(--font-family-base);
 }
 
 .subcategory-value:hover {
@@ -2029,6 +2113,7 @@ select.form-control {
     gap: var(--space-8);
     font-size: var(--font-size-sm);
     color: var(--color-text-secondary);
+    font-family: var(--font-family-base);
 }
 
 .form-check input[type="checkbox"] {
@@ -2202,6 +2287,7 @@ select.form-control {
   transition: all 0.3s ease;
   position: relative;
   z-index: 2; /* Above the ::before pseudo-element */
+  padding-left: var(--space-8); /* Add consistent left padding for text alignment */
 }
 
 /* Remove the rule that changes gap in collapsed state */
@@ -2225,6 +2311,8 @@ select.form-control {
   font-size: 1.5rem;
   transition: all 0.3s ease;
   flex-shrink: 0;
+  width: 24px; /* Fixed width for consistent alignment */
+  text-align: center; /* Center the icon character */
 }
 
 .summary-cards:not(:hover) .button-icon {
@@ -2368,12 +2456,16 @@ select.form-control {
 
 @media (max-width: 480px) {
   .dashboard-title {
-    font-size: var(--font-size-xl);
+    font-family: var(--font-family-base);
+    font-size: var(--font-size-sm);
+    text-transform: uppercase;
   }
   
   .control-select {
     min-width: 100px;
+    font-family: var(--font-family-base);
     font-size: var(--font-size-xs);
+    text-transform: uppercase;
   }
   
   .quarterly-grid {
@@ -2426,6 +2518,8 @@ select.form-control {
   gap: var(--space-16);
   align-items: center;
   flex-shrink: 0;
+  font-family: var(--font-family-base);
+  text-transform: uppercase;
 }
 
 .chart-metrics {
@@ -2439,6 +2533,8 @@ select.form-control {
   border: none; /* Remove border */
   border-radius: 0; /* Remove border radius */
   flex-shrink: 0;
+  font-family: var(--font-family-base);
+  text-transform: uppercase;
 }
 
 .chart-metric {
@@ -2458,6 +2554,7 @@ select.form-control {
   color: var(--color-text-secondary);
   white-space: nowrap;
   font-size: var(--font-size-sm);
+  text-transform: uppercase;
 }
 
 .chart-value {
@@ -2556,12 +2653,20 @@ select.form-control {
   margin: var(--space-8) 0 var(--space-16) 0;
   color: var(--color-text);
   font-size: var(--font-size-xl);
+  text-transform: uppercase;
+  font-family: var(--font-family-base);
+}
+
+.coming-soon {
+  font-family: var(--font-family-base);
+  text-transform: uppercase;
 }
 
 .coming-soon p {
   max-width: 400px;
   line-height: 1.6;
   opacity: 0.8;
+  text-transform: uppercase;
 }
 
 /* Dashboard Content */
