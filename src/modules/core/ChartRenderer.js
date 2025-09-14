@@ -80,6 +80,9 @@ class ChartRenderer {
         // Sankey interaction state
         this.selectedFlow = null;
         this.highlightedFlow = null;
+        this.selectedFlowMousePosition = null;
+        this.selectedNode = null;
+        this.selectedNodeMousePosition = null;
 
         console.log('[CHART] ChartRenderer initialized');
     }
@@ -1357,7 +1360,10 @@ class ChartRenderer {
                 })
                 .on('mouseout', () => {
                     this.clearHighlight();
-                    this.hideTooltip();
+                    // Only hide tooltip if no flow is selected
+                    if (!this.selectedFlow) {
+                        this.hideTooltip();
+                    }
                 })
                 .on('click', (event, d) => {
                     this.selectFlow(d);
@@ -1387,7 +1393,10 @@ class ChartRenderer {
                 })
                 .on('mouseout', () => {
                     this.clearHighlight();
-                    this.hideTooltip();
+                    // Only hide tooltip if no flow is selected
+                    if (!this.selectedFlow) {
+                        this.hideTooltip();
+                    }
                 })
                 .on('click', (event, d) => {
                     this.selectNode(d);
@@ -1408,7 +1417,10 @@ class ChartRenderer {
                 })
                 .on('mouseout', () => {
                     this.clearHighlight();
-                    this.hideTooltip();
+                    // Only hide tooltip if no flow is selected
+                    if (!this.selectedFlow) {
+                        this.hideTooltip();
+                    }
                 })
                 .on('click', (event, d) => {
                     this.selectNode(d);
@@ -1652,8 +1664,12 @@ class ChartRenderer {
     getNodeClass(node) {
         const classes = ['sankey-node'];
 
+        // Check if this node is directly selected
+        if (this.selectedNode === node) {
+            classes.push('sankey-node-selected');
+        }
         // Check if this node is in the selected flow path by direct reference comparison
-        if (this.selectedFlowPath && this.selectedFlowPath.nodes.includes(node)) {
+        else if (this.selectedFlowPath && this.selectedFlowPath.nodes.includes(node)) {
             classes.push('sankey-node-selected');
         } else if (this.selectedFlow && this.isNodeInFlow(node, this.selectedFlow)) {
             classes.push('sankey-node-selected');
@@ -1661,7 +1677,7 @@ class ChartRenderer {
             classes.push('sankey-node-highlighted');
         } else if (this.highlightedFlow && this.isNodeInFlow(node, this.highlightedFlow)) {
             classes.push('sankey-node-highlighted');
-        } else if (this.selectedFlowPath || this.selectedFlow || this.highlightedFlowPath || this.highlightedFlow) {
+        } else if (this.selectedFlowPath || this.selectedFlow || this.selectedNode || this.highlightedFlowPath || this.highlightedFlow) {
             classes.push('sankey-node-dimmed');
         }
 
@@ -1774,15 +1790,23 @@ class ChartRenderer {
     /**
      * Select/deselect a flow
      */
-    selectFlow(flow) {
+    selectFlow(flow, event) {
         if (this.selectedFlow === flow) {
             // Deselect if clicking the same flow
             this.selectedFlow = null;
             this.selectedFlowPath = null;
+            this.selectedFlowMousePosition = null;
         } else {
             // Select the clicked flow and trace the complete path including all nodes
             this.selectedFlow = flow;
             this.selectedFlowPath = this.traceCompleteFlowPath(flow);
+            // Store mouse click position for tooltip
+            if (event) {
+                this.selectedFlowMousePosition = {
+                    x: event.pageX,
+                    y: event.pageY
+                };
+            }
         }
         this.updateSankeyVisuals();
     }
@@ -1793,6 +1817,9 @@ class ChartRenderer {
     clearSelection() {
         this.selectedFlow = null;
         this.selectedFlowPath = null;
+        this.selectedFlowMousePosition = null;
+        this.selectedNode = null;
+        this.selectedNodeMousePosition = null;
         this.updateSankeyVisuals();
     }
 
@@ -1915,9 +1942,18 @@ class ChartRenderer {
     /**
      * Select a node (highlight all paths flowing through it)
      */
-    selectNode(node) {
+    selectNode(node, event) {
         // Clear any existing selection
         this.clearSelection();
+
+        // Select the node and store mouse position
+        this.selectedNode = node;
+        if (event) {
+            this.selectedNodeMousePosition = {
+                x: event.pageX,
+                y: event.pageY
+            };
+        }
 
         // Trace all paths flowing through this node
         const allPaths = this.traceAllPathsThroughNode(node);
@@ -1992,6 +2028,148 @@ class ChartRenderer {
         this.sankeySvg.selectAll('.sankey-nodes rect')
             .attr('class', d => this.getNodeClass(d))
             .style('opacity', d => this.getNodeOpacity(d));
+
+        // Show tooltip for selected flow or node (persistent)
+        if (this.selectedFlow) {
+            this.showSelectedFlowTooltip();
+        } else if (this.selectedNode) {
+            this.showSelectedNodeTooltip();
+        } else {
+            this.hideTooltip();
+        }
+    }
+
+    /**
+     * Show tooltip for selected flow
+     */
+    showSelectedFlowTooltip() {
+        if (!this.tooltip || !this.selectedFlow) {
+            return;
+        }
+
+        let tooltipX, tooltipY;
+
+        // Use stored mouse click position if available
+        if (this.selectedFlowMousePosition) {
+            tooltipX = this.selectedFlowMousePosition.x;
+            tooltipY = this.selectedFlowMousePosition.y;
+        } else {
+            // Fallback to center of flow if no mouse position stored
+            const container = this.uiManager.getElement('overviewChartContent');
+            if (!container) {
+                return;
+            }
+
+            const containerRect = container.getBoundingClientRect();
+            const svgRect = container.querySelector('svg')?.getBoundingClientRect();
+
+            if (!svgRect) {
+                return;
+            }
+
+            // Calculate the center position of the selected flow
+            const sourceNode = this.selectedFlow.source;
+            const targetNode = this.selectedFlow.target;
+
+            // Get the midpoint of the link
+            const midX = (sourceNode.x1 + targetNode.x0) / 2;
+            const midY = (sourceNode.y0 + sourceNode.y1 + targetNode.y0 + targetNode.y1) / 4;
+
+            // Convert SVG coordinates to screen coordinates
+            const scaleX = svgRect.width / container.clientWidth;
+            const scaleY = svgRect.height / container.clientHeight;
+
+            tooltipX = svgRect.left + midX * scaleX;
+            tooltipY = svgRect.top + midY * scaleY;
+        }
+
+        // Create tooltip content
+        let content = `<strong>${this.selectedFlow.property}</strong>`;
+        if (this.selectedFlow.category) {
+            content += `<br/>${this.selectedFlow.category}`;
+        }
+        content += `<br/>${this.formatter.formatCurrency(this.selectedFlow.value)}`;
+
+        // Position and show tooltip
+        this.tooltip
+            .style('opacity', 1)
+            .html(content)
+            .style('left', (tooltipX + 10) + 'px')
+            .style('top', (tooltipY - 10) + 'px');
+    }
+
+    /**
+     * Show tooltip for selected node
+     */
+    showSelectedNodeTooltip() {
+        if (!this.tooltip || !this.selectedNode) {
+            return;
+        }
+
+        let tooltipX, tooltipY;
+
+        // Use stored mouse click position if available
+        if (this.selectedNodeMousePosition) {
+            tooltipX = this.selectedNodeMousePosition.x;
+            tooltipY = this.selectedNodeMousePosition.y;
+        } else {
+            // Fallback to center of node if no mouse position stored
+            const container = this.uiManager.getElement('overviewChartContent');
+            if (!container) {
+                return;
+            }
+
+            const containerRect = container.getBoundingClientRect();
+            const svgRect = container.querySelector('svg')?.getBoundingClientRect();
+
+            if (!svgRect) {
+                return;
+            }
+
+            // Calculate the center position of the selected node
+            const centerX = (this.selectedNode.x0 + this.selectedNode.x1) / 2;
+            const centerY = (this.selectedNode.y0 + this.selectedNode.y1) / 2;
+
+            // Convert SVG coordinates to screen coordinates
+            const scaleX = svgRect.width / container.clientWidth;
+            const scaleY = svgRect.height / container.clientHeight;
+
+            tooltipX = svgRect.left + centerX * scaleX;
+            tooltipY = svgRect.top + centerY * scaleY;
+        }
+
+        // Create tooltip content based on node type
+        let content = `<strong>${this.selectedNode.name}</strong>`;
+
+        // Calculate total value flowing through this node
+        let totalValue = 0;
+        if (this.sankeyLinks) {
+            this.sankeyLinks.forEach(link => {
+                if (link.source.id === this.selectedNode.id || link.target.id === this.selectedNode.id) {
+                    totalValue += link.value;
+                }
+            });
+        }
+
+        if (totalValue > 0) {
+            content += `<br/>${this.formatter.formatCurrency(totalValue)}`;
+        }
+
+        // Add node type information
+        if (this.selectedNode.type === 'property') {
+            content += `<br/><em>Property</em>`;
+        } else if (this.selectedNode.type === 'category') {
+            content += `<br/><em>Category</em>`;
+        } else if (this.selectedNode.type === 'subcategory') {
+            content += `<br/><em>Subcategory</em>`;
+        }
+
+        // Position and show tooltip
+        this.tooltip
+            .style('opacity', 1)
+            .html(content)
+            .style('left', (tooltipX + 10) + 'px')
+            .style('top', (tooltipY - 10) + 'px');
     }
 
 

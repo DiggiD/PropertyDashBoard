@@ -34,6 +34,170 @@ class PropertiesManager {
     }
 
     /**
+     * Show tooltip for add button
+     */
+    showAddButtonTooltip(button, event) {
+        // Remove any existing tooltip
+        this.hideAddButtonTooltip();
+
+        // Determine button type and tooltip text
+        let tooltipText = '';
+        if (button.id === 'add-property-btn') {
+            tooltipText = 'Add Property';
+        } else if (button.id === 'add-category-btn') {
+            tooltipText = 'Add Category';
+        } else if (button.id === 'add-subcategory-btn') {
+            tooltipText = 'Add Subcategory';
+        }
+
+        if (!tooltipText) return;
+
+        // Create tooltip element
+        const tooltip = document.createElement('div');
+        tooltip.className = 'add-button-tooltip';
+        tooltip.textContent = tooltipText;
+        tooltip.style.cssText = `
+            position: fixed;
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-base);
+            padding: var(--space-8) var(--space-12);
+            font-size: var(--font-size-sm);
+            color: var(--color-text);
+            box-shadow: var(--shadow-lg);
+            z-index: 1000;
+            pointer-events: none;
+            white-space: nowrap;
+            max-width: 200px;
+            text-align: center;
+        `;
+
+        // Position tooltip above the button
+        const buttonRect = button.getBoundingClientRect();
+        const tooltipRect = tooltip.getBoundingClientRect();
+
+        // Calculate position (centered above button)
+        let top = buttonRect.top - 40; // 40px above button
+        let left = buttonRect.left + (buttonRect.width / 2) - (tooltipRect.width / 2);
+
+        // Ensure tooltip stays within viewport
+        if (left < 10) left = 10;
+        if (left + tooltipRect.width > window.innerWidth - 10) {
+            left = window.innerWidth - tooltipRect.width - 10;
+        }
+
+        // If not enough space above, position below
+        if (top < 10) {
+            top = buttonRect.bottom + 10;
+        }
+
+        tooltip.style.top = `${top}px`;
+        tooltip.style.left = `${left}px`;
+
+        // Add to DOM
+        document.body.appendChild(tooltip);
+
+        // Store reference for cleanup
+        this.currentTooltip = tooltip;
+    }
+
+    /**
+     * Hide add button tooltip
+     */
+    hideAddButtonTooltip() {
+        if (this.currentTooltip) {
+            this.currentTooltip.remove();
+            this.currentTooltip = null;
+        }
+    }
+
+    /**
+     * Show tooltip for delete button
+     */
+    showDeleteButtonTooltip(button, event) {
+        // Remove any existing tooltip
+        this.hideAddButtonTooltip();
+
+        // Determine button type and tooltip text
+        let tooltipText = '';
+        if (button.classList.contains('property-action')) {
+            tooltipText = 'Delete Property';
+        } else if (button.classList.contains('category-action')) {
+            if (button.dataset.subcategory) {
+                tooltipText = 'Delete Subcategory';
+            } else {
+                tooltipText = 'Delete Category';
+            }
+        }
+
+        if (!tooltipText) return;
+
+        // Create tooltip element
+        const tooltip = document.createElement('div');
+        tooltip.className = 'delete-button-tooltip';
+        tooltip.textContent = tooltipText;
+        tooltip.style.cssText = `
+            position: fixed;
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-base);
+            padding: var(--space-8) var(--space-12);
+            font-size: var(--font-size-sm);
+            color: var(--color-text);
+            box-shadow: var(--shadow-lg);
+            z-index: 1000;
+            pointer-events: none;
+            white-space: nowrap;
+            max-width: 200px;
+            text-align: center;
+        `;
+
+        // Add to DOM temporarily to get dimensions
+        document.body.appendChild(tooltip);
+        const tooltipRect = tooltip.getBoundingClientRect();
+
+        // Get dashboard container bounds for positioning constraints
+        const container = this.uiManager.getElement('propertiesDashboard');
+        const containerRect = container ? container.getBoundingClientRect() : null;
+
+        // Position tooltip above the button
+        const buttonRect = button.getBoundingClientRect();
+
+        // Calculate position (centered above button)
+        let top = buttonRect.top - 40; // 40px above button
+        let left = buttonRect.left + (buttonRect.width / 2) - (tooltipRect.width / 2);
+
+        // Use container bounds if available, otherwise fallback to viewport
+        const maxLeft = containerRect ? containerRect.right - tooltipRect.width - 10 : window.innerWidth - tooltipRect.width - 10;
+        const minLeft = containerRect ? containerRect.left + 10 : 10;
+
+        // Ensure tooltip stays within bounds
+        if (left < minLeft) left = minLeft;
+        if (left > maxLeft) left = maxLeft;
+
+        // If not enough space above, position below
+        if (top < 10) {
+            top = buttonRect.bottom + 10;
+        }
+
+        tooltip.style.top = `${top}px`;
+        tooltip.style.left = `${left}px`;
+
+        // Store reference for cleanup
+        this.currentTooltip = tooltip;
+    }
+
+    /**
+     * Hide delete button tooltip
+     */
+    hideDeleteButtonTooltip() {
+        if (this.currentTooltip) {
+            this.currentTooltip.remove();
+            this.currentTooltip = null;
+        }
+    }
+
+    /**
      * Initialize properties manager
      */
     async initialize() {
@@ -81,6 +245,36 @@ class PropertiesManager {
             this.uiManager.removeEventListener(container, 'touchstart');
             this.uiManager.removeEventListener(container, 'touchend');
             this.uiManager.removeEventListener(container, 'touchmove');
+
+            // Add tooltip functionality for add buttons
+            this.uiManager.addEventListener(container, 'mouseover', (e) => {
+                const target = e.target.closest('#add-property-btn, #add-category-btn, #add-subcategory-btn');
+                if (target) {
+                    this.showAddButtonTooltip(target, e);
+                }
+            });
+
+            this.uiManager.addEventListener(container, 'mouseout', (e) => {
+                const target = e.target.closest('#add-property-btn, #add-category-btn, #add-subcategory-btn');
+                if (target) {
+                    this.hideAddButtonTooltip();
+                }
+            });
+
+            // Add tooltip functionality for delete buttons
+            this.uiManager.addEventListener(container, 'mouseover', (e) => {
+                const target = e.target.closest('.property-action[data-action="delete"], .category-action[data-action="delete"]');
+                if (target) {
+                    this.showDeleteButtonTooltip(target, e);
+                }
+            });
+
+            this.uiManager.addEventListener(container, 'mouseout', (e) => {
+                const target = e.target.closest('.property-action[data-action="delete"], .category-action[data-action="delete"]');
+                if (target) {
+                    this.hideDeleteButtonTooltip();
+                }
+            });
 
             // Double-click for inline editing of names
             this.uiManager.addEventListener(container, 'dblclick', (e) => {
@@ -2452,6 +2646,9 @@ class PropertiesManager {
         // Cancel any pending long press timers
         this.cancelLongPressDetection();
         this.hideDeleteButtons();
+
+        // Hide any visible tooltips
+        this.hideAddButtonTooltip();
 
         // Remove event listeners if needed
         console.log('[PROPERTIES] PropertiesManager cleaned up');
