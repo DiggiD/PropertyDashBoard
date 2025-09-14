@@ -20,7 +20,7 @@ class PerformanceOptimizer {
         };
 
         this.isEnabled = true;
-        console.log('🔧 [PERFORMANCE] PerformanceOptimizer initialized');
+        console.log('[PERFORMANCE] PerformanceOptimizer initialized');
     }
 
     /**
@@ -30,7 +30,7 @@ class PerformanceOptimizer {
         this.startMemoryMonitoring();
         this.setupPerformanceObservers();
 
-        console.log('🔧 [PERFORMANCE] Performance optimizer initialized');
+        console.log('[PERFORMANCE] Performance optimizer initialized');
     }
 
     /**
@@ -64,7 +64,7 @@ class PerformanceOptimizer {
             const longTaskObserver = new PerformanceObserver((list) => {
                 for (const entry of list.getEntries()) {
                     if (entry.duration > 50) { // Tasks longer than 50ms
-                        console.warn(`🔧 [PERFORMANCE] Long task detected: ${entry.duration.toFixed(2)}ms`);
+                        console.warn(`[PERFORMANCE] Long task detected: ${entry.duration.toFixed(2)}ms`);
                         this.notifyObservers('longTask', {
                             duration: entry.duration,
                             startTime: entry.startTime,
@@ -85,7 +85,7 @@ class PerformanceOptimizer {
                 }
 
                 if (clsValue > 0.1) { // Significant layout shift
-                    console.warn(`🔧 [PERFORMANCE] Layout shift detected: ${clsValue.toFixed(4)}`);
+                    console.warn(`[PERFORMANCE] Layout shift detected: ${clsValue.toFixed(4)}`);
                     this.notifyObservers('layoutShift', { value: clsValue });
                 }
             });
@@ -104,10 +104,10 @@ class PerformanceOptimizer {
         const loadTime = performance.now() - startTime;
         this.metrics.moduleLoadTime.set(moduleName, loadTime);
 
-        console.log(`🔧 [PERFORMANCE] Module ${moduleName} loaded in ${loadTime.toFixed(2)}ms`);
+        console.log(`[PERFORMANCE] Module ${moduleName} loaded in ${loadTime.toFixed(2)}ms`);
 
         if (loadTime > 100) {
-            console.warn(`🔧 [PERFORMANCE] Slow module load: ${moduleName} took ${loadTime.toFixed(2)}ms`);
+            console.warn(`[PERFORMANCE] Slow module load: ${moduleName} took ${loadTime.toFixed(2)}ms`);
         }
     }
 
@@ -129,7 +129,7 @@ class PerformanceOptimizer {
             this.metrics.methodExecutionTime.set(methodName, executionTime);
 
             if (executionTime > 100) {
-                console.warn(`🔧 [PERFORMANCE] Slow method: ${methodName} took ${executionTime.toFixed(2)}ms`);
+                console.warn(`[PERFORMANCE] Slow method: ${methodName} took ${executionTime.toFixed(2)}ms`);
             }
         }
 
@@ -194,7 +194,7 @@ class PerformanceOptimizer {
             this.cache.clear();
         }
 
-        console.log(`🔧 [PERFORMANCE] Cache cleared${pattern ? ` (pattern: ${pattern})` : ''}`);
+        console.log(`[PERFORMANCE] Cache cleared${pattern ? ` (pattern: ${pattern})` : ''}`);
     }
 
     /**
@@ -396,7 +396,7 @@ class PerformanceOptimizer {
      */
     setEnabled(enabled) {
         this.isEnabled = enabled;
-        console.log(`🔧 [PERFORMANCE] Performance monitoring ${enabled ? 'enabled' : 'disabled'}`);
+        console.log(`[PERFORMANCE] Performance monitoring ${enabled ? 'enabled' : 'disabled'}`);
     }
 
     /**
@@ -421,7 +421,7 @@ class PerformanceOptimizer {
         this.metrics.cacheHits = 0;
         this.metrics.cacheMisses = 0;
 
-        console.log('🔧 [PERFORMANCE] Performance optimizer cleaned up');
+        console.log('[PERFORMANCE] Performance optimizer cleaned up');
     }
 
     /**
@@ -430,32 +430,32 @@ class PerformanceOptimizer {
     debug() {
         const metrics = this.getMetrics();
 
-        console.log('🔧 [PERFORMANCE DEBUG] === PERFORMANCE METRICS ===');
-        console.log('🔧 [PERFORMANCE DEBUG] Module Load Times:');
+        console.log('[PERFORMANCE DEBUG] === PERFORMANCE METRICS ===');
+        console.log('[PERFORMANCE DEBUG] Module Load Times:');
         Object.entries(metrics.moduleLoadTimes).forEach(([module, time]) => {
-            console.log(`🔧 [PERFORMANCE DEBUG]   ${module}: ${time.toFixed(2)}ms`);
+            console.log(`[PERFORMANCE DEBUG]   ${module}: ${time.toFixed(2)}ms`);
         });
 
-        console.log('🔧 [PERFORMANCE DEBUG] Method Execution Times:');
+        console.log('[PERFORMANCE DEBUG] Method Execution Times:');
         Object.entries(metrics.methodExecutionTimes).forEach(([method, time]) => {
-            console.log(`🔧 [PERFORMANCE DEBUG]   ${method}: ${time.toFixed(2)}ms`);
+            console.log(`[PERFORMANCE DEBUG]   ${method}: ${time.toFixed(2)}ms`);
         });
 
-        console.log('🔧 [PERFORMANCE DEBUG] Cache Stats:');
-        console.log(`🔧 [PERFORMANCE DEBUG]   Hits: ${metrics.cacheStats.hits}`);
-        console.log(`🔧 [PERFORMANCE DEBUG]   Misses: ${metrics.cacheStats.misses}`);
-        console.log(`🔧 [PERFORMANCE DEBUG]   Hit Rate: ${metrics.cacheStats.hitRate}`);
-        console.log(`🔧 [PERFORMANCE DEBUG]   Size: ${metrics.cacheStats.size}`);
+        console.log('[PERFORMANCE DEBUG] Cache Stats:');
+        console.log(`[PERFORMANCE DEBUG]   Hits: ${metrics.cacheStats.hits}`);
+        console.log(`[PERFORMANCE DEBUG]   Misses: ${metrics.cacheStats.misses}`);
+        console.log(`[PERFORMANCE DEBUG]   Hit Rate: ${metrics.cacheStats.hitRate}`);
+        console.log(`[PERFORMANCE DEBUG]   Size: ${metrics.cacheStats.size}`);
 
         if (metrics.memoryUsage.length > 0) {
             const latest = metrics.memoryUsage[metrics.memoryUsage.length - 1];
-            console.log('🔧 [PERFORMANCE DEBUG] Latest Memory Usage:');
-            console.log(`🔧 [PERFORMANCE DEBUG]   Used: ${(latest.used / 1024 / 1024).toFixed(2)}MB`);
-            console.log(`🔧 [PERFORMANCE DEBUG]   Total: ${(latest.total / 1024 / 1024).toFixed(2)}MB`);
-            console.log(`🔧 [PERFORMANCE DEBUG]   Limit: ${(latest.limit / 1024 / 1024).toFixed(2)}MB`);
+            console.log('[PERFORMANCE DEBUG] Latest Memory Usage:');
+            console.log(`[PERFORMANCE DEBUG]   Used: ${(latest.used / 1024 / 1024).toFixed(2)}MB`);
+            console.log(`[PERFORMANCE DEBUG]   Total: ${(latest.total / 1024 / 1024).toFixed(2)}MB`);
+            console.log(`[PERFORMANCE DEBUG]   Limit: ${(latest.limit / 1024 / 1024).toFixed(2)}MB`);
         }
 
-        console.log('🔧 [PERFORMANCE DEBUG] === END DEBUG ===');
+        console.log('[PERFORMANCE DEBUG] === END DEBUG ===');
     }
 }
 

@@ -58,7 +58,7 @@ class DataManager {
         this.hasUnsavedChanges = false;
         this.lastSaved = null;
 
-        console.log('🔧 [DATAMANAGER] DataManager initialized');
+        console.log('[DATAMANAGER] DataManager initialized');
     }
 
     /**
@@ -67,20 +67,20 @@ class DataManager {
      */
     async initialize(initialData = null) {
         try {
-            console.log('🔧 [DATAMANAGER] Starting data initialization...');
+            console.log('[DATAMANAGER] Starting data initialization...');
 
             if (initialData) {
-                console.log('🔧 [DATAMANAGER] Initializing with provided data');
+                console.log('[DATAMANAGER] Initializing with provided data');
                 this.data = this.validateAndNormalizeData(initialData);
             } else {
                 // Load from storage
-                console.log('🔧 [DATAMANAGER] Loading data from storage...');
+                console.log('[DATAMANAGER] Loading data from storage...');
                 const loadedData = await this.storage.load();
                 if (loadedData) {
-                    console.log('🔧 [DATAMANAGER] Data loaded from storage, validating...');
+                    console.log('[DATAMANAGER] Data loaded from storage, validating...');
                     this.data = this.validateAndNormalizeData(loadedData);
                 } else {
-                    console.log('🔧 [DATAMANAGER] No data found in storage, initializing empty state');
+                    console.log('[DATAMANAGER] No data found in storage, initializing empty state');
                     // Initialize with empty state
                     this.initializeEmptyState();
                 }
@@ -92,17 +92,17 @@ class DataManager {
             this.lastSaved = new Date();
             this.hasUnsavedChanges = false;
 
-            console.log('🔧 [DATAMANAGER] Data initialization complete');
-            console.log('🔧 [DATAMANAGER] Properties:', this.data.properties.length);
-            console.log('🔧 [DATAMANAGER] Categories:', this.data.expenseCategories.length);
+            console.log('[DATAMANAGER] Data initialization complete');
+            console.log('[DATAMANAGER] Properties:', this.data.properties.length);
+            console.log('[DATAMANAGER] Categories:', this.data.expenseCategories.length);
 
             // Debug: Log property details
             this.data.properties.forEach((property, index) => {
-                console.log(`🔧 [DATAMANAGER] Property ${index + 1}: ${property.name}, Expenses:`, Object.keys(property.expenses || {}));
+                console.log(`[DATAMANAGER] Property ${index + 1}: ${property.name}, Expenses:`, Object.keys(property.expenses || {}));
             });
 
         } catch (error) {
-            console.error('🔧 [DATAMANAGER] Error during initialization:', error);
+            console.error('[DATAMANAGER] Error during initialization:', error);
             // Fallback to empty state on error
             this.initializeEmptyState();
             this.lastSaved = new Date();
@@ -136,10 +136,10 @@ class DataManager {
      * @returns {Object} Validated and normalized data
      */
     validateAndNormalizeData(data) {
-        console.log('🔧 [DATAMANAGER] Validating and normalizing data...');
+        console.log('[DATAMANAGER] Validating and normalizing data...');
 
         if (!data || typeof data !== 'object') {
-            console.warn('🔧 [DATAMANAGER] Invalid data structure, using empty state');
+            console.warn('[DATAMANAGER] Invalid data structure, using empty state');
             return this.getEmptyDataStructure();
         }
 
@@ -155,7 +155,7 @@ class DataManager {
         if (Array.isArray(data.properties)) {
             normalizedData.properties = data.properties.map((property, index) => {
                 if (!property || typeof property !== 'object') {
-                    console.warn(`🔧 [DATAMANAGER] Invalid property at index ${index}, skipping`);
+                    console.warn(`[DATAMANAGER] Invalid property at index ${index}, skipping`);
                     return null;
                 }
 
@@ -175,7 +175,7 @@ class DataManager {
                 return normalizedProperty;
             }).filter(property => property !== null);
         } else {
-            console.warn('🔧 [DATAMANAGER] Properties is not an array, initializing empty');
+            console.warn('[DATAMANAGER] Properties is not an array, initializing empty');
             normalizedData.properties = [];
         }
 
@@ -185,25 +185,25 @@ class DataManager {
                 typeof category === 'string' && category.trim().length > 0
             );
         } else {
-            console.warn('🔧 [DATAMANAGER] Expense categories is not an array, initializing empty');
+            console.warn('[DATAMANAGER] Expense categories is not an array, initializing empty');
             normalizedData.expenseCategories = [];
         }
 
         // Validate time period
         const validPeriods = ['all', 'year', 'quarter', 'month'];
         if (!validPeriods.includes(normalizedData.currentTimePeriod)) {
-            console.warn('🔧 [DATAMANAGER] Invalid time period, defaulting to "all"');
+            console.warn('[DATAMANAGER] Invalid time period, defaulting to "all"');
             normalizedData.currentTimePeriod = 'all';
         }
 
         // Validate view
         const validViews = ['overview', 'trends', 'comparison', 'categories'];
         if (!validViews.includes(normalizedData.currentView)) {
-            console.warn('🔧 [DATAMANAGER] Invalid view, defaulting to "overview"');
+            console.warn('[DATAMANAGER] Invalid view, defaulting to "overview"');
             normalizedData.currentView = 'overview';
         }
 
-        console.log('🔧 [DATAMANAGER] Data validation and normalization complete');
+        console.log('[DATAMANAGER] Data validation and normalization complete');
         return normalizedData;
     }
 
@@ -224,28 +224,28 @@ class DataManager {
      * Ensure all properties have proper expense initialization
      */
     ensurePropertyExpensesInitialized() {
-        console.log('🔧 [DATAMANAGER] Ensuring property expenses are initialized...');
+        console.log('[DATAMANAGER] Ensuring property expenses are initialized...');
 
         if (!Array.isArray(this.data.properties)) {
-            console.warn('🔧 [DATAMANAGER] Properties is not an array');
+            console.warn('[DATAMANAGER] Properties is not an array');
             return;
         }
 
         this.data.properties.forEach((property, index) => {
             if (!property || typeof property !== 'object') {
-                console.warn(`🔧 [DATAMANAGER] Property at index ${index} is invalid`);
+                console.warn(`[DATAMANAGER] Property at index ${index} is invalid`);
                 return;
             }
 
             // Ensure expenses object exists
             if (!property.expenses || typeof property.expenses !== 'object') {
-                console.log(`🔧 [DATAMANAGER] Initializing expenses for property: ${property.name}`);
+                console.log(`[DATAMANAGER] Initializing expenses for property: ${property.name}`);
                 property.expenses = {};
             }
 
             // Initialize from quarterly data if expenses are empty
             if (Object.keys(property.expenses).length === 0 && property.quarterlyData) {
-                console.log(`🔧 [DATAMANAGER] Initializing expenses from quarterly data for: ${property.name}`);
+                console.log(`[DATAMANAGER] Initializing expenses from quarterly data for: ${property.name}`);
                 this.initializeExpensesFromQuarterlyData(property);
             }
 
@@ -253,7 +253,7 @@ class DataManager {
             if (Array.isArray(this.data.expenseCategories)) {
                 this.data.expenseCategories.forEach(category => {
                     if (!(category in property.expenses)) {
-                        console.log(`🔧 [DATAMANAGER] Adding missing category "${category}" to property: ${property.name}`);
+                        console.log(`[DATAMANAGER] Adding missing category "${category}" to property: ${property.name}`);
                         property.expenses[category] = 0;
                     }
                 });
@@ -265,16 +265,16 @@ class DataManager {
                 if (typeof value === 'object' && value !== null) {
                     // Handle hierarchical expenses - sum the values
                     const total = Object.values(value).reduce((sum, val) => sum + (val || 0), 0);
-                    console.log(`🔧 [DATAMANAGER] Converting hierarchical expense ${category} to total: ${total}`);
+                    console.log(`[DATAMANAGER] Converting hierarchical expense ${category} to total: ${total}`);
                     property.expenses[category] = total;
                 } else if (typeof value !== 'number' || isNaN(value)) {
-                    console.warn(`🔧 [DATAMANAGER] Invalid expense value for ${property.name} - ${category}: ${value}, setting to 0`);
+                    console.warn(`[DATAMANAGER] Invalid expense value for ${property.name} - ${category}: ${value}, setting to 0`);
                     property.expenses[category] = 0;
                 }
             });
         });
 
-        console.log('🔧 [DATAMANAGER] Property expenses initialization complete');
+        console.log('[DATAMANAGER] Property expenses initialization complete');
     }
 
     /**
@@ -285,7 +285,7 @@ class DataManager {
      */
     initializeExpensesFromQuarterlyData(property, force = false) {
         if (!property.quarterlyData || typeof property.quarterlyData !== 'object') {
-            console.warn('🔧 [DATAMANAGER] Invalid quarterly data for property:', property.name);
+            console.warn('[DATAMANAGER] Invalid quarterly data for property:', property.name);
             return;
         }
 
@@ -294,7 +294,7 @@ class DataManager {
             const quarters = Object.keys(property.quarterlyData).sort();
 
             if (quarters.length === 0) {
-                console.warn('🔧 [DATAMANAGER] No quarters found in quarterly data for property:', property.name);
+                console.warn('[DATAMANAGER] No quarters found in quarterly data for property:', property.name);
                 return;
             }
 
@@ -303,11 +303,11 @@ class DataManager {
             const latestQuarterData = property.quarterlyData[latestQuarter];
 
             if (!latestQuarterData || !latestQuarterData.expenses) {
-                console.warn('🔧 [DATAMANAGER] No expenses found in latest quarter for property:', property.name);
+                console.warn('[DATAMANAGER] No expenses found in latest quarter for property:', property.name);
                 return;
             }
 
-            console.log(`🔧 [DATAMANAGER] Initializing expenses from quarter: ${latestQuarter} for property: ${property.name}`);
+            console.log(`[DATAMANAGER] Initializing expenses from quarter: ${latestQuarter} for property: ${property.name}`);
 
             // Copy expenses from the latest quarter
             Object.entries(latestQuarterData.expenses).forEach(([category, value]) => {
@@ -315,18 +315,18 @@ class DataManager {
                     // Handle hierarchical expenses - sum the values
                     const total = Object.values(value).reduce((sum, val) => sum + (val || 0), 0);
                     property.expenses[category] = total;
-                    console.log(`🔧 [DATAMANAGER] Hierarchical expense ${category}: ${total}`);
+                    console.log(`[DATAMANAGER] Hierarchical expense ${category}: ${total}`);
                 } else if (typeof value === 'number') {
                     property.expenses[category] = value;
-                    console.log(`🔧 [DATAMANAGER] Flat expense ${category}: ${value}`);
+                    console.log(`[DATAMANAGER] Flat expense ${category}: ${value}`);
                 } else {
-                    console.warn(`🔧 [DATAMANAGER] Invalid expense value for ${category}: ${value}`);
+                    console.warn(`[DATAMANAGER] Invalid expense value for ${category}: ${value}`);
                     property.expenses[category] = 0;
                 }
             });
 
         } catch (error) {
-            console.error('🔧 [DATAMANAGER] Error initializing expenses from quarterly data:', error);
+            console.error('[DATAMANAGER] Error initializing expenses from quarterly data:', error);
         }
     }
 
@@ -450,7 +450,7 @@ class DataManager {
         this.data.properties.push(newProperty);
         this.markAsChanged();
 
-        console.log('🔧 [DATAMANAGER] Property added:', newProperty.name);
+        console.log('[DATAMANAGER] Property added:', newProperty.name);
 
         return {
             success: true,
@@ -499,7 +499,7 @@ class DataManager {
         property.name = newName.trim();
         this.markAsChanged();
 
-        console.log('🔧 [DATAMANAGER] Property renamed:', oldName, '->', newName);
+        console.log('[DATAMANAGER] Property renamed:', oldName, '->', newName);
 
         return {
             success: true,
@@ -525,7 +525,7 @@ class DataManager {
         this.data.properties.splice(propertyIndex, 1);
         this.markAsChanged();
 
-        console.log('🔧 [DATAMANAGER] Property deleted:', property.name);
+        console.log('[DATAMANAGER] Property deleted:', property.name);
 
         return {
             success: true,
@@ -587,7 +587,7 @@ class DataManager {
 
         this.markAsChanged();
 
-        console.log('🔧 [DATAMANAGER] Category added:', name);
+        console.log('[DATAMANAGER] Category added:', name);
 
         return {
             success: true,
@@ -644,7 +644,7 @@ class DataManager {
 
         this.markAsChanged();
 
-        console.log('🔧 [DATAMANAGER] Category renamed:', oldName, '->', newName);
+        console.log('[DATAMANAGER] Category renamed:', oldName, '->', newName);
 
         return {
             success: true,
@@ -678,7 +678,7 @@ class DataManager {
 
         this.markAsChanged();
 
-        console.log('🔧 [DATAMANAGER] Category deleted:', categoryName);
+        console.log('[DATAMANAGER] Category deleted:', categoryName);
 
         return {
             success: true,
@@ -717,7 +717,7 @@ class DataManager {
         property.expenses[category] = numAmount;
         this.markAsChanged();
 
-        console.log('🔧 [DATAMANAGER] Expense updated:', property.name, category, oldAmount, '->', numAmount);
+        console.log('[DATAMANAGER] Expense updated:', property.name, category, oldAmount, '->', numAmount);
 
         return {
             success: true,
@@ -738,12 +738,12 @@ class DataManager {
         const period = timePeriod || this.data.currentTimePeriod;
 
         if (!property) {
-            console.error('🔧 [DATAMANAGER] Property is undefined in getCurrentPeriodData');
+            console.error('[DATAMANAGER] Property is undefined in getCurrentPeriodData');
             return { total: 0, expenses: {} };
         }
 
         if (!property.quarterlyData) {
-            console.warn('🔧 [DATAMANAGER] Property.quarterlyData is undefined for property:', property.name);
+            console.warn('[DATAMANAGER] Property.quarterlyData is undefined for property:', property.name);
             return { total: 0, expenses: {} };
         }
 
@@ -799,7 +799,7 @@ class DataManager {
         const allQuarters = Object.keys(property.quarterlyData || {});
 
         if (allQuarters.length === 0) {
-            console.warn('🔧 [DATAMANAGER] No quarters found for property:', property.name);
+            console.warn('[DATAMANAGER] No quarters found for property:', property.name);
             return { total: 0, expenses: {} };
         }
 
@@ -818,7 +818,7 @@ class DataManager {
 
         // Fallback: if no quarters match the filter, use latest quarter
         if (quartersToInclude.length === 0) {
-            console.warn('🔧 [DATAMANAGER] No quarters found for time period:', period, 'for property:', property.name, '- using latest quarter as fallback');
+            console.warn('[DATAMANAGER] No quarters found for time period:', period, 'for property:', property.name, '- using latest quarter as fallback');
             quartersToInclude = [allQuarters[allQuarters.length - 1]];
         }
 
@@ -1013,7 +1013,7 @@ class DataManager {
      * @returns {boolean} Success status
      */
     async importData(importData) {
-        console.log('🔧 [DATAMANAGER] Importing data...', {
+        console.log('[DATAMANAGER] Importing data...', {
             hasProperties: !!importData.properties,
             propertiesCount: importData.properties?.length || 0,
             hasCategories: !!importData.expenseCategories,
@@ -1023,24 +1023,24 @@ class DataManager {
         try {
             // Validate import data
             if (!importData || typeof importData !== 'object') {
-                console.error('🔧 [DATAMANAGER] Invalid import data');
+                console.error('[DATAMANAGER] Invalid import data');
                 return false;
             }
 
             // Normalize the data structure
             const normalizedData = this.validateAndNormalizeData(importData);
-            console.log('🔧 [DATAMANAGER] Data normalized for import:', {
+            console.log('[DATAMANAGER] Data normalized for import:', {
                 properties: normalizedData.properties.length,
                 categories: normalizedData.expenseCategories.length
             });
 
             // Save the data to storage
             const success = await this.storage.importData(normalizedData);
-            console.log('🔧 [DATAMANAGER] Storage import result:', success);
+            console.log('[DATAMANAGER] Storage import result:', success);
 
             if (success) {
                 // Directly set the data in memory instead of relying on initialize()
-                console.log('🔧 [DATAMANAGER] Setting data directly in memory...');
+                console.log('[DATAMANAGER] Setting data directly in memory...');
                 this.data = normalizedData;
 
                 // Ensure all properties have proper expense initialization
@@ -1050,23 +1050,23 @@ class DataManager {
                 this.hasUnsavedChanges = false;
                 this.lastSaved = new Date();
 
-                console.log('🔧 [DATAMANAGER] Import complete. Current data:', {
+                console.log('[DATAMANAGER] Import complete. Current data:', {
                     properties: this.data.properties.length,
                     categories: this.data.expenseCategories.length,
                     totalExpenses: this.calculateTotalExpenses()
                 });
 
                 // Initialize expenses from quarterly data for imported properties
-                console.log('🔧 [DATAMANAGER] Initializing expenses from quarterly data for imported properties...');
+                console.log('[DATAMANAGER] Initializing expenses from quarterly data for imported properties...');
                 this.data.properties.forEach(property => {
                     if (property.quarterlyData && Object.keys(property.expenses).length === 0) {
-                        console.log(`🔧 [DATAMANAGER] Initializing expenses for imported property: ${property.name}`);
+                        console.log(`[DATAMANAGER] Initializing expenses for imported property: ${property.name}`);
                         this.initializeExpensesFromQuarterlyData(property, true);
                     }
                 });
 
                 // Automatically create a snapshot of the imported data
-                console.log('🔧 [DATAMANAGER] Creating snapshot of imported data...');
+                console.log('[DATAMANAGER] Creating snapshot of imported data...');
                 if (window.historyManager && typeof window.historyManager.createSnapshot === 'function') {
                     try {
                         const snapshotResult = await window.historyManager.createSnapshot(
@@ -1074,40 +1074,40 @@ class DataManager {
                             `Data imported on ${new Date().toLocaleString()}`,
                             true // silent mode
                         );
-                        console.log('🔧 [DATAMANAGER] Snapshot created for imported data:', snapshotResult);
+                        console.log('[DATAMANAGER] Snapshot created for imported data:', snapshotResult);
 
                         // Force reload history from storage to ensure it's up to date
                         if (typeof window.historyManager.loadHistoryFromStorage === 'function') {
                             await window.historyManager.loadHistoryFromStorage();
-                            console.log('🔧 [DATAMANAGER] History reloaded from storage after snapshot');
+                            console.log('[DATAMANAGER] History reloaded from storage after snapshot');
                         }
                     } catch (snapshotError) {
-                        console.warn('🔧 [DATAMANAGER] Failed to create snapshot:', snapshotError);
+                        console.warn('[DATAMANAGER] Failed to create snapshot:', snapshotError);
                     }
                 } else {
-                    console.warn('🔧 [DATAMANAGER] HistoryManager not available for snapshot creation');
+                    console.warn('[DATAMANAGER] HistoryManager not available for snapshot creation');
                 }
 
                 // Update UI to reflect the imported data
-                console.log('🔧 [DATAMANAGER] Updating UI with imported data...');
+                console.log('[DATAMANAGER] Updating UI with imported data...');
                 if (window.uiManager && typeof window.uiManager.updateDataDisplay === 'function') {
                     try {
                         const stats = this.getDataStatistics();
                         await window.uiManager.updateDataDisplay(stats);
-                        console.log('🔧 [DATAMANAGER] UI updated with imported data');
+                        console.log('[DATAMANAGER] UI updated with imported data');
                     } catch (uiError) {
-                        console.warn('🔧 [DATAMANAGER] Failed to update UI:', uiError);
+                        console.warn('[DATAMANAGER] Failed to update UI:', uiError);
                     }
                 } else {
-                    console.warn('🔧 [DATAMANAGER] UIManager not available for UI update');
+                    console.warn('[DATAMANAGER] UIManager not available for UI update');
                 }
             } else {
-                console.error('🔧 [DATAMANAGER] Storage import failed');
+                console.error('[DATAMANAGER] Storage import failed');
             }
 
             return success;
         } catch (error) {
-            console.error('🔧 [DATAMANAGER] Error during import:', error);
+            console.error('[DATAMANAGER] Error during import:', error);
             return false;
         }
     }
@@ -1131,15 +1131,15 @@ class DataManager {
      * Debug data information
      */
     debug() {
-        console.log('🔧 [DATAMANAGER DEBUG] === DATA MANAGER INFO ===');
-        console.log('🔧 [DATAMANAGER DEBUG] Properties:', this.data.properties.length);
-        console.log('🔧 [DATAMANAGER DEBUG] Categories:', this.data.expenseCategories.length);
-        console.log('🔧 [DATAMANAGER DEBUG] Current period:', this.data.currentTimePeriod);
-        console.log('🔧 [DATAMANAGER DEBUG] Current view:', this.data.currentView);
-        console.log('🔧 [DATAMANAGER DEBUG] Has unsaved changes:', this.hasUnsavedChanges);
-        console.log('🔧 [DATAMANAGER DEBUG] Last saved:', this.lastSaved);
-        console.log('🔧 [DATAMANAGER DEBUG] Statistics:', this.getDataStatistics());
-        console.log('🔧 [DATAMANAGER DEBUG] === END DEBUG ===');
+        console.log('[DATAMANAGER DEBUG] === DATA MANAGER INFO ===');
+        console.log('[DATAMANAGER DEBUG] Properties:', this.data.properties.length);
+        console.log('[DATAMANAGER DEBUG] Categories:', this.data.expenseCategories.length);
+        console.log('[DATAMANAGER DEBUG] Current period:', this.data.currentTimePeriod);
+        console.log('[DATAMANAGER DEBUG] Current view:', this.data.currentView);
+        console.log('[DATAMANAGER DEBUG] Has unsaved changes:', this.hasUnsavedChanges);
+        console.log('[DATAMANAGER DEBUG] Last saved:', this.lastSaved);
+        console.log('[DATAMANAGER DEBUG] Statistics:', this.getDataStatistics());
+        console.log('[DATAMANAGER DEBUG] === END DEBUG ===');
     }
 }
 

@@ -405,7 +405,7 @@ class Validator {
      */
     async initialize() {
         // No initialization needed for validator
-        console.log('🔧 [VALIDATOR] Validator initialized');
+        console.log('[VALIDATOR] Validator initialized');
     }
 }
 

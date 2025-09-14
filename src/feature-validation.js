@@ -54,7 +54,7 @@ function logValidation(name, passed, message = '', feature = 'general') {
 }
 
 function logFeatureSection(feature) {
-    console.log(`\n🔧 [VALIDATION] === ${feature.toUpperCase()} FEATURES ===`);
+    console.log(`\n[VALIDATION] === ${feature.toUpperCase()} FEATURES ===`);
 }
 
 /**
@@ -450,8 +450,8 @@ async function testErrorHandling() {
  * Run all feature validation tests
  */
 async function runFeatureValidation() {
-    console.log('🚀 [VALIDATION] Starting Feature Validation Tests');
-    console.log('🔧 [VALIDATION] Testing all original features work identically in modular architecture');
+    console.log('[VALIDATION] Starting Feature Validation Tests');
+    console.log('[VALIDATION] Testing all original features work identically in modular architecture');
 
     const startTime = performance.now();
 
@@ -537,7 +537,7 @@ if (typeof module !== 'undefined' && module.exports) {
 if (typeof window !== 'undefined' && window.location) {
     // Only run automatically if not in a test environment
     if (!window.jest && !window.mocha) {
-        console.log('🔧 [VALIDATION] Feature validation will run after application initializes...');
+        console.log('[VALIDATION] Feature validation will run after application initializes...');
         // Validation will be triggered by the application when ready
     }
 }

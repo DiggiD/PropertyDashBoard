@@ -10,12 +10,12 @@
 
 // Global error handler for unhandled errors
 window.addEventListener('error', (event) => {
-    console.error('🔧 [GLOBAL ERROR]', event.error);
+    console.error('[GLOBAL ERROR]', event.error);
     showGlobalError('An unexpected error occurred. Please refresh the page.');
 });
 
 window.addEventListener('unhandledrejection', (event) => {
-    console.error('🔧 [UNHANDLED PROMISE REJECTION]', event.reason);
+    console.error('[UNHANDLED PROMISE REJECTION]', event.reason);
     showGlobalError('An unexpected error occurred. Please refresh the page.');
 });
 
@@ -102,7 +102,7 @@ function checkDependencies() {
         return false;
     }
 
-    console.log('🔧 [DEPENDENCIES] All required dependencies loaded');
+    console.log('[DEPENDENCIES] All required dependencies loaded');
     return true;
 }
 
@@ -111,7 +111,7 @@ function checkDependencies() {
  */
 async function initializeApplication() {
     try {
-        console.log('🔧 [INIT] Starting modular application initialization...');
+        console.log('[INIT] Starting modular application initialization...');
 
         // Check dependencies first
         if (!checkDependencies()) {
@@ -122,7 +122,7 @@ async function initializeApplication() {
         const moduleLoader = new ModuleLoader();
 
         // Register all modules with their dependencies
-        console.log('🔧 [INIT] Registering modules...');
+        console.log('[INIT] Registering modules...');
 
         // Utility modules (no dependencies)
         moduleLoader.registerModule('formatter', Formatter, []);
@@ -152,12 +152,12 @@ async function initializeApplication() {
             'propertiesManager'
         ]);
 
-        console.log('🔧 [INIT] All modules registered, loading...');
+        console.log('[INIT] All modules registered, loading...');
 
         // Load and initialize all modules
         await moduleLoader.loadAllModules();
 
-        console.log('🔧 [INIT] All modules loaded, initializing main application...');
+        console.log('[INIT] All modules loaded, initializing main application...');
 
         // Get the main application instance
         const app = moduleLoader.getModule('app');
@@ -178,15 +178,15 @@ async function initializeApplication() {
         window.debugModules = () => moduleLoader.debug();
         window.debugApp = () => app.debug();
 
-        console.log('🔧 [INIT] Modular application initialization complete!');
-        console.log('🔧 [INIT] Available debug commands:');
-        console.log('🔧 [INIT] - debugModules() - Debug module loader status');
-        console.log('🔧 [INIT] - debugApp() - Debug application state');
-        console.log('🔧 [INIT] - window.app - Main application instance');
-        console.log('🔧 [INIT] - window.moduleLoader - Module loader instance');
+        console.log('[INIT] Modular application initialization complete!');
+        console.log('[INIT] Available debug commands:');
+        console.log('[INIT] - debugModules() - Debug module loader status');
+        console.log('[INIT] - debugApp() - Debug application state');
+        console.log('[INIT] - window.app - Main application instance');
+        console.log('[INIT] - window.moduleLoader - Module loader instance');
 
     } catch (error) {
-        console.error('🔧 [INIT] Application initialization failed:', error);
+        console.error('[INIT] Application initialization failed:', error);
         showGlobalError('Failed to initialize application. Please refresh the page.');
     }
 }
@@ -196,10 +196,10 @@ async function initializeApplication() {
  */
 document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
-        console.log('🔧 [VISIBILITY] Page hidden, pausing non-essential operations');
+        console.log('[VISIBILITY] Page hidden, pausing non-essential operations');
         // Could pause auto-save, animations, etc.
     } else {
-        console.log('🔧 [VISIBILITY] Page visible, resuming operations');
+        console.log('[VISIBILITY] Page visible, resuming operations');
         // Could resume operations
     }
 });
@@ -208,7 +208,7 @@ document.addEventListener('visibilitychange', () => {
  * Handle beforeunload for cleanup
  */
 window.addEventListener('beforeunload', () => {
-    console.log('🔧 [UNLOAD] Cleaning up application...');
+    console.log('[UNLOAD] Cleaning up application...');
 
     if (window.app && typeof window.app.cleanup === 'function') {
         window.app.cleanup();
@@ -233,11 +233,11 @@ if ('performance' in window && 'mark' in window.performance) {
                 performance.measure('app-initialization', 'app-init-start', 'app-init-end');
 
                 const measure = performance.getEntriesByName('app-initialization')[0];
-                console.log(`🔧 [PERFORMANCE] Application initialization took ${measure.duration.toFixed(2)}ms`);
+                console.log(`[PERFORMANCE] Application initialization took ${measure.duration.toFixed(2)}ms`);
             }, 100);
         });
     } catch (error) {
-        console.warn('🔧 [PERFORMANCE] Performance monitoring not available:', error);
+        console.warn('[PERFORMANCE] Performance monitoring not available:', error);
     }
 }
 

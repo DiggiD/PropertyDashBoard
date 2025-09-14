@@ -782,17 +782,17 @@ select.form-control {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: var(--color-surface);
+  background: var(--color-background);
 }
 
 /* Header */
 .header {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
   padding: var(--space-20) var(--space-24);
   /* Remove border and shadow for seamless integration */
-  background: var(--color-surface);
+  background: var(--color-background);
   position: relative;
   z-index: 10;
 }
@@ -802,6 +802,7 @@ select.form-control {
   margin: 0;
   color: var(--color-text);
   font-weight: var(--font-weight-semibold);
+  text-align: center;
 }
 
 .header-left .subtitle {
@@ -814,6 +815,8 @@ select.form-control {
   display: flex;
   gap: var(--space-8);
   align-items: center;
+  position: absolute;
+  right: var(--space-24);
 }
 
 /* Main Content - Now contains sidebar and dashboard side by side */
@@ -2099,7 +2102,7 @@ select.form-control {
   /* Each button acts as its own sidebar segment */
   width: 60px; /* Keep narrow for collapsed state */
   height: 100%; /* Full height of main-content */
-  background: var(--color-surface);
+  background: var(--color-background);
   transition: width 0.3s ease;
   display: flex;
   flex-direction: column;
@@ -2603,7 +2606,7 @@ select.form-control {
   width: 100%;
   height: calc(100vh - 120px); /* Full height minus header */
   position: relative;
-  background: var(--color-surface);
+  background: var(--color-background);
   overflow: hidden;
 }
 

@@ -19,7 +19,7 @@ class PropertiesManager {
         this.currentCategoryPath = null; // For hierarchical navigation
         this.isEditMode = false;
 
-        console.log('🔧 [PROPERTIES] PropertiesManager initialized');
+        console.log('[PROPERTIES] PropertiesManager initialized');
     }
 
     /**
@@ -27,7 +27,7 @@ class PropertiesManager {
      */
     async initialize() {
         try {
-            console.log('🔧 [PROPERTIES] Starting PropertiesManager initialization...');
+            console.log('[PROPERTIES] Starting PropertiesManager initialization...');
 
             // Ensure dependencies are available
             if (!this.dataManager) {
@@ -42,9 +42,9 @@ class PropertiesManager {
 
             this.setupEventListeners();
             this.renderPropertiesDashboard();
-            console.log('🔧 [PROPERTIES] PropertiesManager initialized successfully');
+            console.log('[PROPERTIES] PropertiesManager initialized successfully');
         } catch (error) {
-            console.error('🔧 [PROPERTIES] Error during initialization:', error);
+            console.error('[PROPERTIES] Error during initialization:', error);
             // Don't re-throw the error to prevent breaking the application
             // Just log it and continue with limited functionality
         }
@@ -134,7 +134,7 @@ class PropertiesManager {
             });
         }
 
-        console.log('🔧 [PROPERTIES] Event listeners setup');
+        console.log('[PROPERTIES] Event listeners setup');
     }
 
     /**
@@ -145,7 +145,7 @@ class PropertiesManager {
         const container = this.uiManager.getElement('propertiesDashboard');
 
         if (!container) {
-            console.error('🔧 [PROPERTIES] Properties dashboard container not found');
+            console.error('[PROPERTIES] Properties dashboard container not found');
             return;
         }
 
@@ -158,7 +158,7 @@ class PropertiesManager {
             contentElement.innerHTML = html;
         }
 
-        console.log('🔧 [PROPERTIES] Properties dashboard rendered');
+        console.log('[PROPERTIES] Properties dashboard rendered');
     }
 
     /**
@@ -454,7 +454,7 @@ class PropertiesManager {
                 </div>
             `;
         } catch (error) {
-            console.error('🔧 [PROPERTIES] Error rendering property item:', error);
+            console.error('[PROPERTIES] Error rendering property item:', error);
             return `
                 <div class="property-item error">
                     <div class="property-header">
@@ -1800,7 +1800,7 @@ class PropertiesManager {
      */
     cleanup() {
         // Remove event listeners if needed
-        console.log('🔧 [PROPERTIES] PropertiesManager cleaned up');
+        console.log('[PROPERTIES] PropertiesManager cleaned up');
     }
 }
 

@@ -24,37 +24,37 @@ class HistoryManager {
         this.isUndoRedoInProgress = false;
         this.pendingChanges = [];
 
-        console.log('🔧 [HISTORY] HistoryManager initialized');
+        console.log('[HISTORY] HistoryManager initialized');
     }
 
     /**
      * Initialize history manager
      */
     async initialize() {
-        console.log('🔧 [HISTORY] Initializing history manager...');
+        console.log('[HISTORY] Initializing history manager...');
 
         // Ensure dataManager is available
         if (!this.dataManager) {
-            console.error('🔧 [HISTORY] DataManager not available during initialization');
+            console.error('[HISTORY] DataManager not available during initialization');
             return;
         }
 
         await this.loadHistoryFromStorage();
-        console.log(`🔧 [HISTORY] Loaded ${this.history.length} history entries`);
+        console.log(`[HISTORY] Loaded ${this.history.length} history entries`);
 
         // Create initial snapshot if no history exists and data is available
         const currentData = this.dataManager.getData();
         if (this.history.length === 0 && currentData.properties && currentData.properties.length > 0) {
-            console.log('🔧 [HISTORY] No history found, creating initial snapshot...');
+            console.log('[HISTORY] No history found, creating initial snapshot...');
             await this.createSnapshot('Initial State', 'Initial State - Auto-created on app startup', true);
         } else {
-            console.log('🔧 [HISTORY] History already exists or no data available, skipping initial snapshot creation');
+            console.log('[HISTORY] History already exists or no data available, skipping initial snapshot creation');
         }
 
         // Update UI buttons state
         this.updateUndoRedoButtons();
 
-        console.log('🔧 [HISTORY] History manager initialization complete');
+        console.log('[HISTORY] History manager initialization complete');
     }
 
     /**
@@ -66,7 +66,7 @@ class HistoryManager {
      */
     async saveState(description = 'State change', metadata = {}, isSnapshot = false) {
         if (this.isUndoRedoInProgress) {
-            console.log('🔧 [HISTORY] Skipping save during undo/redo operation');
+            console.log('[HISTORY] Skipping save during undo/redo operation');
             return false;
         }
 
@@ -122,14 +122,14 @@ class HistoryManager {
             // Save to storage
             await this.saveHistoryToStorage();
 
-            console.log(`🔧 [HISTORY] State saved: "${updatedDescription}" (${this.history.length} entries)`);
+            console.log(`[HISTORY] State saved: "${updatedDescription}" (${this.history.length} entries)`);
 
             // Update UI state
             this.updateUndoRedoButtons();
 
             return true;
         } catch (error) {
-            console.error('🔧 [HISTORY] Failed to save state:', error);
+            console.error('[HISTORY] Failed to save state:', error);
             return false;
         }
     }
@@ -140,7 +140,7 @@ class HistoryManager {
      */
     async undo() {
         if (!this.canUndo()) {
-            console.log('🔧 [HISTORY] Cannot undo - no previous state');
+            console.log('[HISTORY] Cannot undo - no previous state');
             return { success: false, message: 'Nothing to undo' };
         }
 
@@ -157,7 +157,7 @@ class HistoryManager {
 
                 if (action === 'create_snapshot') {
                     // Undo snapshot creation - remove the snapshot from storage
-                    console.log('🔧 [HISTORY] Undoing snapshot creation:', currentState.metadata.snapshotId);
+                    console.log('[HISTORY] Undoing snapshot creation:', currentState.metadata.snapshotId);
                     const history = this.storage.loadHistoryFromStorage();
                     const snapshotIndex = history.findIndex(s => s.id === currentState.metadata.snapshotId);
                     if (snapshotIndex !== -1) {
@@ -167,7 +167,7 @@ class HistoryManager {
                     }
                 } else if (action === 'delete_snapshot') {
                     // Undo snapshot deletion - restore the snapshot
-                    console.log('🔧 [HISTORY] Undoing snapshot deletion:', currentState.metadata.snapshotId);
+                    console.log('[HISTORY] Undoing snapshot deletion:', currentState.metadata.snapshotId);
                     const snapshotData = currentState.metadata.snapshotData;
                     if (snapshotData) {
                         const success = await this.storage.saveHistorySnapshot(snapshotData);
@@ -181,12 +181,12 @@ class HistoryManager {
             // Check if current state is a file import operation that needs special handling
             if (currentState && currentState.description && currentState.description.includes('Import')) {
                 // Undo file import - this will be handled by removing the history entry
-                console.log('🔧 [HISTORY] Undoing file import operation');
+                console.log('[HISTORY] Undoing file import operation');
             }
 
             // Remove the current history entry being undone
             const removedEntry = this.history.splice(this.historyIndex, 1)[0];
-            console.log('🔧 [HISTORY] Removed history entry:', removedEntry.description);
+            console.log('[HISTORY] Removed history entry:', removedEntry.description);
 
             // Adjust history index since we removed an entry
             this.historyIndex--;
@@ -200,20 +200,20 @@ class HistoryManager {
             if (targetState) {
                 const restoredData = JSON.parse(JSON.stringify(targetState.data));
                 await this.dataManager.initialize(restoredData);
-                console.log(`🔧 [HISTORY] Restored data to: "${targetState.description}"`);
+                console.log(`[HISTORY] Restored data to: "${targetState.description}"`);
             } else {
                 // If no target state, initialize with empty data
                 await this.dataManager.initialize({
                     properties: [],
                     expenseCategories: []
                 });
-                console.log('🔧 [HISTORY] Restored to empty state');
+                console.log('[HISTORY] Restored to empty state');
             }
 
             // Save the updated history to storage
             await this.saveHistoryToStorage();
 
-            console.log(`🔧 [HISTORY] Undid and removed: "${removedEntry.description}"`);
+            console.log(`[HISTORY] Undid and removed: "${removedEntry.description}"`);
 
             // Update UI
             this.updateUndoRedoButtons();
@@ -230,7 +230,7 @@ class HistoryManager {
                 removedEntry: removedEntry,
             };
         } catch (error) {
-            console.error('🔧 [HISTORY] Undo failed:', error);
+            console.error('[HISTORY] Undo failed:', error);
             this.isUndoRedoInProgress = false;
             return { success: false, message: 'Undo operation failed' };
         }
@@ -242,7 +242,7 @@ class HistoryManager {
      */
     async redo() {
         if (!this.canRedo()) {
-            console.log('🔧 [HISTORY] Cannot redo - no next state');
+            console.log('[HISTORY] Cannot redo - no next state');
             return { success: false, message: 'Nothing to redo' };
         }
 
@@ -259,7 +259,7 @@ class HistoryManager {
 
                 if (action === 'create_snapshot') {
                     // Redo snapshot creation - restore the snapshot
-                    console.log('🔧 [HISTORY] Redoing snapshot creation:', targetState.metadata.snapshotId);
+                    console.log('[HISTORY] Redoing snapshot creation:', targetState.metadata.snapshotId);
                     const snapshotData = targetState.metadata.snapshotData;
                     if (snapshotData) {
                         const success = await this.storage.saveHistorySnapshot(snapshotData);
@@ -269,7 +269,7 @@ class HistoryManager {
                     }
                 } else if (action === 'delete_snapshot') {
                     // Redo snapshot deletion - remove the snapshot again
-                    console.log('🔧 [HISTORY] Redoing snapshot deletion:', targetState.metadata.snapshotId);
+                    console.log('[HISTORY] Redoing snapshot deletion:', targetState.metadata.snapshotId);
                     const history = this.storage.loadHistoryFromStorage();
                     const snapshotIndex = history.findIndex(s => s.id === targetState.metadata.snapshotId);
                     if (snapshotIndex !== -1) {
@@ -290,7 +290,7 @@ class HistoryManager {
             // Save current state as a snapshot
             await this.saveHistoryToStorage();
 
-            console.log(`🔧 [HISTORY] Redid: "${currentState.description}" -> "${targetState.description}"`);
+            console.log(`[HISTORY] Redid: "${currentState.description}" -> "${targetState.description}"`);
 
             // Update UI
             this.updateUndoRedoButtons();
@@ -306,7 +306,7 @@ class HistoryManager {
                 restoredState: targetState,
             };
         } catch (error) {
-            console.error('🔧 [HISTORY] Redo failed:', error);
+            console.error('[HISTORY] Redo failed:', error);
             this.isUndoRedoInProgress = false;
             return { success: false, message: 'Redo operation failed' };
         }
@@ -354,7 +354,7 @@ class HistoryManager {
     async createSnapshot(name = null, description = '', silent = false) {
         try {
             const currentData = this.dataManager.getData();
-            console.log('🔧 [HISTORY] Creating snapshot with data:', {
+            console.log('[HISTORY] Creating snapshot with data:', {
                 properties: currentData.properties?.length || 0,
                 categories: currentData.expenseCategories?.length || 0
             });
@@ -374,7 +374,7 @@ class HistoryManager {
             const success = await this.storage.saveHistorySnapshot(snapshot);
 
             if (success) {
-                console.log(`🔧 [HISTORY] Snapshot created: "${snapshot.name}"`);
+                console.log(`[HISTORY] Snapshot created: "${snapshot.name}"`);
 
                 // Add the snapshot to the in-memory history array so getSnapshots() can find it
                 this.history.push(snapshot);
@@ -410,7 +410,7 @@ class HistoryManager {
                     snapshot,
                 };
             } else {
-                console.error('🔧 [HISTORY] Failed to save snapshot to storage');
+                console.error('[HISTORY] Failed to save snapshot to storage');
                 if (!silent) {
                     // Show toast notification
                     if (window.uiManager && typeof window.uiManager.showToast === 'function') {
@@ -423,7 +423,7 @@ class HistoryManager {
                 };
             }
         } catch (error) {
-            console.error('🔧 [HISTORY] Failed to create snapshot:', error);
+            console.error('[HISTORY] Failed to create snapshot:', error);
             if (!silent) {
                 // Show toast notification
                 if (window.uiManager && typeof window.uiManager.showToast === 'function') {
@@ -444,14 +444,14 @@ class HistoryManager {
      */
     async loadSnapshot(snapshotId) {
         try {
-            console.log('🔧 [HISTORY] Loading snapshot:', snapshotId);
+            console.log('[HISTORY] Loading snapshot:', snapshotId);
 
             // Get snapshot from storage
             const history = this.storage.loadHistoryFromStorage();
             const snapshot = history.find(s => s.id === snapshotId);
 
             if (!snapshot) {
-                console.error('🔧 [HISTORY] Snapshot not found:', snapshotId);
+                console.error('[HISTORY] Snapshot not found:', snapshotId);
                 // Show toast notification
                 if (window.uiManager && typeof window.uiManager.showToast === 'function') {
                     window.uiManager.showToast('Snapshot not found. It may have been deleted.', 'error', 3000);
@@ -483,7 +483,7 @@ class HistoryManager {
             const snapshotData = JSON.parse(JSON.stringify(snapshot.data));
             await this.dataManager.initialize(snapshotData);
 
-            console.log(`🔧 [HISTORY] Snapshot loaded: "${snapshot.name}"`);
+            console.log(`[HISTORY] Snapshot loaded: "${snapshot.name}"`);
 
             // Show toast notification
             if (window.uiManager && typeof window.uiManager.showToast === 'function') {
@@ -504,7 +504,7 @@ class HistoryManager {
                 snapshot,
             };
         } catch (error) {
-            console.error('🔧 [HISTORY] Failed to load snapshot:', error);
+            console.error('[HISTORY] Failed to load snapshot:', error);
             // Show toast notification
             if (window.uiManager && typeof window.uiManager.showToast === 'function') {
                 window.uiManager.showToast('Failed to load snapshot', 'error', 3000);
@@ -523,13 +523,13 @@ class HistoryManager {
      */
     async renameSnapshot(snapshotId) {
         try {
-            console.log('🔧 [HISTORY] Renaming snapshot:', snapshotId);
+            console.log('[HISTORY] Renaming snapshot:', snapshotId);
 
             // Find the snapshot in history
             const snapshotIndex = this.history.findIndex(s => s.id === snapshotId);
 
             if (snapshotIndex === -1) {
-                console.error('🔧 [HISTORY] Snapshot not found for renaming:', snapshotId);
+                console.error('[HISTORY] Snapshot not found for renaming:', snapshotId);
                 // Show toast notification
                 if (window.uiManager && typeof window.uiManager.showToast === 'function') {
                     window.uiManager.showToast('Snapshot not found. It may have been deleted.', 'error', 3000);
@@ -566,7 +566,7 @@ class HistoryManager {
             // Save updated history
             await this.saveHistoryToStorage();
 
-            console.log(`🔧 [HISTORY] Snapshot renamed: "${currentName}" -> "${newName.trim()}"`);
+            console.log(`[HISTORY] Snapshot renamed: "${currentName}" -> "${newName.trim()}"`);
 
             // Show toast notification
             if (window.uiManager && typeof window.uiManager.showToast === 'function') {
@@ -581,7 +581,7 @@ class HistoryManager {
                 message: `Snapshot renamed to "${newName.trim()}"`,
             };
         } catch (error) {
-            console.error('🔧 [HISTORY] Failed to rename snapshot:', error);
+            console.error('[HISTORY] Failed to rename snapshot:', error);
             // Show toast notification
             if (window.uiManager && typeof window.uiManager.showToast === 'function') {
                 window.uiManager.showToast('Failed to rename snapshot', 'error', 3000);
@@ -600,13 +600,13 @@ class HistoryManager {
      */
     async deleteSnapshot(snapshotId) {
         try {
-            console.log('🔧 [HISTORY] Deleting snapshot:', snapshotId);
+            console.log('[HISTORY] Deleting snapshot:', snapshotId);
 
             const history = this.storage.loadHistoryFromStorage();
             const snapshotIndex = history.findIndex(s => s.id === snapshotId);
 
             if (snapshotIndex === -1) {
-                console.error('🔧 [HISTORY] Snapshot not found for deletion:', snapshotId);
+                console.error('[HISTORY] Snapshot not found for deletion:', snapshotId);
                 // Show toast notification
                 if (window.uiManager && typeof window.uiManager.showToast === 'function') {
                     window.uiManager.showToast('Snapshot not found. It may have been deleted.', 'error', 3000);
@@ -647,7 +647,7 @@ class HistoryManager {
             // Update the in-memory history array
             await this.loadHistoryFromStorage();
 
-            console.log(`🔧 [HISTORY] Snapshot deleted: "${snapshot.name}"`);
+            console.log(`[HISTORY] Snapshot deleted: "${snapshot.name}"`);
 
             // Show toast notification
             if (window.uiManager && typeof window.uiManager.showToast === 'function') {
@@ -662,7 +662,7 @@ class HistoryManager {
                 message: `Snapshot "${snapshot.name}" deleted successfully`,
             };
         } catch (error) {
-            console.error('🔧 [HISTORY] Failed to delete snapshot:', error);
+            console.error('[HISTORY] Failed to delete snapshot:', error);
             // Show toast notification
             if (window.uiManager && typeof window.uiManager.showToast === 'function') {
                 window.uiManager.showToast('Failed to delete snapshot', 'error', 3000);
@@ -706,8 +706,8 @@ class HistoryManager {
             return false;
         });
 
-        console.log('🔧 [HISTORY] Loaded snapshots from memory:', snapshots.length);
-        console.log('🔧 [HISTORY] Snapshot details:', snapshots.map(s => ({
+        console.log('[HISTORY] Loaded snapshots from memory:', snapshots.length);
+        console.log('[HISTORY] Snapshot details:', snapshots.map(s => ({
             name: s.name || s.description || 'Unnamed',
             timestamp: s.timestamp,
             totalExpenses: s.totalExpenses || 0,
@@ -841,10 +841,10 @@ class HistoryManager {
             this.saveHistoryToStorage();
             this.updateUndoRedoButtons();
 
-            console.log('🔧 [HISTORY] History cleared');
+            console.log('[HISTORY] History cleared');
             return true;
         } catch (error) {
-            console.error('🔧 [HISTORY] Failed to clear history:', error);
+            console.error('[HISTORY] Failed to clear history:', error);
             return false;
         }
     }
@@ -910,7 +910,7 @@ class HistoryManager {
             localStorage.setItem(this.historyStorageKey, JSON.stringify(historyData));
             return true;
         } catch (error) {
-            console.error('🔧 [HISTORY] Failed to save history to storage:', error);
+            console.error('[HISTORY] Failed to save history to storage:', error);
             return false;
         }
     }
@@ -933,7 +933,7 @@ class HistoryManager {
                         const cleanedEntry = { ...entry };
                         delete cleanedEntry.propertyCount;
                         delete cleanedEntry.categoryCount;
-                        console.log('🔧 [HISTORY] Cleaned spurious snapshot properties from history entry:', entry.description);
+                        console.log('[HISTORY] Cleaned spurious snapshot properties from history entry:', entry.description);
                         return cleanedEntry;
                     }
                     return entry;
@@ -950,7 +950,7 @@ class HistoryManager {
 
             return true;
         } catch (error) {
-            console.error('🔧 [HISTORY] Failed to load history from storage:', error);
+            console.error('[HISTORY] Failed to load history from storage:', error);
             this.history = [];
             this.historyIndex = -1;
             return false;
@@ -982,7 +982,7 @@ class HistoryManager {
      */
     updateUndoRedoButtons() {
         const state = this.getHistoryState();
-        console.log(`🔧 [HISTORY] Button states - Undo: ${state.canUndo}, Redo: ${state.canRedo}`);
+        console.log(`[HISTORY] Button states - Undo: ${state.canUndo}, Redo: ${state.canRedo}`);
 
         // Try to update UI buttons if they exist
         try {
@@ -1002,7 +1002,7 @@ class HistoryManager {
             }
         } catch (error) {
             // Silently fail if DOM elements don't exist
-            console.warn('🔧 [HISTORY] Could not update button states:', error.message);
+            console.warn('[HISTORY] Could not update button states:', error.message);
         }
     }
 
@@ -1033,12 +1033,12 @@ class HistoryManager {
                 this.saveHistoryToStorage();
                 this.updateUndoRedoButtons();
 
-                console.log(`🔧 [HISTORY] Imported ${this.history.length} history entries`);
+                console.log(`[HISTORY] Imported ${this.history.length} history entries`);
                 return true;
             }
             return false;
         } catch (error) {
-            console.error('🔧 [HISTORY] Failed to import history:', error);
+            console.error('[HISTORY] Failed to import history:', error);
             return false;
         }
     }
@@ -1123,7 +1123,7 @@ class HistoryManager {
             const success = await this.storage.saveHistorySnapshot(snapshot);
 
             if (success) {
-                console.log(`🔧 [HISTORY] Snapshot imported: "${snapshot.name}"`);
+                console.log(`[HISTORY] Snapshot imported: "${snapshot.name}"`);
                 return {
                     success: true,
                     message: `Snapshot "${snapshot.name}" imported successfully`,
@@ -1136,7 +1136,7 @@ class HistoryManager {
                 };
             }
         } catch (error) {
-            console.error('🔧 [HISTORY] Failed to import snapshot:', error);
+            console.error('[HISTORY] Failed to import snapshot:', error);
             return {
                 success: false,
                 message: 'Snapshot import failed',
@@ -1150,12 +1150,12 @@ class HistoryManager {
      */
     async openHistoryManager() {
         try {
-            console.log('🔧 [HISTORY] Opening history manager...');
+            console.log('[HISTORY] Opening history manager...');
 
             // Check if modal already exists
             const existingModal = document.getElementById('historyManagerModal');
             if (existingModal) {
-                console.log('🔧 [HISTORY] History manager modal already exists, refreshing content...');
+                console.log('[HISTORY] History manager modal already exists, refreshing content...');
                 // Refresh the existing modal instead of creating a new one
                 this.refreshHistoryManagerUI();
                 return {
@@ -1560,14 +1560,14 @@ class HistoryManager {
                 this.bindCloseButton();
             }, 10);
 
-            console.log('🔧 [HISTORY] History manager opened');
+            console.log('[HISTORY] History manager opened');
 
             return {
                 success: true,
                 message: 'History manager opened successfully',
             };
         } catch (error) {
-            console.error('🔧 [HISTORY] Failed to open history manager:', error);
+            console.error('[HISTORY] Failed to open history manager:', error);
             return {
                 success: false,
                 message: 'Failed to open history manager',
@@ -1739,13 +1739,13 @@ class HistoryManager {
             link.click();
             document.body.removeChild(link);
 
-            console.log('🔧 [HISTORY] History exported successfully');
+            console.log('[HISTORY] History exported successfully');
             // Show toast notification
             if (window.uiManager && typeof window.uiManager.showToast === 'function') {
                 window.uiManager.showToast('History exported successfully', 'success', 3000);
             }
         } catch (error) {
-            console.error('🔧 [HISTORY] Failed to export history:', error);
+            console.error('[HISTORY] Failed to export history:', error);
             // Show toast notification
             if (window.uiManager && typeof window.uiManager.showToast === 'function') {
                 window.uiManager.showToast('Failed to export history', 'error', 3000);
@@ -1825,9 +1825,9 @@ class HistoryManager {
                 }
             }, 100);
 
-            console.log('🔧 [HISTORY] Import history modal opened');
+            console.log('[HISTORY] Import history modal opened');
         } catch (error) {
-            console.error('🔧 [HISTORY] Failed to open import modal:', error);
+            console.error('[HISTORY] Failed to open import modal:', error);
             // Show toast notification
             if (window.uiManager && typeof window.uiManager.showToast === 'function') {
                 window.uiManager.showToast('Failed to open import dialog', 'error', 3000);
@@ -1885,7 +1885,7 @@ class HistoryManager {
             // Import current data if present
             if (importData.currentData || importData.properties) {
                 const dataToImport = importData.currentData || importData;
-                console.log('🔧 [HISTORY] Importing main application data...', {
+                console.log('[HISTORY] Importing main application data...', {
                     hasProperties: !!dataToImport.properties,
                     propertiesCount: dataToImport.properties?.length || 0,
                     hasCategories: !!dataToImport.expenseCategories,
@@ -1906,23 +1906,23 @@ class HistoryManager {
 
                 dataImportSuccess = await window.dataManager.importData(dataToImport);
                 if (dataImportSuccess) {
-                    console.log('🔧 [HISTORY] Data imported successfully');
+                    console.log('[HISTORY] Data imported successfully');
                 } else {
-                    console.error('🔧 [HISTORY] Data import failed');
+                    console.error('[HISTORY] Data import failed');
                 }
             }
 
             // Import history if present
             if (importData.history && Array.isArray(importData.history)) {
-                console.log('🔧 [HISTORY] Importing history data...', {
+                console.log('[HISTORY] Importing history data...', {
                     historyLength: importData.history.length
                 });
 
                 historyImportSuccess = this.importHistoryData(importData);
                 if (historyImportSuccess) {
-                    console.log('🔧 [HISTORY] History imported successfully');
+                    console.log('[HISTORY] History imported successfully');
                 } else {
-                    console.error('🔧 [HISTORY] History import failed');
+                    console.error('[HISTORY] History import failed');
                 }
             }
 
@@ -1954,18 +1954,18 @@ class HistoryManager {
                 // Reload history from storage after importing data
                 if (dataImportSuccess) {
                     await this.loadHistoryFromStorage();
-                    console.log('🔧 [HISTORY] History reloaded after data import');
+                    console.log('[HISTORY] History reloaded after data import');
                 }
 
                 // Force refresh of main application UI
                 if (window.app && typeof window.app.forceUIRefresh === 'function') {
                     await window.app.forceUIRefresh();
-                    console.log('🔧 [HISTORY] Main app UI refreshed');
+                    console.log('[HISTORY] Main app UI refreshed');
                 } else if (window.app && typeof window.app.refreshUI === 'function') {
                     await window.app.refreshUI();
-                    console.log('🔧 [HISTORY] Main app UI refreshed (using refreshUI)');
+                    console.log('[HISTORY] Main app UI refreshed (using refreshUI)');
                 } else {
-                    console.warn('🔧 [HISTORY] No refresh function available on window.app');
+                    console.warn('[HISTORY] No refresh function available on window.app');
                 }
 
                 // Close import modal
@@ -1979,7 +1979,7 @@ class HistoryManager {
                     const snapshotName = importedDataSummary.fileName;
                     const snapshotDescription = `Imported: ${importedDataSummary.propertiesCount} properties, ${importedDataSummary.categoriesCount} categories, ₹${importedDataSummary.totalExpenses.toLocaleString()} total`;
 
-                    console.log('🔧 [HISTORY] Creating snapshot for imported data...');
+                    console.log('[HISTORY] Creating snapshot for imported data...');
                     await this.createSnapshot(snapshotName, snapshotDescription, true); // Silent mode
                 }
 
@@ -2009,7 +2009,7 @@ class HistoryManager {
                     window.app.refreshUI();
                 }
             } else {
-                console.error('🔧 [HISTORY] Import failed');
+                console.error('[HISTORY] Import failed');
 
                 // Close import modal
                 const importModal = document.getElementById('historyImportModal');
@@ -2024,7 +2024,7 @@ class HistoryManager {
                 }
             }
         } catch (error) {
-            console.error('🔧 [HISTORY] Failed to import data:', error);
+            console.error('[HISTORY] Failed to import data:', error);
             // Show toast notification
             if (window.uiManager && typeof window.uiManager.showToast === 'function') {
                 window.uiManager.showToast('Failed to import data - please check JSON format', 'error', 3000);
@@ -2052,33 +2052,33 @@ class HistoryManager {
      */
     refreshHistoryManagerUI() {
         try {
-            console.log('🔧 [HISTORY] Refreshing history manager UI...');
+            console.log('[HISTORY] Refreshing history manager UI...');
 
             // Check for modal with more robust detection
             const modal = document.getElementById('historyManagerModal');
 
             if (modal && modal.parentNode) {
-                console.log('🔧 [HISTORY] Found modal, updating content...');
+                console.log('[HISTORY] Found modal, updating content...');
 
                 // Update the modal content
                 const modalBody = modal.querySelector('.modal-body');
                 if (modalBody) {
                     const newContent = this.generateHistoryManagerContent();
-                    console.log('🔧 [HISTORY] Generated new content, updating modal...');
+                    console.log('[HISTORY] Generated new content, updating modal...');
                     modalBody.innerHTML = newContent;
 
                     // Re-bind event handlers for the new buttons
                     this.bindModalEvents();
-                    console.log('🔧 [HISTORY] UI refreshed successfully');
+                    console.log('[HISTORY] UI refreshed successfully');
                 } else {
-                    console.error('🔧 [HISTORY] Modal body not found');
+                    console.error('[HISTORY] Modal body not found');
                 }
             } else {
-                console.log('🔧 [HISTORY] History manager modal not found or not in DOM - skipping refresh (modal not open)');
+                console.log('[HISTORY] History manager modal not found or not in DOM - skipping refresh (modal not open)');
                 // Do not open a new modal - only refresh if already open
             }
         } catch (error) {
-            console.error('🔧 [HISTORY] Failed to refresh UI:', error);
+            console.error('[HISTORY] Failed to refresh UI:', error);
         }
     }
 
@@ -2093,15 +2093,15 @@ class HistoryManager {
                     const modal = document.getElementById('historyManagerModal');
                     if (modal) {
                         modal.remove();
-                        console.log('🔧 [HISTORY] History manager modal closed');
+                        console.log('[HISTORY] History manager modal closed');
                     }
                 });
-                console.log('🔧 [HISTORY] Close button bound');
+                console.log('[HISTORY] Close button bound');
             } else {
-                console.error('🔧 [HISTORY] Close button not found');
+                console.error('[HISTORY] Close button not found');
             }
         } catch (error) {
-            console.error('🔧 [HISTORY] Failed to bind close button:', error);
+            console.error('[HISTORY] Failed to bind close button:', error);
         }
     }
 
@@ -2196,9 +2196,9 @@ class HistoryManager {
                 });
             });
 
-            console.log('🔧 [HISTORY] Modal events re-bound');
+            console.log('[HISTORY] Modal events re-bound');
         } catch (error) {
-            console.error('🔧 [HISTORY] Failed to bind modal events:', error);
+            console.error('[HISTORY] Failed to bind modal events:', error);
         }
     }
 
@@ -2218,7 +2218,7 @@ class HistoryManager {
             const snapshotId = this.extractSnapshotIdFromEntry(snapshotEntry);
 
             if (!snapshotId) {
-                console.error('🔧 [HISTORY] Could not find snapshot ID for editing');
+                console.error('[HISTORY] Could not find snapshot ID for editing');
                 return;
             }
 
@@ -2269,9 +2269,9 @@ class HistoryManager {
                 saveEdit();
             });
 
-            console.log('🔧 [HISTORY] Started inline editing for snapshot:', snapshotId);
+            console.log('[HISTORY] Started inline editing for snapshot:', snapshotId);
         } catch (error) {
-            console.error('🔧 [HISTORY] Failed to start inline editing:', error);
+            console.error('[HISTORY] Failed to start inline editing:', error);
         }
     }
 
@@ -2284,7 +2284,7 @@ class HistoryManager {
         try {
             // Check if input is still in the DOM (it might have been removed during modal refresh)
             if (!input.parentNode || !document.contains(input)) {
-                console.log('🔧 [HISTORY] Input element no longer in DOM, skipping finishInlineEditing');
+                console.log('[HISTORY] Input element no longer in DOM, skipping finishInlineEditing');
                 return;
             }
 
@@ -2313,9 +2313,9 @@ class HistoryManager {
                 this.startInlineEditing(e.target);
             });
 
-            console.log('🔧 [HISTORY] Finished inline editing');
+            console.log('[HISTORY] Finished inline editing');
         } catch (error) {
-            console.error('🔧 [HISTORY] Failed to finish inline editing:', error);
+            console.error('[HISTORY] Failed to finish inline editing:', error);
         }
     }
 
@@ -2348,7 +2348,7 @@ class HistoryManager {
 
             return null;
         } catch (error) {
-            console.error('🔧 [HISTORY] Failed to extract snapshot ID:', error);
+            console.error('[HISTORY] Failed to extract snapshot ID:', error);
             return null;
         }
     }
@@ -2360,12 +2360,12 @@ class HistoryManager {
      */
     async saveSnapshotName(snapshotId, newName) {
         try {
-            console.log('🔧 [HISTORY] Saving snapshot name:', snapshotId, '->', newName);
+            console.log('[HISTORY] Saving snapshot name:', snapshotId, '->', newName);
 
             // Find and update the snapshot in history
             const snapshotIndex = this.history.findIndex(entry => entry.id === snapshotId);
             if (snapshotIndex === -1) {
-                console.error('🔧 [HISTORY] Snapshot not found for renaming:', snapshotId);
+                console.error('[HISTORY] Snapshot not found for renaming:', snapshotId);
                 return;
             }
 
@@ -2382,20 +2382,20 @@ class HistoryManager {
                     // Update "Create snapshot" entries
                     if (action === 'create_snapshot' && entry.metadata.snapshotId === snapshotId) {
                         entry.description = `Create snapshot: ${newName.trim()}`;
-                        console.log('🔧 [HISTORY] Updated create snapshot history entry');
+                        console.log('[HISTORY] Updated create snapshot history entry');
                     }
 
                     // Update "Delete snapshot" entries
                     if (action === 'delete_snapshot' && entry.metadata.snapshotId === snapshotId) {
                         entry.description = `Delete snapshot: ${newName.trim()}`;
-                        console.log('🔧 [HISTORY] Updated delete snapshot history entry');
+                        console.log('[HISTORY] Updated delete snapshot history entry');
                     }
                 }
 
                 // Also update any other history entries that might reference the old snapshot name
                 if (entry.description && entry.description.includes(oldName)) {
                     entry.description = entry.description.replace(oldName, newName.trim());
-                    console.log('🔧 [HISTORY] Updated history entry description containing snapshot name');
+                    console.log('[HISTORY] Updated history entry description containing snapshot name');
                 }
             });
 
@@ -2405,14 +2405,14 @@ class HistoryManager {
             // Refresh the history manager UI to show updated names immediately
             this.refreshHistoryManagerUI();
 
-            console.log('🔧 [HISTORY] Snapshot name saved successfully');
+            console.log('[HISTORY] Snapshot name saved successfully');
 
             // Show toast notification
             if (window.uiManager && typeof window.uiManager.showToast === 'function') {
                 window.uiManager.showToast(`Snapshot renamed to "${newName.trim()}"`, 'success', 2000);
             }
         } catch (error) {
-            console.error('🔧 [HISTORY] Failed to save snapshot name:', error);
+            console.error('[HISTORY] Failed to save snapshot name:', error);
             // Show toast notification
             if (window.uiManager && typeof window.uiManager.showToast === 'function') {
                 window.uiManager.showToast('Failed to rename snapshot', 'error', 3000);
@@ -2426,7 +2426,7 @@ class HistoryManager {
      */
     async deleteAllData() {
         try {
-            console.log('🔧 [DELETE] Delete All Data button clicked');
+            console.log('[DELETE] Delete All Data button clicked');
 
             // Show inline confirmation instead of browser popup
             const confirmed = await this.showInlineConfirmation(
@@ -2442,21 +2442,21 @@ class HistoryManager {
             );
 
             if (!confirmed) {
-                console.log('🔧 [DELETE] Delete operation cancelled by user');
+                console.log('[DELETE] Delete operation cancelled by user');
                 return { success: false, message: 'Delete operation cancelled' };
             }
 
-            console.log('🔧 [DELETE] Starting comprehensive data deletion...');
+            console.log('[DELETE] Starting comprehensive data deletion...');
 
             // Clear all data from storage (this now handles everything including DB)
             if (window.storage && typeof window.storage.clearAllData === 'function') {
                 const clearResult = await window.storage.clearAllData(true);
-                console.log('🔧 [DELETE] Storage clear result:', clearResult);
+                console.log('[DELETE] Storage clear result:', clearResult);
             } else {
-                console.log('🔧 [DELETE] Storage module not available, clearing manually...');
+                console.log('[DELETE] Storage module not available, clearing manually...');
                 // Fallback manual clearing
                 localStorage.clear();
-                console.log('🔧 [DELETE] localStorage cleared manually');
+                console.log('[DELETE] localStorage cleared manually');
 
                 // Try to clear IndexedDB manually
                 if (window.indexedDB) {
@@ -2467,9 +2467,9 @@ class HistoryManager {
                             deleteRequest.onerror = () => reject(deleteRequest.error);
                             deleteRequest.onblocked = () => reject(new Error('Database deletion blocked'));
                         });
-                        console.log('🔧 [DELETE] IndexedDB cleared manually');
+                        console.log('[DELETE] IndexedDB cleared manually');
                     } catch (dbError) {
-                        console.error('🔧 [DELETE] Error clearing IndexedDB manually:', dbError);
+                        console.error('[DELETE] Error clearing IndexedDB manually:', dbError);
                     }
                 }
             }
@@ -2482,16 +2482,16 @@ class HistoryManager {
                     currentTimePeriod: 'all',
                     currentView: 'overview',
                 };
-                console.log('🔧 [DELETE] DataManager memory cleared');
+                console.log('[DELETE] DataManager memory cleared');
             }
 
             if (window.historyManager && window.historyManager.history) {
                 window.historyManager.history = [];
                 window.historyManager.historyIndex = -1;
-                console.log('🔧 [DELETE] HistoryManager memory cleared');
+                console.log('[DELETE] HistoryManager memory cleared');
             }
 
-            console.log('🔧 [DELETE] All data deletion completed successfully');
+            console.log('[DELETE] All data deletion completed successfully');
 
             // Show toast notification
             if (window.uiManager && typeof window.uiManager.showToast === 'function') {
@@ -2515,7 +2515,7 @@ class HistoryManager {
 
             return { success: true, message: 'All data deleted successfully' };
         } catch (error) {
-            console.error('🔧 [DELETE] Error during data deletion:', error);
+            console.error('[DELETE] Error during data deletion:', error);
             // Show toast notification
             if (window.uiManager && typeof window.uiManager.showToast === 'function') {
                 window.uiManager.showToast('Failed to delete data', 'error', 3000);
@@ -2563,7 +2563,7 @@ class HistoryManager {
                 }
             }
         } catch (error) {
-            console.error('🔧 [HISTORY] Failed to show import status:', error);
+            console.error('[HISTORY] Failed to show import status:', error);
         }
     }
 
@@ -2817,23 +2817,23 @@ class HistoryManager {
      * Debug history information
      */
     debug() {
-        console.log('🔧 [HISTORY DEBUG] === HISTORY INFORMATION ===');
-        console.log('🔧 [HISTORY DEBUG] Total entries:', this.history.length);
-        console.log('🔧 [HISTORY DEBUG] Current index:', this.historyIndex);
-        console.log('🔧 [HISTORY DEBUG] Can undo:', this.canUndo());
-        console.log('🔧 [HISTORY DEBUG] Can redo:', this.canRedo());
-        console.log('🔧 [HISTORY DEBUG] Statistics:', this.getHistoryStatistics());
+        console.log('[HISTORY DEBUG] === HISTORY INFORMATION ===');
+        console.log('[HISTORY DEBUG] Total entries:', this.history.length);
+        console.log('[HISTORY DEBUG] Current index:', this.historyIndex);
+        console.log('[HISTORY DEBUG] Can undo:', this.canUndo());
+        console.log('[HISTORY DEBUG] Can redo:', this.canRedo());
+        console.log('[HISTORY DEBUG] Statistics:', this.getHistoryStatistics());
 
         if (this.history.length > 0) {
-            console.log('🔧 [HISTORY DEBUG] Current entry:', this.history[this.historyIndex]);
-            console.log('🔧 [HISTORY DEBUG] Recent entries:');
+            console.log('[HISTORY DEBUG] Current entry:', this.history[this.historyIndex]);
+            console.log('[HISTORY DEBUG] Recent entries:');
             this.history.slice(-5).forEach((entry, index) => {
                 const marker = index === this.history.length - 1 - this.historyIndex ? ' <-- CURRENT' : '';
-                console.log(`🔧 [HISTORY DEBUG] [${this.history.length - 5 + index}] ${entry.description} (${entry.timestamp})${marker}`);
+                console.log(`[HISTORY DEBUG] [${this.history.length - 5 + index}] ${entry.description} (${entry.timestamp})${marker}`);
             });
         }
 
-        console.log('🔧 [HISTORY DEBUG] === END DEBUG ===');
+        console.log('[HISTORY DEBUG] === END DEBUG ===');
     }
 }
 

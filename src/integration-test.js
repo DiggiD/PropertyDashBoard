@@ -33,7 +33,7 @@ function logTest(name, passed, message = '') {
 }
 
 function logSection(title) {
-    console.log(`\n🔧 [INTEGRATION TEST] === ${title.toUpperCase()} ===`);
+    console.log(`\n[INTEGRATION TEST] === ${title.toUpperCase()} ===`);
 }
 
 /**
@@ -281,8 +281,8 @@ async function testErrorHandling() {
  * Run all integration tests
  */
 async function runIntegrationTests() {
-    console.log('🚀 [INTEGRATION TEST] Starting Modular Architecture Integration Tests');
-    console.log('🔧 [INTEGRATION TEST] Testing all modules work together correctly');
+    console.log('[INTEGRATION TEST] Starting Modular Architecture Integration Tests');
+    console.log('[INTEGRATION TEST] Testing all modules work together correctly');
 
     const startTime = performance.now();
 
@@ -344,11 +344,11 @@ if (typeof module !== 'undefined' && module.exports) {
 if (typeof window !== 'undefined' && window.location) {
     // Only run automatically if not in a test environment
     if (!window.jest && !window.mocha) {
-        console.log('🔧 [INTEGRATION TEST] Auto-running integration tests in 2 seconds...');
+        console.log('[INTEGRATION TEST] Auto-running integration tests in 2 seconds...');
         setTimeout(() => {
             runIntegrationTests().then(results => {
                 window.integrationTestResults = results;
-                console.log('🔧 [INTEGRATION TEST] Test results available at window.integrationTestResults');
+                console.log('[INTEGRATION TEST] Test results available at window.integrationTestResults');
             });
         }, 2000);
     }

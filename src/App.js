@@ -28,7 +28,7 @@ class App {
         this.currentView = 'overview';
         this.currentTimePeriod = 'all';
 
-        console.log('🔧 [APP] Application orchestrator initialized');
+        console.log('[APP] Application orchestrator initialized');
     }
 
     /**
@@ -36,7 +36,7 @@ class App {
      */
     async initialize() {
         try {
-            console.log('🔧 [APP] Starting application initialization...');
+            console.log('[APP] Starting application initialization...');
 
             // Initialize utility modules first
             await this.initializeUtilityModules();
@@ -56,13 +56,13 @@ class App {
             // Mark as initialized
             this.isInitialized = true;
 
-            console.log('🔧 [APP] Application initialization complete');
+            console.log('[APP] Application initialization complete');
 
             // Show initial view
             this.showOverviewView();
 
         } catch (error) {
-            console.error('🔧 [APP] Initialization failed:', error);
+            console.error('[APP] Initialization failed:', error);
             this.handleInitializationError(error);
         }
     }
@@ -71,7 +71,7 @@ class App {
      * Initialize utility modules
      */
     async initializeUtilityModules() {
-        console.log('🔧 [APP] Initializing utility modules...');
+        console.log('[APP] Initializing utility modules...');
 
         // Utility modules are already initialized by ModuleLoader
         // Just ensure they have initialize methods if needed
@@ -88,14 +88,14 @@ class App {
             await this.themeManager.initialize();
         }
 
-        console.log('🔧 [APP] Utility modules initialized');
+        console.log('[APP] Utility modules initialized');
     }
 
     /**
      * Initialize core modules
      */
     async initializeCoreModules() {
-        console.log('🔧 [APP] Initializing core modules...');
+        console.log('[APP] Initializing core modules...');
 
         // Core modules are already initialized by ModuleLoader
         // Just ensure they have initialize methods if needed
@@ -115,14 +115,14 @@ class App {
             await this.chartRenderer.initialize();
         }
 
-        console.log('🔧 [APP] Core modules initialized');
+        console.log('[APP] Core modules initialized');
     }
 
     /**
      * Setup module dependencies
      */
     setupModuleDependencies() {
-        console.log('🔧 [APP] Setting up module dependencies...');
+        console.log('[APP] Setting up module dependencies...');
 
         // DataManager dependencies are already set in constructor
         // UIManager dependencies
@@ -146,14 +146,14 @@ class App {
             this.chartRenderer.setUIManager(this.uiManager);
         }
 
-        console.log('🔧 [APP] Module dependencies configured');
+        console.log('[APP] Module dependencies configured');
     }
 
     /**
      * Initialize application state
      */
     async initializeApplicationState() {
-        console.log('🔧 [APP] Initializing application state...');
+        console.log('[APP] Initializing application state...');
 
         // Load data from storage
         await this.dataManager.loadData();
@@ -165,17 +165,17 @@ class App {
         this.uiManager.setupInitialState();
 
         // Force UI refresh to ensure loaded data is displayed
-        console.log('🔧 [APP] Forcing UI refresh after data load...');
+        console.log('[APP] Forcing UI refresh after data load...');
         await this.forceUIRefresh();
 
-        console.log('🔧 [APP] Application state initialized');
+        console.log('[APP] Application state initialized');
     }
 
     /**
      * Setup event handlers
      */
     setupEventHandlers() {
-        console.log('🔧 [APP] Setting up event handlers...');
+        console.log('[APP] Setting up event handlers...');
 
         // View navigation events
         this.setupViewNavigation();
@@ -186,7 +186,7 @@ class App {
         // UI interaction events
         this.setupUIInteractions();
 
-        console.log('🔧 [APP] Event handlers configured');
+        console.log('[APP] Event handlers configured');
     }
 
     /**
@@ -199,10 +199,10 @@ class App {
             overviewBtn.addEventListener('click', () => this.showOverviewView());
         }
 
-        // Expenses view
-        const expensesBtn = this.uiManager.getElement('expensesBtn');
-        if (expensesBtn) {
-            expensesBtn.addEventListener('click', () => this.showExpensesView());
+        // Analytics view
+        const analyticsBtn = this.uiManager.getElement('analyticsBtn');
+        if (analyticsBtn) {
+            analyticsBtn.addEventListener('click', () => this.showAnalyticsView());
         }
 
         // Income view
@@ -222,18 +222,6 @@ class App {
      * Setup data management events
      */
     setupDataManagement() {
-        // Add property button
-        const addPropertyBtn = this.uiManager.getElement('addPropertyBtn');
-        if (addPropertyBtn) {
-            addPropertyBtn.addEventListener('click', () => this.openAddPropertyModal());
-        }
-
-        // Add category button
-        const addCategoryBtn = this.uiManager.getElement('addCategoryBtn');
-        if (addCategoryBtn) {
-            addCategoryBtn.addEventListener('click', () => this.openAddCategoryModal());
-        }
-
         // History button
         const historyBtn = this.uiManager.getElement('historyBtn');
         if (historyBtn) {
@@ -264,7 +252,7 @@ class App {
         }
 
         // Time period selector
-        const timePeriodSelect = this.uiManager.getElement('expensesTimePeriodSelect');
+        const timePeriodSelect = this.uiManager.getElement('analyticsTimePeriodSelect');
         if (timePeriodSelect) {
             timePeriodSelect.addEventListener('change', (e) => {
                 this.currentTimePeriod = e.target.value;
@@ -273,7 +261,7 @@ class App {
         }
 
         // View selector
-        const viewSelect = this.uiManager.getElement('expensesViewSelect');
+        const viewSelect = this.uiManager.getElement('analyticsViewSelect');
         if (viewSelect) {
             viewSelect.addEventListener('change', (e) => {
                 this.currentView = e.target.value;
@@ -286,7 +274,7 @@ class App {
      * Show overview view
      */
     showOverviewView() {
-        console.log('🔧 [APP] Showing overview view');
+        console.log('[APP] Showing overview view');
 
         this.uiManager.hideAllDashboards();
         this.uiManager.showDashboard('overview');
@@ -297,27 +285,27 @@ class App {
     }
 
     /**
-     * Show expenses view
+     * Show analytics view
      */
-    showExpensesView() {
-        console.log('🔧 [APP] Showing expenses view');
+    showAnalyticsView() {
+        console.log('[APP] Showing analytics view');
 
         this.uiManager.hideAllDashboards();
-        this.uiManager.showDashboard('expenses');
-        this.uiManager.updateNavigationState('expenses');
+        this.uiManager.showDashboard('analytics');
+        this.uiManager.updateNavigationState('analytics');
 
         // Update controls
-        this.updateExpensesControls();
+        this.updateAnalyticsControls();
 
-        // Render expense chart
-        this.chartRenderer.renderExpenseChart();
+        // Render analytics chart
+        this.chartRenderer.renderAnalyticsChart();
     }
 
     /**
      * Show income view
      */
     showIncomeView() {
-        console.log('🔧 [APP] Showing income view');
+        console.log('[APP] Showing income view');
 
         this.uiManager.hideAllDashboards();
         this.uiManager.showDashboard('income');
@@ -328,7 +316,7 @@ class App {
      * Show properties view
      */
     showPropertiesView() {
-        console.log('🔧 [APP] Showing properties view');
+        console.log('[APP] Showing properties view');
 
         this.uiManager.hideAllDashboards();
         this.uiManager.showDashboard('properties');
@@ -341,11 +329,11 @@ class App {
     }
 
     /**
-     * Update expenses controls
+     * Update analytics controls
      */
-    updateExpensesControls() {
-        const timePeriodSelect = this.uiManager.getElement('expensesTimePeriodSelect');
-        const viewSelect = this.uiManager.getElement('expensesViewSelect');
+    updateAnalyticsControls() {
+        const timePeriodSelect = this.uiManager.getElement('analyticsTimePeriodSelect');
+        const viewSelect = this.uiManager.getElement('analyticsViewSelect');
 
         if (timePeriodSelect) {
             timePeriodSelect.value = this.currentTimePeriod;
@@ -361,7 +349,7 @@ class App {
      */
     updateTimePeriod() {
         this.dataManager.setCurrentTimePeriod(this.currentTimePeriod);
-        this.chartRenderer.renderExpenseChart();
+        this.chartRenderer.renderAnalyticsChart();
         this.updateChartCalculations();
     }
 
@@ -370,7 +358,7 @@ class App {
      */
     updateView() {
         this.dataManager.setCurrentView(this.currentView);
-        this.chartRenderer.renderExpenseChart();
+        this.chartRenderer.renderAnalyticsChart();
         this.updateChartCalculations();
     }
 
@@ -399,19 +387,7 @@ class App {
         });
     }
 
-    /**
-     * Open add property modal
-     */
-    openAddPropertyModal() {
-        this.uiManager.openModal('addPropertyModal');
-    }
 
-    /**
-     * Open add category modal
-     */
-    openAddCategoryModal() {
-        this.uiManager.openModal('addCategoryModal');
-    }
 
     /**
      * Open history manager
@@ -447,7 +423,7 @@ class App {
      * Force UI refresh after data loading
      */
     async forceUIRefresh() {
-        console.log('🔧 [APP] Forcing UI refresh...');
+        console.log('[APP] Forcing UI refresh...');
 
         // Wait a bit for DOM to be ready
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -462,11 +438,11 @@ class App {
                 this.uiManager.showDashboard('overview');
                 this.chartRenderer.renderOverviewSankey();
                 break;
-            case 'expenses':
+            case 'analytics':
                 this.uiManager.hideAllDashboards();
-                this.uiManager.showDashboard('expenses');
-                this.updateExpensesControls();
-                this.chartRenderer.renderExpenseChart();
+                this.uiManager.showDashboard('analytics');
+                this.updateAnalyticsControls();
+                this.chartRenderer.renderAnalyticsChart();
                 break;
             case 'income':
                 this.uiManager.hideAllDashboards();
@@ -483,21 +459,21 @@ class App {
 
         // Update UI with data statistics
         const stats = this.dataManager.getDataStatistics();
-        console.log('🔧 [APP] Data statistics after load:', stats);
+        console.log('[APP] Data statistics after load:', stats);
 
         // Force update of any UI elements that display data
         if (this.uiManager && typeof this.uiManager.updateDataDisplay === 'function') {
             this.uiManager.updateDataDisplay(stats);
         }
 
-        console.log('🔧 [APP] UI refresh forced complete');
+        console.log('[APP] UI refresh forced complete');
     }
 
     /**
      * Refresh UI after state changes
      */
     refreshUI() {
-        console.log('🔧 [APP] Refreshing UI...');
+        console.log('[APP] Refreshing UI...');
 
         // Re-render current view
         switch (this.currentView) {
@@ -506,11 +482,11 @@ class App {
                 this.uiManager.showDashboard('overview');
                 this.chartRenderer.renderOverviewSankey();
                 break;
-            case 'expenses':
+            case 'analytics':
                 this.uiManager.hideAllDashboards();
-                this.uiManager.showDashboard('expenses');
-                this.updateExpensesControls();
-                this.chartRenderer.renderExpenseChart();
+                this.uiManager.showDashboard('analytics');
+                this.updateAnalyticsControls();
+                this.chartRenderer.renderAnalyticsChart();
                 break;
             case 'income':
                 this.uiManager.hideAllDashboards();
@@ -528,14 +504,14 @@ class App {
         // Update chart calculations
         this.updateChartCalculations();
 
-        console.log('🔧 [APP] UI refresh complete');
+        console.log('[APP] UI refresh complete');
     }
 
     /**
      * Handle initialization error
      */
     handleInitializationError(error) {
-        console.error('🔧 [APP] Initialization error:', error);
+        console.error('[APP] Initialization error:', error);
 
         this.uiManager.showError(
             'Failed to initialize application',
@@ -547,7 +523,7 @@ class App {
      * Cleanup resources
      */
     cleanup() {
-        console.log('🔧 [APP] Cleaning up application...');
+        console.log('[APP] Cleaning up application...');
 
         // Cleanup modules
         if (this.chartRenderer) {
@@ -570,37 +546,37 @@ class App {
             this.storage.cleanup();
         }
 
-        console.log('🔧 [APP] Application cleanup complete');
+        console.log('[APP] Application cleanup complete');
     }
 
     /**
      * Debug application state
      */
     debug() {
-        console.log('🔧 [APP DEBUG] === APPLICATION STATE ===');
-        console.log('🔧 [APP DEBUG] Initialized:', this.isInitialized);
-        console.log('🔧 [APP DEBUG] Current View:', this.currentView);
-        console.log('🔧 [APP DEBUG] Current Time Period:', this.currentTimePeriod);
+        console.log('[APP DEBUG] === APPLICATION STATE ===');
+        console.log('[APP DEBUG] Initialized:', this.isInitialized);
+        console.log('[APP DEBUG] Current View:', this.currentView);
+        console.log('[APP DEBUG] Current Time Period:', this.currentTimePeriod);
 
-        console.log('🔧 [APP DEBUG] === MODULE STATUS ===');
-        console.log('🔧 [APP DEBUG] DataManager:', !!this.dataManager);
-        console.log('🔧 [APP DEBUG] UIManager:', !!this.uiManager);
-        console.log('🔧 [APP DEBUG] EventHandler:', !!this.eventHandler);
-        console.log('🔧 [APP DEBUG] ChartRenderer:', !!this.chartRenderer);
-        console.log('🔧 [APP DEBUG] HistoryManager:', !!this.historyManager);
+        console.log('[APP DEBUG] === MODULE STATUS ===');
+        console.log('[APP DEBUG] DataManager:', !!this.dataManager);
+        console.log('[APP DEBUG] UIManager:', !!this.uiManager);
+        console.log('[APP DEBUG] EventHandler:', !!this.eventHandler);
+        console.log('[APP DEBUG] ChartRenderer:', !!this.chartRenderer);
+        console.log('[APP DEBUG] HistoryManager:', !!this.historyManager);
 
-        console.log('🔧 [APP DEBUG] === UTILITY STATUS ===');
-        console.log('🔧 [APP DEBUG] Formatter:', !!this.formatter);
-        console.log('🔧 [APP DEBUG] Storage:', !!this.storage);
-        console.log('🔧 [APP DEBUG] Validator:', !!this.validator);
-        console.log('🔧 [APP DEBUG] ThemeManager:', !!this.themeManager);
+        console.log('[APP DEBUG] === UTILITY STATUS ===');
+        console.log('[APP DEBUG] Formatter:', !!this.formatter);
+        console.log('[APP DEBUG] Storage:', !!this.storage);
+        console.log('[APP DEBUG] Validator:', !!this.validator);
+        console.log('[APP DEBUG] ThemeManager:', !!this.themeManager);
 
         // Debug individual modules
         if (this.dataManager) {this.dataManager.debug();}
         if (this.uiManager) {this.uiManager.debug();}
         if (this.chartRenderer) {this.chartRenderer.debug();}
 
-        console.log('🔧 [APP DEBUG] === END DEBUG ===');
+        console.log('[APP DEBUG] === END DEBUG ===');
     }
 }
 

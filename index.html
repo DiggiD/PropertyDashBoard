@@ -14,43 +14,25 @@
         <!-- Enhanced header with better accessibility -->
         <header class="header" role="banner">
             <div class="header-left">
-                <h1>Property Expense Dashboard</h1>
-                <p class="subtitle">Interactive expense visualization</p>
+                <h1>Real Estate Dashboard</h1>
             </div>
             <nav class="header-actions" role="navigation" aria-label="Main actions">
                 <button class="btn btn--outline btn--sm" id="undoBtn" 
                         aria-label="Undo last action" disabled>
-                    ↶ Undo
+                    Undo
                 </button>
                 <button class="btn btn--outline btn--sm" id="redoBtn"
                         aria-label="Redo last undone action" disabled>
-                    ↷ Redo
+                    Redo
                 </button>
                 <button class="btn btn--outline btn--sm" id="darkModeToggle"
                         aria-label="Toggle dark mode" title="Toggle dark mode (for testing only)">
-                    🌙 Dark
+                    Dark
                 </button>
-                <!-- Dropdown Add Button -->
-                <div class="dropdown">
-                    <button class="btn btn--outline btn--sm dropdown-toggle" id="addDropdownBtn" 
-                            aria-label="Add property or category" aria-haspopup="true" aria-expanded="false">
-                        + Add
-                        <svg class="dropdown-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="6,9 12,15 18,9"></polyline>
-                        </svg>
-                    </button>
-                    <div class="dropdown-menu" id="addDropdownMenu" role="menu" aria-hidden="true">
-                        <button class="dropdown-item" id="addPropertyBtn" role="menuitem" aria-label="Add a new property to track expenses">
-                            🏠 Add Property
-                        </button>
-                        <button class="dropdown-item" id="addCategoryBtn" role="menuitem" aria-label="Add a new expense category">
-                            📊 Add Category
-                        </button>
-                    </div>
-                </div>
+
                 <button class="btn btn--secondary btn--sm" id="historyBtn" 
                         aria-label="Manage data history and snapshots">
-                    📚 History
+                    History
                 </button>
             </nav>
         </header>
@@ -62,7 +44,7 @@
                 <!-- Overview Button -->
                 <button class="summary-button" id="overviewBtn" data-metric="overview">
                     <div class="button__body">
-                        <div class="button-icon">🔍</div>
+                        <div class="button-icon">O</div>
                         <div class="button-content">
                             <div class="button-label">Overview</div>
                         </div>
@@ -72,29 +54,29 @@
                 <!-- Properties Button -->
                 <button class="summary-button" id="propertiesBtn" data-metric="properties">
                     <div class="button__body">
-                        <div class="button-icon">🏠</div>
+                        <div class="button-icon">P</div>
                         <div class="button-content">
                             <div class="button-label">Properties</div>
                         </div>
                     </div>
                 </button>
-                
-                <!-- Expenses Button -->
-                <button class="summary-button" id="expensesBtn" data-metric="expenses">
-                    <div class="button__body">
-                        <div class="button-icon">💰</div>
-                        <div class="button-content">
-                            <div class="button-label">Expenses</div>
-                        </div>
-                    </div>
-                </button>
-                
+
                 <!-- Income Button -->
                 <button class="summary-button" id="incomeBtn" data-metric="income">
                     <div class="button__body">
-                        <div class="button-icon">💵</div>
+                        <div class="button-icon">I</div>
                         <div class="button-content">
                             <div class="button-label">Income</div>
+                        </div>
+                    </div>
+                </button>
+
+                <!-- Analytics Button -->
+                <button class="summary-button" id="analyticsBtn" data-metric="analytics">
+                    <div class="button__body">
+                        <div class="button-icon">A</div>
+                        <div class="button-content">
+                            <div class="button-label">Analytics</div>
                         </div>
                     </div>
                 </button>
@@ -102,57 +84,57 @@
             
             <!-- Dashboard Containers Section -->
             <div class="dashboard-containers">
-                <!-- Expenses Dashboard Container -->
-                <div id="expensesDashboard" class="dashboard-container dashboard-expenses hidden">
-                    <!-- Expenses Header -->
+                <!-- Analytics Dashboard Container -->
+                <div id="analyticsDashboard" class="dashboard-container dashboard-analytics hidden">
+                    <!-- Analytics Header -->
                     <div class="dashboard-header">
                         <!-- Remove the entire dashboard-controls div with export button -->
                     </div>
-                    <!-- Expenses Chart Container -->
-                    <div id="expenseChart" class="expense-container" role="img" 
-                            aria-label="Expenses visualization chart">
-                        <div class="loading-state" id="expensesLoadingState">
+                    <!-- Analytics Chart Container -->
+                    <div id="analyticsChart" class="analytics-container" role="img"
+                            aria-label="Analytics visualization chart">
+                        <div class="loading-state" id="analyticsLoadingState">
                             <div class="loading-spinner"></div>
-                            <p>Loading expenses chart...</p>
+                            <p>Loading analytics chart...</p>
                         </div>
-                        <div id="expensesChartContent" class="chart-content"></div>
+                        <div id="analyticsChartContent" class="chart-content"></div>
                         <div class="chart-calculations">
                             <!-- Chart Controls -->
                             <div class="chart-controls">
                                 <div class="control-item">
                                     <label class="control-label">View</label>
-                                    <select class="control-select" id="expensesViewSelect">
-                                        <option value="overview">📈 Overview</option>
-                                        <option value="trends">📊 Trends</option>
-                                        <option value="comparison">⚖️ Compare</option>
-                                        <option value="categories">🎯 Categories</option>
+                                    <select class="control-select" id="analyticsViewSelect">
+                                        <option value="overview">Overview</option>
+                                        <option value="trends">Trends</option>
+                                        <option value="comparison">Compare</option>
+                                        <option value="categories">Categories</option>
                                     </select>
                                 </div>
                                 <div class="control-item">
                                     <label class="control-label">Time Period</label>
-                                    <select class="control-select" id="expensesTimePeriodSelect">
-                                        <option value="all">🌍 All Time</option>
-                                        <option value="year">📅 This Year</option>
-                                        <option value="quarter">📆 This Quarter</option>
-                                        <option value="month">📊 This Month</option>
+                                    <select class="control-select" id="analyticsTimePeriodSelect">
+                                        <option value="all">All Time</option>
+                                        <option value="year">This Year</option>
+                                        <option value="quarter">This Quarter</option>
+                                        <option value="month">This Month</option>
                                     </select>
                                 </div>
                             </div>
                             <div class="chart-metrics">
                                 <div class="chart-metric">
                                     <span class="chart-label">Total:</span>
-                                    <span class="chart-value" id="expensesTotal">₹0</span>
-                                    <span class="chart-trend" id="expensesTotalTrend">+0%</span>
+                                    <span class="chart-value" id="analyticsTotal">₹0</span>
+                                    <span class="chart-trend" id="analyticsTotalTrend">+0%</span>
                                 </div>
                                 <div class="chart-metric">
                                     <span class="chart-label">Avg/Property:</span>
-                                    <span class="chart-value" id="expensesAvgPerProperty">₹0</span>
-                                    <span class="chart-trend" id="expensesAvgTrend">+0%</span>
+                                    <span class="chart-value" id="analyticsAvgPerProperty">₹0</span>
+                                    <span class="chart-trend" id="analyticsAvgTrend">+0%</span>
                                 </div>
                                 <div class="chart-metric">
                                     <span class="chart-label">Top Category:</span>
-                                    <span class="chart-value" id="expensesTopCategory">None</span>
-                                    <span class="chart-secondary" id="expensesCategoryValue">₹0</span>
+                                    <span class="chart-value" id="analyticsTopCategory">None</span>
+                                    <span class="chart-secondary" id="analyticsCategoryValue">₹0</span>
                                 </div>
                             </div>
                         </div>
@@ -162,12 +144,12 @@
                 <!-- Income Dashboard Container -->
                 <div id="incomeDashboard" class="dashboard-container dashboard-income hidden">
                     <div class="dashboard-header">
-                        <h2 class="dashboard-title">💵 Income Dashboard</h2>
+                        <h2 class="dashboard-title">Income Dashboard</h2>
                         <p class="dashboard-subtitle">Track your income sources and trends</p>
                     </div>
                     <div class="dashboard-content">
                         <div class="coming-soon">
-                            <div class="coming-soon-icon">📊</div>
+                            <div class="coming-soon-icon">Soon</div>
                             <h3>Income Dashboard Coming Soon</h3>
                             <p>This feature is under development. Check back later for comprehensive income tracking and analysis.</p>
                         </div>
@@ -216,45 +198,7 @@
         <div id="panelOverlay" class="panel-overlay" aria-hidden="true"></div>
     </div>
 
-    <!-- Add Property Modal -->
-    <div id="addPropertyModal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Add New Property</h3>
-                <button class="modal-close" id="closePropertyModal">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label class="form-label" for="propertyName">Property Name</label>
-                    <input type="text" id="propertyName" class="form-control" placeholder="Enter property name">
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn--outline" id="cancelProperty">Cancel</button>
-                <button class="btn btn--primary" id="saveProperty">Add Property</button>
-            </div>
-        </div>
-    </div>
 
-    <!-- Add Category Modal -->
-    <div id="addCategoryModal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Add New Category</h3>
-                <button class="modal-close" id="closeCategoryModal">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label class="form-label" for="categoryName">Category Name</label>
-                    <input type="text" id="categoryName" class="form-control" placeholder="Enter category name">
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn--outline" id="cancelCategory">Cancel</button>
-                <button class="btn btn--primary" id="saveCategory">Add Category</button>
-            </div>
-        </div>
-    </div>
 
     <!-- Add this import modal after the Add Category Modal (around line 191) -->
     <div id="importModal" class="modal hidden">
@@ -285,35 +229,35 @@
 
     <!-- Test script to verify JavaScript is loading -->
     <script>
-        console.log('🔧 [TEST] HTML JavaScript is loading...');
+        console.log('[TEST] HTML JavaScript is loading...');
         window.testTimestamp = Date.now();
-        console.log('🔧 [TEST] Timestamp:', window.testTimestamp);
+        console.log('[TEST] Timestamp:', window.testTimestamp);
 
         // Simple test to check if sankey functionality is available
         window.testSankey = function() {
-            console.log('🔧 [TEST] Testing sankey functionality...');
+            console.log('[TEST] Testing sankey functionality...');
 
             if (typeof d3 !== 'undefined') {
-                console.log('✅ D3.js is loaded');
+                console.log('[OK] D3.js is loaded');
             } else {
-                console.log('❌ D3.js is NOT loaded');
+                console.log('[FAIL] D3.js is NOT loaded');
             }
 
             if (typeof d3.sankey !== 'undefined') {
-                console.log('✅ D3 Sankey is loaded');
+                console.log('[OK] D3 Sankey is loaded');
             } else {
-                console.log('❌ D3 Sankey is NOT loaded');
+                console.log('[FAIL] D3 Sankey is NOT loaded');
             }
 
             if (typeof ChartRenderer !== 'undefined') {
-                console.log('✅ ChartRenderer is loaded');
+                console.log('[OK] ChartRenderer is loaded');
                 if (ChartRenderer.prototype.renderOverviewSankey) {
-                    console.log('✅ renderOverviewSankey method exists');
+                    console.log('[OK] renderOverviewSankey method exists');
                 } else {
-                    console.log('❌ renderOverviewSankey method NOT found');
+                    console.log('[FAIL] renderOverviewSankey method NOT found');
                 }
             } else {
-                console.log('❌ ChartRenderer is NOT loaded');
+                console.log('[FAIL] ChartRenderer is NOT loaded');
             }
         };
 
@@ -325,7 +269,7 @@
 
         // Direct test of sankey functionality
         window.testDirectSankey = function() {
-            console.log('🔧 [DIRECT TEST] Testing sankey chart directly...');
+            console.log('[DIRECT TEST] Testing sankey chart directly...');
 
             try {
                 // Create a simple test data structure
@@ -344,7 +288,7 @@
                     ]
                 };
 
-                console.log('🔧 [DIRECT TEST] Test data created:', testData);
+                console.log('[DIRECT TEST] Test data created:', testData);
 
                 // Test if we can create a sankey layout
                 if (typeof d3.sankey === 'function') {
@@ -354,14 +298,14 @@
                         .extent([[20, 20], [400, 200]]);
 
                     const layout = sankey(testData);
-                    console.log('🔧 [DIRECT TEST] Sankey layout created successfully:', layout);
-                    console.log('🔧 [DIRECT TEST] Nodes:', layout.nodes.length, 'Links:', layout.links.length);
+                    console.log('[DIRECT TEST] Sankey layout created successfully:', layout);
+                    console.log('[DIRECT TEST] Nodes:', layout.nodes.length, 'Links:', layout.links.length);
                 } else {
-                    console.log('❌ [DIRECT TEST] d3.sankey is not a function');
+                    console.log('[DIRECT TEST] d3.sankey is not a function');
                 }
 
             } catch (error) {
-                console.error('❌ [DIRECT TEST] Error in direct sankey test:', error);
+                console.error('[DIRECT TEST] Error in direct sankey test:', error);
             }
         };
     </script>

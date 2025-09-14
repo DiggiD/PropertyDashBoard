@@ -15,17 +15,17 @@ class ModuleLoader {
         this.dependencies = new Map();
         this.initializationQueue = [];
 
-        console.log('🔧 [MODULELOADER] Module loader initialized');
+        console.log('[MODULELOADER] Module loader initialized');
     }
 
     /**
      * Register a module with its dependencies
      */
     registerModule(name, moduleClass, dependencies = []) {
-        console.log(`🔧 [MODULELOADER] Registering module: ${name}`);
+        console.log(`[MODULELOADER] Registering module: ${name}`);
 
         if (this.modules.has(name)) {
-            console.warn(`🔧 [MODULELOADER] Module ${name} already registered, overwriting`);
+            console.warn(`[MODULELOADER] Module ${name} already registered, overwriting`);
         }
 
         this.modules.set(name, {
@@ -40,11 +40,11 @@ class ModuleLoader {
 
         // Check for circular dependencies
         if (this.hasCircularDependency(name)) {
-            console.error(`🔧 [MODULELOADER] Circular dependency detected for module: ${name}`);
+            console.error(`[MODULELOADER] Circular dependency detected for module: ${name}`);
             throw new Error(`Circular dependency detected for module: ${name}`);
         }
 
-        console.log(`🔧 [MODULELOADER] Module ${name} registered successfully`);
+        console.log(`[MODULELOADER] Module ${name} registered successfully`);
     }
 
     /**
@@ -71,10 +71,10 @@ class ModuleLoader {
      * Load a module and its dependencies
      */
     async loadModule(name) {
-        console.log(`🔧 [MODULELOADER] Loading module: ${name}`);
+        console.log(`[MODULELOADER] Loading module: ${name}`);
 
         if (this.loadedModules.has(name)) {
-            console.log(`🔧 [MODULELOADER] Module ${name} already loaded`);
+            console.log(`[MODULELOADER] Module ${name} already loaded`);
             return this.modules.get(name).instance;
         }
 
@@ -116,11 +116,11 @@ class ModuleLoader {
             this.loadedModules.add(name);
             this.loadingOrder.push(name);
 
-            console.log(`🔧 [MODULELOADER] Module ${name} loaded successfully`);
+            console.log(`[MODULELOADER] Module ${name} loaded successfully`);
             return instance;
 
         } catch (error) {
-            console.error(`🔧 [MODULELOADER] Failed to load module ${name}:`, error);
+            console.error(`[MODULELOADER] Failed to load module ${name}:`, error);
             throw error;
         }
     }
@@ -129,7 +129,7 @@ class ModuleLoader {
      * Initialize a module
      */
     async initializeModule(name) {
-        console.log(`🔧 [MODULELOADER] Initializing module: ${name}`);
+        console.log(`[MODULELOADER] Initializing module: ${name}`);
 
         const moduleInfo = this.modules.get(name);
         if (!moduleInfo) {
@@ -141,7 +141,7 @@ class ModuleLoader {
         }
 
         if (moduleInfo.initialized) {
-            console.log(`🔧 [MODULELOADER] Module ${name} already initialized`);
+            console.log(`[MODULELOADER] Module ${name} already initialized`);
             return;
         }
 
@@ -160,10 +160,10 @@ class ModuleLoader {
             }
 
             moduleInfo.initialized = true;
-            console.log(`🔧 [MODULELOADER] Module ${name} initialized successfully`);
+            console.log(`[MODULELOADER] Module ${name} initialized successfully`);
 
         } catch (error) {
-            console.error(`🔧 [MODULELOADER] Failed to initialize module ${name}:`, error);
+            console.error(`[MODULELOADER] Failed to initialize module ${name}:`, error);
             throw error;
         }
     }
@@ -172,7 +172,7 @@ class ModuleLoader {
      * Load and initialize all registered modules
      */
     async loadAllModules() {
-        console.log('🔧 [MODULELOADER] Loading all modules...');
+        console.log('[MODULELOADER] Loading all modules...');
 
         const moduleNames = Array.from(this.modules.keys());
 
@@ -181,14 +181,14 @@ class ModuleLoader {
             await this.loadModule(name);
         }
 
-        console.log('🔧 [MODULELOADER] All modules loaded, starting initialization...');
+        console.log('[MODULELOADER] All modules loaded, starting initialization...');
 
         // Initialize modules in dependency order
         for (const name of this.loadingOrder) {
             await this.initializeModule(name);
         }
 
-        console.log('🔧 [MODULELOADER] All modules initialized successfully');
+        console.log('[MODULELOADER] All modules initialized successfully');
     }
 
     /**
@@ -263,7 +263,7 @@ class ModuleLoader {
      * Cleanup all modules
      */
     async cleanup() {
-        console.log('🔧 [MODULELOADER] Cleaning up all modules...');
+        console.log('[MODULELOADER] Cleaning up all modules...');
 
         // Cleanup in reverse loading order
         const reverseOrder = [...this.loadingOrder].reverse();
@@ -273,9 +273,9 @@ class ModuleLoader {
             if (moduleInfo && moduleInfo.instance && typeof moduleInfo.instance.cleanup === 'function') {
                 try {
                     await moduleInfo.instance.cleanup();
-                    console.log(`🔧 [MODULELOADER] Module ${name} cleaned up`);
+                    console.log(`[MODULELOADER] Module ${name} cleaned up`);
                 } catch (error) {
-                    console.error(`🔧 [MODULELOADER] Failed to cleanup module ${name}:`, error);
+                    console.error(`[MODULELOADER] Failed to cleanup module ${name}:`, error);
                 }
             }
         }
@@ -287,14 +287,14 @@ class ModuleLoader {
         this.dependencies.clear();
         this.initializationQueue = [];
 
-        console.log('🔧 [MODULELOADER] All modules cleaned up');
+        console.log('[MODULELOADER] All modules cleaned up');
     }
 
     /**
      * Reload a specific module
      */
     async reloadModule(name) {
-        console.log(`🔧 [MODULELOADER] Reloading module: ${name}`);
+        console.log(`[MODULELOADER] Reloading module: ${name}`);
 
         const moduleInfo = this.modules.get(name);
         if (!moduleInfo) {
@@ -321,7 +321,7 @@ class ModuleLoader {
         await this.loadModule(name);
         await this.initializeModule(name);
 
-        console.log(`🔧 [MODULELOADER] Module ${name} reloaded successfully`);
+        console.log(`[MODULELOADER] Module ${name} reloaded successfully`);
     }
 
     /**
@@ -347,24 +347,24 @@ class ModuleLoader {
      * Debug module loader state
      */
     debug() {
-        console.log('🔧 [MODULELOADER DEBUG] === MODULE LOADER STATUS ===');
-        console.log('🔧 [MODULELOADER DEBUG] Registered modules:', this.getRegisteredModules());
-        console.log('🔧 [MODULELOADER DEBUG] Loaded modules:', this.getLoadedModules());
-        console.log('🔧 [MODULELOADER DEBUG] Initialized modules:', this.getInitializedModules());
-        console.log('🔧 [MODULELOADER DEBUG] Loading order:', this.getLoadingOrder());
+        console.log('[MODULELOADER DEBUG] === MODULE LOADER STATUS ===');
+        console.log('[MODULELOADER DEBUG] Registered modules:', this.getRegisteredModules());
+        console.log('[MODULELOADER DEBUG] Loaded modules:', this.getLoadedModules());
+        console.log('[MODULELOADER DEBUG] Initialized modules:', this.getInitializedModules());
+        console.log('[MODULELOADER DEBUG] Loading order:', this.getLoadingOrder());
 
-        console.log('🔧 [MODULELOADER DEBUG] === MODULE DETAILS ===');
+        console.log('[MODULELOADER DEBUG] === MODULE DETAILS ===');
         const status = this.getModuleStatus();
         for (const [name, info] of Object.entries(status)) {
-            console.log(`🔧 [MODULELOADER DEBUG] ${name}:`, info);
+            console.log(`[MODULELOADER DEBUG] ${name}:`, info);
         }
 
-        console.log('🔧 [MODULELOADER DEBUG] === DEPENDENCY GRAPH ===');
+        console.log('[MODULELOADER DEBUG] === DEPENDENCY GRAPH ===');
         for (const [name, deps] of this.dependencies.entries()) {
-            console.log(`🔧 [MODULELOADER DEBUG] ${name} -> [${deps.join(', ')}]`);
+            console.log(`[MODULELOADER DEBUG] ${name} -> [${deps.join(', ')}]`);
         }
 
-        console.log('🔧 [MODULELOADER DEBUG] === END DEBUG ===');
+        console.log('[MODULELOADER DEBUG] === END DEBUG ===');
     }
 }
 

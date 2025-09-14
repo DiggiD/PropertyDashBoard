@@ -256,7 +256,7 @@ class Formatter {
      */
     async initialize() {
         // No initialization needed for formatter
-        console.log('🔧 [FORMATTER] Formatter initialized');
+        console.log('[FORMATTER] Formatter initialized');
     }
 }
 

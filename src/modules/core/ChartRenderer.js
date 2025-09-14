@@ -81,7 +81,7 @@ class ChartRenderer {
         this.selectedFlow = null;
         this.highlightedFlow = null;
 
-        console.log('🔧 [CHART] ChartRenderer initialized');
+        console.log('[CHART] ChartRenderer initialized');
     }
 
     /**
@@ -91,7 +91,7 @@ class ChartRenderer {
         this.createTooltip();
         this.setupChartContainers();
 
-        console.log('🔧 [CHART] Chart renderer initialized');
+        console.log('[CHART] Chart renderer initialized');
     }
 
     /**
@@ -141,7 +141,7 @@ class ChartRenderer {
     async renderExpenseChart() {
         const chartContainer = this.uiManager.getElement('expensesChartContent');
         if (!chartContainer) {
-            console.error('🔧 [CHART] Expense chart container not found');
+            console.error('[CHART] Expense chart container not found');
             return;
         }
 
@@ -151,7 +151,7 @@ class ChartRenderer {
         const view = this.dataManager.getCurrentView();
         const timePeriod = this.dataManager.getCurrentTimePeriod();
 
-        console.log(`🔧 [CHART] Rendering expense chart: ${view} (${timePeriod})`);
+        console.log(`[CHART] Rendering expense chart: ${view} (${timePeriod})`);
 
         try {
             this.uiManager.showLoadingState('Rendering chart...');
@@ -175,7 +175,52 @@ class ChartRenderer {
 
             this.uiManager.hideLoadingState();
         } catch (error) {
-            console.error('🔧 [CHART] Error rendering expense chart:', error);
+            console.error('[CHART] Error rendering expense chart:', error);
+            this.uiManager.showError('Failed to render chart', 'Chart Rendering Error');
+        }
+    }
+
+    /**
+     * Render analytics chart based on current view (alias for renderExpenseChart)
+     */
+    async renderAnalyticsChart() {
+        const chartContainer = this.uiManager.getElement('analyticsChartContent');
+        if (!chartContainer) {
+            console.error('[CHART] Analytics chart container not found');
+            return;
+        }
+
+        // Clear existing chart
+        d3.select(chartContainer).selectAll('*').remove();
+
+        const view = this.dataManager.getCurrentView();
+        const timePeriod = this.dataManager.getCurrentTimePeriod();
+
+        console.log(`[CHART] Rendering analytics chart: ${view} (${timePeriod})`);
+
+        try {
+            this.uiManager.showLoadingState('Rendering chart...');
+
+            switch (view) {
+                case 'overview':
+                    await this.renderOverviewChart(chartContainer);
+                    break;
+                case 'trends':
+                    await this.renderTrendsChart(chartContainer);
+                    break;
+                case 'comparison':
+                    await this.renderComparisonChart(chartContainer);
+                    break;
+                case 'categories':
+                    await this.renderCategoriesChart(chartContainer);
+                    break;
+                default:
+                    await this.renderOverviewChart(chartContainer);
+            }
+
+            this.uiManager.hideLoadingState();
+        } catch (error) {
+            console.error('[CHART] Error rendering analytics chart:', error);
             this.uiManager.showError('Failed to render chart', 'Chart Rendering Error');
         }
     }
@@ -862,7 +907,7 @@ class ChartRenderer {
     async renderOverviewSankey() {
         const container = this.uiManager.getElement('overviewChartContent');
         if (!container) {
-            console.error('🔧 [CHART] Overview chart container not found');
+            console.error('[CHART] Overview chart container not found');
             return;
         }
 
@@ -883,7 +928,7 @@ class ChartRenderer {
             this.uiManager.hideLoadingState();
 
         } catch (error) {
-            console.error('🔧 [CHART] Error rendering sankey:', error);
+            console.error('[CHART] Error rendering sankey:', error);
             this.showOverviewPlaceholder(container);
         }
     }
@@ -896,7 +941,7 @@ class ChartRenderer {
         const categories = this.dataManager.getExpenseCategories();
 
         if (!properties || properties.length === 0) {
-            console.log('🔧 [CHART] No data available for sankey');
+            console.log('[CHART] No data available for sankey');
             return null;
         }
 
@@ -1158,7 +1203,7 @@ class ChartRenderer {
 
         // Validate data
         if (!data || !data.nodes || !data.links || data.nodes.length === 0) {
-            console.error('🔧 [CHART] Invalid sankey data');
+            console.error('[CHART] Invalid sankey data');
             this.showOverviewPlaceholder(container);
             return;
         }
@@ -1173,7 +1218,7 @@ class ChartRenderer {
 
         // Check if d3.sankey is available
         if (typeof d3.sankey === 'undefined') {
-            console.error('🔧 [CHART] D3 Sankey plugin not loaded');
+            console.error('[CHART] D3 Sankey plugin not loaded');
             this.showOverviewPlaceholder(container);
             return;
         }
@@ -1331,7 +1376,7 @@ class ChartRenderer {
             });
 
         } catch (error) {
-            console.error('🔧 [CHART] Error creating sankey diagram:', error);
+            console.error('[CHART] Error creating sankey diagram:', error);
             this.showOverviewPlaceholder(container);
         }
     }
@@ -1497,7 +1542,7 @@ class ChartRenderer {
      */
     handlePropertyClick(property) {
         // This will trigger the detail panel through the main app
-        console.log('🔧 [CHART] Property clicked:', property.name);
+        console.log('[CHART] Property clicked:', property.name);
         // Implementation will be handled by the main app controller
     }
 
@@ -1506,7 +1551,7 @@ class ChartRenderer {
      */
     handleCategoryClick(category, categoryTotals) {
         // This will trigger the detail panel through the main app
-        console.log('🔧 [CHART] Category clicked:', category);
+        console.log('[CHART] Category clicked:', category);
         // Implementation will be handled by the main app controller
     }
 
@@ -1530,7 +1575,7 @@ class ChartRenderer {
         }
 
         this.legends.clear();
-        console.log('🔧 [CHART] Chart renderer cleaned up');
+        console.log('[CHART] Chart renderer cleaned up');
     }
 
     /**
@@ -1911,14 +1956,14 @@ class ChartRenderer {
      * Debug chart information
      */
     debug() {
-        console.log('🔧 [CHART DEBUG] === CHART RENDERER INFO ===');
-        console.log('🔧 [CHART DEBUG] Current chart:', this.currentChart);
-        console.log('🔧 [CHART DEBUG] Tooltip available:', !!this.tooltip);
-        console.log('🔧 [CHART DEBUG] Legends count:', this.legends.size);
-        console.log('🔧 [CHART DEBUG] Chart config:', this.chartConfig);
-        console.log('🔧 [CHART DEBUG] Selected flow:', this.selectedFlow);
-        console.log('🔧 [CHART DEBUG] Highlighted flow:', this.highlightedFlow);
-        console.log('🔧 [CHART DEBUG] === END DEBUG ===');
+        console.log('[CHART DEBUG] === CHART RENDERER INFO ===');
+        console.log('[CHART DEBUG] Current chart:', this.currentChart);
+        console.log('[CHART DEBUG] Tooltip available:', !!this.tooltip);
+        console.log('[CHART DEBUG] Legends count:', this.legends.size);
+        console.log('[CHART DEBUG] Chart config:', this.chartConfig);
+        console.log('[CHART DEBUG] Selected flow:', this.selectedFlow);
+        console.log('[CHART DEBUG] Highlighted flow:', this.highlightedFlow);
+        console.log('[CHART DEBUG] === END DEBUG ===');
     }
 }
 

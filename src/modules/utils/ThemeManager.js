@@ -167,7 +167,7 @@ class ThemeManager {
         // Update meta theme-color for mobile browsers
         this.updateMetaThemeColor(colors.primary);
 
-        console.log(`🔧 [THEME] Applied ${theme} theme`);
+        console.log(`[THEME] Applied ${theme} theme`);
     }
 
     /**
@@ -388,7 +388,7 @@ class ThemeManager {
      */
     async loadPreferences() {
         // Preferences are already loaded in constructor via loadSavedPreference
-        console.log('🔧 [THEME] Theme preferences loaded');
+        console.log('[THEME] Theme preferences loaded');
     }
 
     /**
@@ -397,20 +397,20 @@ class ThemeManager {
      */
     async initialize() {
         // Theme manager initialization is already done in constructor
-        console.log('🔧 [THEME] Theme manager initialized');
+        console.log('[THEME] Theme manager initialized');
     }
 
     /**
      * Debug theme information
      */
     debug() {
-        console.log('🔧 [THEME DEBUG] === THEME INFORMATION ===');
-        console.log('🔧 [THEME DEBUG] Current theme:', this.getCurrentTheme());
-        console.log('🔧 [THEME DEBUG] Is dark mode:', this.isDarkMode);
-        console.log('🔧 [THEME DEBUG] Manual override:', this.manualOverride);
-        console.log('🔧 [THEME DEBUG] System prefers dark:', this.systemPrefersDark);
-        console.log('🔧 [THEME DEBUG] Current colors:', this.getCurrentColors());
-        console.log('🔧 [THEME DEBUG] === END DEBUG ===');
+        console.log('[THEME DEBUG] === THEME INFORMATION ===');
+        console.log('[THEME DEBUG] Current theme:', this.getCurrentTheme());
+        console.log('[THEME DEBUG] Is dark mode:', this.isDarkMode);
+        console.log('[THEME DEBUG] Manual override:', this.manualOverride);
+        console.log('[THEME DEBUG] System prefers dark:', this.systemPrefersDark);
+        console.log('[THEME DEBUG] Current colors:', this.getCurrentColors());
+        console.log('[THEME DEBUG] === END DEBUG ===');
     }
 }
 

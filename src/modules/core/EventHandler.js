@@ -19,7 +19,7 @@ class EventHandler {
         this.boundEvents = new Map();
         this.eventListeners = new Map();
 
-        console.log('🔧 [EVENT] EventHandler initialized');
+        console.log('[EVENT] EventHandler initialized');
     }
 
     /**
@@ -32,7 +32,7 @@ class EventHandler {
         this.bindKeyboardShortcuts();
         this.bindChartInteractions();
 
-        console.log('🔧 [EVENT] Event handlers initialized');
+        console.log('[EVENT] Event handlers initialized');
     }
 
     /**
@@ -41,7 +41,7 @@ class EventHandler {
     bindSummaryButtons() {
         const buttonMappings = {
             'overviewBtn': () => this.handleViewChange('overview'),
-            'expensesBtn': () => this.handleViewChange('expenses'),
+            'analyticsBtn': () => this.handleViewChange('analytics'),
             'incomeBtn': () => this.handleViewChange('income'),
             'propertiesBtn': () => this.handleViewChange('properties'),
         };
@@ -50,32 +50,17 @@ class EventHandler {
             this.bindClickEvent(buttonKey, handler);
         });
 
-        console.log('🔧 [EVENT] Summary buttons bound');
+        console.log('[EVENT] Summary buttons bound');
     }
 
     /**
      * Bind modal events
      */
     bindModalEvents() {
-        // Add Property Modal
-        this.bindClickEvent('addPropertyBtn', () => this.handleAddProperty());
-        this.bindClickEvent('saveProperty', () => this.handleSaveProperty());
-        this.bindClickEvent('cancelProperty', () => this.handleCancelProperty());
-        this.bindClickEvent('closePropertyModal', () => this.handleCancelProperty());
-
-        // Add Category Modal
-        this.bindClickEvent('addCategoryBtn', () => this.handleAddCategory());
-        this.bindClickEvent('saveCategory', () => this.handleSaveCategory());
-        this.bindClickEvent('cancelCategory', () => this.handleCancelCategory());
-        this.bindClickEvent('closeCategoryModal', () => this.handleCancelCategory());
-
         // Import Modal
         this.bindClickEvent('confirmImport', () => this.handleImportData());
         this.bindClickEvent('cancelImport', () => this.handleCancelImport());
         this.bindClickEvent('closeImportModal', () => this.handleCancelImport());
-
-        // Dropdown
-        this.bindClickEvent('addDropdownBtn', () => this.handleDropdownToggle());
 
         // History
         this.bindClickEvent('historyBtn', () => this.handleHistoryOpen());
@@ -83,20 +68,14 @@ class EventHandler {
         // Theme toggle
         this.bindClickEvent('darkModeToggle', () => this.handleThemeToggle());
 
-        console.log('🔧 [EVENT] Modal events bound');
+        console.log('[EVENT] Modal events bound');
     }
 
     /**
      * Bind form events
      */
     bindFormEvents() {
-        // Property name input
-        this.bindEnterKeyEvent('propertyName', () => this.handleSaveProperty());
-
-        // Category name input
-        this.bindEnterKeyEvent('categoryName', () => this.handleSaveCategory());
-
-        console.log('🔧 [EVENT] Form events bound');
+        console.log('[EVENT] Form events bound');
     }
 
     /**
@@ -113,13 +92,7 @@ class EventHandler {
             this.handleSaveData();
         });
 
-        // New property shortcut
-        this.bindKeyboardShortcut(['ctrl+n', 'cmd+n'], (e) => {
-            e.preventDefault();
-            this.handleAddProperty();
-        });
-
-        console.log('🔧 [EVENT] Keyboard shortcuts bound');
+        console.log('[EVENT] Keyboard shortcuts bound');
     }
 
     /**
@@ -127,10 +100,10 @@ class EventHandler {
      */
     bindChartInteractions() {
         // Chart controls
-        this.bindChangeEvent('expensesViewSelect', (e) => this.handleChartViewChange(e.target.value));
-        this.bindChangeEvent('expensesTimePeriodSelect', (e) => this.handleTimePeriodChange(e.target.value));
+        this.bindChangeEvent('analyticsViewSelect', (e) => this.handleChartViewChange(e.target.value));
+        this.bindChangeEvent('analyticsTimePeriodSelect', (e) => this.handleTimePeriodChange(e.target.value));
 
-        console.log('🔧 [EVENT] Chart interactions bound');
+        console.log('[EVENT] Chart interactions bound');
     }
 
     /**
@@ -145,25 +118,25 @@ class EventHandler {
             this.dataManager.setCurrentView(view);
 
             // Render appropriate content
-            if (view === 'expenses') {
-                await this.handleExpensesView();
+            if (view === 'analytics') {
+                await this.handleAnalyticsView();
             } else if (view === 'overview') {
                 await this.handleOverviewView();
             }
 
-            console.log(`🔧 [EVENT] View changed to: ${view}`);
+            console.log(`[EVENT] View changed to: ${view}`);
         } catch (error) {
-            console.error('🔧 [EVENT] Error changing view:', error);
+            console.error('[EVENT] Error changing view:', error);
             this.uiManager.showError('Failed to change view', 'View Change Error');
         }
     }
 
     /**
-     * Handle expenses view
+     * Handle analytics view
      */
-    async handleExpensesView() {
+    async handleAnalyticsView() {
         try {
-            this.uiManager.showLoadingState('Loading expenses...');
+            this.uiManager.showLoadingState('Loading analytics...');
 
             // Update chart controls
             const currentView = this.dataManager.getCurrentView();
@@ -184,14 +157,14 @@ class EventHandler {
             this.uiManager.updateChartMetrics(metrics);
 
             // Trigger chart render (this will be handled by ChartRenderer when implemented)
-            if (window.expenseDashboard && window.expenseDashboard.renderExpenseChart) {
-                window.expenseDashboard.renderExpenseChart();
+            if (window.analyticsDashboard && window.analyticsDashboard.renderAnalyticsChart) {
+                window.analyticsDashboard.renderAnalyticsChart();
             }
 
             this.uiManager.hideLoadingState();
         } catch (error) {
-            console.error('🔧 [EVENT] Error handling expenses view:', error);
-            this.uiManager.showError('Failed to load expenses view', 'Expenses View Error');
+            console.error('[EVENT] Error handling analytics view:', error);
+            this.uiManager.showError('Failed to load analytics view', 'Analytics View Error');
         }
     }
 
@@ -209,7 +182,7 @@ class EventHandler {
 
             this.uiManager.hideLoadingState();
         } catch (error) {
-            console.error('🔧 [EVENT] Error handling overview view:', error);
+            console.error('[EVENT] Error handling overview view:', error);
             this.uiManager.showError('Failed to load overview', 'Overview Error');
         }
     }
@@ -221,11 +194,11 @@ class EventHandler {
     async handleChartViewChange(view) {
         try {
             this.dataManager.setCurrentView(view);
-            await this.handleExpensesView();
+            await this.handleAnalyticsView();
 
-            console.log(`🔧 [EVENT] Chart view changed to: ${view}`);
+            console.log(`[EVENT] Chart view changed to: ${view}`);
         } catch (error) {
-            console.error('🔧 [EVENT] Error changing chart view:', error);
+            console.error('[EVENT] Error changing chart view:', error);
             this.uiManager.showError('Failed to change chart view', 'Chart View Error');
         }
     }
@@ -237,148 +210,16 @@ class EventHandler {
     async handleTimePeriodChange(timePeriod) {
         try {
             this.dataManager.setCurrentTimePeriod(timePeriod);
-            await this.handleExpensesView();
+            await this.handleAnalyticsView();
 
-            console.log(`🔧 [EVENT] Time period changed to: ${timePeriod}`);
+            console.log(`[EVENT] Time period changed to: ${timePeriod}`);
         } catch (error) {
-            console.error('🔧 [EVENT] Error changing time period:', error);
+            console.error('[EVENT] Error changing time period:', error);
             this.uiManager.showError('Failed to change time period', 'Time Period Error');
         }
     }
 
-    /**
-     * Handle add property
-     */
-    handleAddProperty() {
-        try {
-            // Clear form
-            this.uiManager.clearModalForm('addPropertyModal');
 
-            // Open modal
-            this.uiManager.openModal('addPropertyModal');
-
-            console.log('🔧 [EVENT] Add property modal opened');
-        } catch (error) {
-            console.error('🔧 [EVENT] Error opening add property modal:', error);
-            this.uiManager.showError('Failed to open add property form', 'Modal Error');
-        }
-    }
-
-    /**
-     * Handle save property
-     */
-    async handleSaveProperty() {
-        try {
-            const formData = this.uiManager.getModalFormData('addPropertyModal');
-            const propertyName = formData.propertyName?.trim();
-
-            if (!propertyName) {
-                this.uiManager.showToast('Please enter a property name', 'warning');
-                return;
-            }
-
-            // Save state for undo
-            await this.historyManager.saveState('Add property');
-
-            // Add property
-            const result = this.dataManager.addProperty(propertyName);
-
-            if (result.success) {
-                // Close modal
-                this.uiManager.closeModal('addPropertyModal');
-
-                // Show success message
-                this.uiManager.showToast(result.message, 'success');
-
-                // Refresh view if on expenses page
-                if (this.uiManager.currentView === 'expenses') {
-                    await this.handleExpensesView();
-                }
-
-                console.log('🔧 [EVENT] Property added:', result.property.name);
-            } else {
-                this.uiManager.showToast(result.message, 'error');
-            }
-        } catch (error) {
-            console.error('🔧 [EVENT] Error saving property:', error);
-            this.uiManager.showError('Failed to save property', 'Save Error');
-        }
-    }
-
-    /**
-     * Handle cancel property
-     */
-    handleCancelProperty() {
-        this.uiManager.closeModal('addPropertyModal');
-        console.log('🔧 [EVENT] Add property cancelled');
-    }
-
-    /**
-     * Handle add category
-     */
-    handleAddCategory() {
-        try {
-            // Clear form
-            this.uiManager.clearModalForm('addCategoryModal');
-
-            // Open modal
-            this.uiManager.openModal('addCategoryModal');
-
-            console.log('🔧 [EVENT] Add category modal opened');
-        } catch (error) {
-            console.error('🔧 [EVENT] Error opening add category modal:', error);
-            this.uiManager.showError('Failed to open add category form', 'Modal Error');
-        }
-    }
-
-    /**
-     * Handle save category
-     */
-    async handleSaveCategory() {
-        try {
-            const formData = this.uiManager.getModalFormData('addCategoryModal');
-            const categoryName = formData.categoryName?.trim();
-
-            if (!categoryName) {
-                this.uiManager.showToast('Please enter a category name', 'warning');
-                return;
-            }
-
-            // Save state for undo
-            await this.historyManager.saveState('Add category');
-
-            // Add category
-            const result = this.dataManager.addExpenseCategory(categoryName);
-
-            if (result.success) {
-                // Close modal
-                this.uiManager.closeModal('addCategoryModal');
-
-                // Show success message
-                this.uiManager.showToast(result.message, 'success');
-
-                // Refresh view if on expenses page
-                if (this.uiManager.currentView === 'expenses') {
-                    await this.handleExpensesView();
-                }
-
-                console.log('🔧 [EVENT] Category added:', categoryName);
-            } else {
-                this.uiManager.showToast(result.message, 'error');
-            }
-        } catch (error) {
-            console.error('🔧 [EVENT] Error saving category:', error);
-            this.uiManager.showError('Failed to save category', 'Save Error');
-        }
-    }
-
-    /**
-     * Handle cancel category
-     */
-    handleCancelCategory() {
-        this.uiManager.closeModal('addCategoryModal');
-        console.log('🔧 [EVENT] Add category cancelled');
-    }
 
     /**
      * Handle import data
@@ -409,7 +250,7 @@ class EventHandler {
                 // IMPORTANT: Re-initialize HistoryManager to load updated history
                 if (this.historyManager && typeof this.historyManager.initialize === 'function') {
                     await this.historyManager.initialize();
-                    console.log('🔧 [EVENT] HistoryManager re-initialized after import');
+                    console.log('[EVENT] HistoryManager re-initialized after import');
                 }
 
                 // Update undo/redo buttons after history reload
@@ -423,12 +264,12 @@ class EventHandler {
                 // Refresh current view with updated data
                 await this.handleViewChange(this.uiManager.currentView);
 
-                console.log('🔧 [EVENT] Data imported successfully');
+                console.log('[EVENT] Data imported successfully');
             } else {
                 this.uiManager.showToast('Failed to import data', 'error');
             }
         } catch (error) {
-            console.error('🔧 [EVENT] Error importing data:', error);
+            console.error('[EVENT] Error importing data:', error);
             this.uiManager.showError('Failed to import data. Please check the format.', 'Import Error');
         }
     }
@@ -438,22 +279,17 @@ class EventHandler {
      */
     handleCancelImport() {
         this.uiManager.closeModal('importModal');
-        console.log('🔧 [EVENT] Import cancelled');
+        console.log('[EVENT] Import cancelled');
     }
 
-    /**
-     * Handle dropdown toggle
-     */
-    handleDropdownToggle() {
-        this.uiManager.toggleDropdown('addDropdownBtn');
-    }
+
 
     /**
      * Handle history open
      */
     handleHistoryOpen() {
         // This will be implemented when we have a history UI component
-        console.log('🔧 [EVENT] History button clicked');
+        console.log('[EVENT] History button clicked');
         this.uiManager.showToast('History feature coming soon', 'info');
     }
 
@@ -467,9 +303,9 @@ class EventHandler {
 
             this.uiManager.showToast(`Switched to ${isDark ? 'dark' : 'light'} mode`, 'info', 1500);
 
-            console.log(`🔧 [EVENT] Theme toggled to: ${isDark ? 'dark' : 'light'}`);
+            console.log(`[EVENT] Theme toggled to: ${isDark ? 'dark' : 'light'}`);
         } catch (error) {
-            console.error('🔧 [EVENT] Error toggling theme:', error);
+            console.error('[EVENT] Error toggling theme:', error);
             this.uiManager.showError('Failed to toggle theme', 'Theme Error');
         }
     }
@@ -493,12 +329,12 @@ class EventHandler {
                 // Refresh current view
                 await this.handleViewChange(this.uiManager.currentView);
 
-                console.log('🔧 [EVENT] Undo executed');
+                console.log('[EVENT] Undo executed');
             } else {
                 this.uiManager.showToast(result.message, 'info');
             }
         } catch (error) {
-            console.error('🔧 [EVENT] Error executing undo:', error);
+            console.error('[EVENT] Error executing undo:', error);
             this.uiManager.showError('Failed to undo action', 'Undo Error');
         }
     }
@@ -522,12 +358,12 @@ class EventHandler {
                 // Refresh current view
                 await this.handleViewChange(this.uiManager.currentView);
 
-                console.log('🔧 [EVENT] Redo executed');
+                console.log('[EVENT] Redo executed');
             } else {
                 this.uiManager.showToast(result.message, 'info');
             }
         } catch (error) {
-            console.error('🔧 [EVENT] Error executing redo:', error);
+            console.error('[EVENT] Error executing redo:', error);
             this.uiManager.showError('Failed to redo action', 'Redo Error');
         }
     }
@@ -541,12 +377,12 @@ class EventHandler {
 
             if (success) {
                 this.uiManager.showToast('Data saved successfully', 'success');
-                console.log('🔧 [EVENT] Data saved');
+                console.log('[EVENT] Data saved');
             } else {
                 this.uiManager.showToast('Failed to save data', 'error');
             }
         } catch (error) {
-            console.error('🔧 [EVENT] Error saving data:', error);
+            console.error('[EVENT] Error saving data:', error);
             this.uiManager.showError('Failed to save data', 'Save Error');
         }
     }
@@ -675,7 +511,7 @@ class EventHandler {
         });
 
         this.boundEvents.clear();
-        console.log('🔧 [EVENT] Event handler cleaned up');
+        console.log('[EVENT] Event handler cleaned up');
     }
 
     /**
@@ -699,19 +535,19 @@ class EventHandler {
      * Debug event information
      */
     debug() {
-        console.log('🔧 [EVENT DEBUG] === EVENT HANDLER INFO ===');
-        console.log('🔧 [EVENT DEBUG] Event statistics:', this.getEventStatistics());
-        console.log('🔧 [EVENT DEBUG] Bound events:');
+        console.log('[EVENT DEBUG] === EVENT HANDLER INFO ===');
+        console.log('[EVENT DEBUG] Event statistics:', this.getEventStatistics());
+        console.log('[EVENT DEBUG] Bound events:');
 
         this.boundEvents.forEach((elementBindings, elementKey) => {
-            console.log(`🔧 [EVENT DEBUG] ${elementKey}:`);
+            console.log(`[EVENT DEBUG] ${elementKey}:`);
             elementBindings.forEach((binding, event) => {
                 const meta = binding.metadata ? ` (${binding.metadata})` : '';
-                console.log(`🔧 [EVENT DEBUG]   - ${event}${meta}`);
+                console.log(`[EVENT DEBUG]   - ${event}${meta}`);
             });
         });
 
-        console.log('🔧 [EVENT DEBUG] === END DEBUG ===');
+        console.log('[EVENT DEBUG] === END DEBUG ===');
     }
 }
 

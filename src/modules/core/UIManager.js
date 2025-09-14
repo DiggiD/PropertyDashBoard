@@ -24,7 +24,7 @@ class UIManager {
         // Event listeners cache for cleanup
         this.eventListeners = new Map();
 
-        console.log('🔧 [UI] UIManager initialized');
+        console.log('[UI] UIManager initialized');
     }
 
     /**
@@ -35,7 +35,7 @@ class UIManager {
         this.setupEventListeners();
         this.initializeUIState();
 
-        console.log('🔧 [UI] UI manager initialized with', this.elements.size, 'cached elements');
+        console.log('[UI] UI manager initialized with', this.elements.size, 'cached elements');
     }
 
     /**
@@ -51,25 +51,21 @@ class UIManager {
 
             // Dashboard views
             'overviewDashboard': '#overviewDashboard',
-            'expensesDashboard': '#expensesDashboard',
+            'analyticsDashboard': '#analyticsDashboard',
             'incomeDashboard': '#incomeDashboard',
             'propertiesDashboard': '#propertiesDashboard',
 
             // Chart containers
-            'expenseChart': '#expenseChart',
-            'expensesChartContent': '#expensesChartContent',
+            'analyticsChart': '#analyticsChart',
+            'analyticsChartContent': '#analyticsChartContent',
             'overviewChart': '#overviewChart',
             'overviewChartContent': '#overviewChartContent',
 
             // Controls
-            'expensesViewSelect': '#expensesViewSelect',
-            'expensesTimePeriodSelect': '#expensesTimePeriodSelect',
-            'addDropdownBtn': '#addDropdownBtn',
-            'addDropdownMenu': '#addDropdownMenu',
+            'analyticsViewSelect': '#analyticsViewSelect',
+            'analyticsTimePeriodSelect': '#analyticsTimePeriodSelect',
 
             // Buttons
-            'addPropertyBtn': '#addPropertyBtn',
-            'addCategoryBtn': '#addCategoryBtn',
             'undoBtn': '#undoBtn',
             'redoBtn': '#redoBtn',
             'darkModeToggle': '#darkModeToggle',
@@ -77,18 +73,14 @@ class UIManager {
 
             // Summary buttons
             'overviewBtn': '#overviewBtn',
-            'expensesBtn': '#expensesBtn',
+            'analyticsBtn': '#analyticsBtn',
             'incomeBtn': '#incomeBtn',
             'propertiesBtn': '#propertiesBtn',
 
             // Modals
-            'addPropertyModal': '#addPropertyModal',
-            'addCategoryModal': '#addCategoryModal',
             'importModal': '#importModal',
 
             // Modal elements
-            'propertyName': '#propertyName',
-            'categoryName': '#categoryName',
             'importData': '#importData',
 
             // Detail panel
@@ -102,16 +94,16 @@ class UIManager {
             'toastMessage': '#toastMessage',
 
             // Loading states
-            'expensesLoadingState': '#expensesLoadingState',
+            'analyticsLoadingState': '#analyticsLoadingState',
             'overviewLoadingState': '#overviewLoadingState',
 
             // Chart metrics
-            'expensesTotal': '#expensesTotal',
-            'expensesAvgPerProperty': '#expensesAvgPerProperty',
-            'expensesTopCategory': '#expensesTopCategory',
-            'expensesCategoryValue': '#expensesCategoryValue',
-            'expensesTotalTrend': '#expensesTotalTrend',
-            'expensesAvgTrend': '#expensesAvgTrend',
+            'analyticsTotal': '#analyticsTotal',
+            'analyticsAvgPerProperty': '#analyticsAvgPerProperty',
+            'analyticsTopCategory': '#analyticsTopCategory',
+            'analyticsCategoryValue': '#analyticsCategoryValue',
+            'analyticsTotalTrend': '#analyticsTotalTrend',
+            'analyticsAvgTrend': '#analyticsAvgTrend',
         };
 
         // Store selectors for fallback
@@ -126,7 +118,7 @@ class UIManager {
             if (element) {
                 this.elements.set(key, element);
             } else {
-                console.warn(`🔧 [UI] Element not found: ${selector}`);
+                console.warn(`[UI] Element not found: ${selector}`);
             }
         });
     }
@@ -164,7 +156,7 @@ class UIManager {
         // Theme change listener
         this.addEventListener(document, 'themeChange', this.handleThemeChange.bind(this));
 
-        console.log('🔧 [UI] Event listeners setup complete');
+        console.log('[UI] Event listeners setup complete');
     }
 
     /**
@@ -219,7 +211,7 @@ class UIManager {
      */
     async setupInitialState() {
         this.initializeUIState();
-        console.log('🔧 [UI] Initial state setup complete');
+        console.log('[UI] Initial state setup complete');
     }
 
     /**
@@ -238,7 +230,7 @@ class UIManager {
         // Show selected dashboard
         this.showDashboard(view);
 
-        console.log(`🔧 [UI] Switched to view: ${view}`);
+        console.log(`[UI] Switched to view: ${view}`);
     }
 
     /**
@@ -246,7 +238,7 @@ class UIManager {
      * @param {string} activeView - Active view name
      */
     updateSummaryButtons(activeView) {
-        const buttons = ['overviewBtn', 'expensesBtn', 'incomeBtn', 'propertiesBtn'];
+        const buttons = ['overviewBtn', 'analyticsBtn', 'incomeBtn', 'propertiesBtn'];
 
         buttons.forEach(buttonKey => {
             const button = this.getElement(buttonKey);
@@ -267,7 +259,7 @@ class UIManager {
      * Hide all dashboards
      */
     hideAllDashboards() {
-        const dashboards = ['overviewDashboard', 'expensesDashboard', 'incomeDashboard', 'propertiesDashboard'];
+        const dashboards = ['overviewDashboard', 'analyticsDashboard', 'incomeDashboard', 'propertiesDashboard'];
 
         dashboards.forEach(dashboardKey => {
             const dashboard = this.getElement(dashboardKey);
@@ -298,7 +290,7 @@ class UIManager {
     showDashboard(view) {
         const dashboardMap = {
             'overview': 'overviewDashboard',
-            'expenses': 'expensesDashboard',
+            'analytics': 'analyticsDashboard',
             'income': 'incomeDashboard',
             'properties': 'propertiesDashboard',
         };
@@ -329,7 +321,7 @@ class UIManager {
             element.classList.remove('hidden');
             element.style.display = '';
             element.setAttribute('aria-hidden', 'false');
-            console.log(`🔧 [UI] Element shown: ${elementKey}`);
+            console.log(`[UI] Element shown: ${elementKey}`);
         }
     }
 
@@ -342,7 +334,7 @@ class UIManager {
         if (element) {
             element.classList.add('hidden');
             element.style.display = 'none';
-            console.log(`🔧 [UI] Element hidden: ${elementKey}`);
+            console.log(`[UI] Element hidden: ${elementKey}`);
         }
     }
 
@@ -352,7 +344,7 @@ class UIManager {
      */
     updateNavigationState(activeView) {
         this.updateSummaryButtons(activeView);
-        console.log(`🔧 [UI] Navigation state updated: ${activeView}`);
+        console.log(`[UI] Navigation state updated: ${activeView}`);
     }
 
     /**
@@ -364,7 +356,7 @@ class UIManager {
 
         // Update view select
         if (view !== undefined) {
-            const viewSelect = this.getElement('expensesViewSelect');
+            const viewSelect = this.getElement('analyticsViewSelect');
             if (viewSelect) {
                 viewSelect.value = view;
             }
@@ -372,7 +364,7 @@ class UIManager {
 
         // Update time period select
         if (timePeriod !== undefined) {
-            const timePeriodSelect = this.getElement('expensesTimePeriodSelect');
+            const timePeriodSelect = this.getElement('analyticsTimePeriodSelect');
             if (timePeriodSelect) {
                 timePeriodSelect.value = timePeriod;
             }
@@ -393,20 +385,20 @@ class UIManager {
         } = metrics;
 
         // Update total expenses
-        const totalElement = this.getElement('expensesTotal');
+        const totalElement = this.getElement('analyticsTotal');
         if (totalElement && totalExpenses !== undefined) {
             totalElement.textContent = this.formatter.formatCurrency(totalExpenses);
         }
 
         // Update average per property
-        const avgElement = this.getElement('expensesAvgPerProperty');
+        const avgElement = this.getElement('analyticsAvgPerProperty');
         if (avgElement && averageExpensePerProperty !== undefined) {
             avgElement.textContent = this.formatter.formatCurrency(averageExpensePerProperty);
         }
 
         // Update top category
-        const categoryElement = this.getElement('expensesTopCategory');
-        const categoryValueElement = this.getElement('expensesCategoryValue');
+        const categoryElement = this.getElement('analyticsTopCategory');
+        const categoryValueElement = this.getElement('analyticsCategoryValue');
         if (categoryElement && topCategory) {
             categoryElement.textContent = topCategory.name || 'None';
             if (categoryValueElement) {
@@ -415,8 +407,8 @@ class UIManager {
         }
 
         // Update trends
-        const totalTrendElement = this.getElement('expensesTotalTrend');
-        const avgTrendElement = this.getElement('expensesAvgTrend');
+        const totalTrendElement = this.getElement('analyticsTotalTrend');
+        const avgTrendElement = this.getElement('analyticsAvgTrend');
 
         if (totalTrendElement && totalTrend !== undefined) {
             totalTrendElement.textContent = this.formatter.formatChange(totalTrend);
@@ -434,7 +426,7 @@ class UIManager {
      * @param {Object} stats - Data statistics
      */
     updateDataDisplay(stats = {}) {
-        console.log('🔧 [UI] Updating data display with stats:', stats);
+        console.log('[UI] Updating data display with stats:', stats);
 
         // Update chart metrics if we have data
         if (stats.totalProperties > 0) {
@@ -454,7 +446,7 @@ class UIManager {
         // Force UI refresh
         this.hideLoadingState();
 
-        console.log('🔧 [UI] Data display updated');
+        console.log('[UI] Data display updated');
     }
 
     /**
@@ -486,7 +478,7 @@ class UIManager {
         const toggleBtn = this.getElement('darkModeToggle');
         if (toggleBtn) {
             const isDark = this.themeManager.isDarkModeActive();
-            toggleBtn.innerHTML = isDark ? '☀️ Light' : '🌙 Dark';
+            toggleBtn.innerHTML = isDark ? 'Light' : 'Dark';
             toggleBtn.setAttribute('aria-label', `Switch to ${isDark ? 'light' : 'dark'} mode`);
         }
     }
@@ -500,7 +492,7 @@ class UIManager {
 
         // Show appropriate loading state based on current view
         const loadingStates = {
-            'expenses': 'expensesLoadingState',
+            'analytics': 'analyticsLoadingState',
             'overview': 'overviewLoadingState',
         };
 
@@ -519,7 +511,7 @@ class UIManager {
         // Disable interactions during loading
         this.setLoadingState(true);
 
-        console.log(`🔧 [UI] Showing loading state: ${message}`);
+        console.log(`[UI] Showing loading state: ${message}`);
     }
 
     /**
@@ -529,7 +521,7 @@ class UIManager {
         this.isLoading = false;
 
         // Hide all loading states
-        const loadingStates = ['expensesLoadingState', 'overviewLoadingState'];
+        const loadingStates = ['analyticsLoadingState', 'overviewLoadingState'];
 
         loadingStates.forEach(key => {
             const loadingElement = this.getElement(key);
@@ -541,7 +533,7 @@ class UIManager {
         // Re-enable interactions
         this.setLoadingState(false);
 
-        console.log('🔧 [UI] Loading state hidden');
+        console.log('[UI] Loading state hidden');
     }
 
     /**
@@ -570,7 +562,7 @@ class UIManager {
      * @param {string} title - Error title
      */
     showError(message, title = 'Error') {
-        console.error(`🔧 [UI] ${title}: ${message}`);
+        console.error(`[UI] ${title}: ${message}`);
 
         // Hide loading state
         this.hideLoadingState();
@@ -580,7 +572,7 @@ class UIManager {
         if (chartContent) {
             chartContent.innerHTML = `
                 <div class="error-state">
-                    <div class="error-icon">⚠️</div>
+                    <div class="error-icon">Warning</div>
                     <h3>${title}</h3>
                     <p>${message}</p>
                     <div class="error-actions">
@@ -612,7 +604,7 @@ class UIManager {
 
             chartContent.innerHTML = `
                 <div class="empty-state">
-                    <div class="empty-icon">📊</div>
+                    <div class="empty-icon">Empty</div>
                     <h3>No Data Available</h3>
                     <p>${message}</p>
                     ${actionButton}
@@ -620,7 +612,7 @@ class UIManager {
             `;
         }
 
-        console.log('🔧 [UI] Empty state displayed');
+        console.log('[UI] Empty state displayed');
     }
 
     /**
@@ -639,10 +631,10 @@ class UIManager {
 
             // Set message with icon
             const icons = {
-                success: '✓',
-                error: '✗',
-                warning: '⚠',
-                info: 'ℹ',
+                success: '[OK]',
+                error: '[ERROR]',
+                warning: '[WARN]',
+                info: '[INFO]',
             };
 
             toastMessage.innerHTML = `${icons[type] || ''} ${message}`;
@@ -658,7 +650,7 @@ class UIManager {
             }, duration);
         }
 
-        console.log(`🔧 [UI] Toast shown: ${type} - ${message}`);
+        console.log(`[UI] Toast shown: ${type} - ${message}`);
     }
 
     /**
@@ -682,7 +674,7 @@ class UIManager {
             }
         }, 100);
 
-        console.log(`🔧 [UI] Modal opened: ${modalKey}`);
+        console.log(`[UI] Modal opened: ${modalKey}`);
     }
 
     /**
@@ -704,7 +696,7 @@ class UIManager {
             triggerBtn.focus();
         }
 
-        console.log(`🔧 [UI] Modal closed: ${modalKey}`);
+        console.log(`[UI] Modal closed: ${modalKey}`);
     }
 
     /**
@@ -800,7 +792,7 @@ class UIManager {
             }
         }
 
-        console.log(`🔧 [UI] Detail panel opened: ${title}`);
+        console.log(`[UI] Detail panel opened: ${title}`);
     }
 
     /**
@@ -820,7 +812,7 @@ class UIManager {
             }
         }
 
-        console.log('🔧 [UI] Detail panel closed');
+        console.log('[UI] Detail panel closed');
     }
 
     /**
@@ -911,8 +903,8 @@ class UIManager {
             this.updateResponsiveLayout();
 
             // Trigger chart resize if needed
-            if (window.expenseDashboard && window.expenseDashboard.renderExpenseChart) {
-                window.expenseDashboard.renderExpenseChart();
+            if (window.analyticsDashboard && window.analyticsDashboard.renderAnalyticsChart) {
+                window.analyticsDashboard.renderAnalyticsChart();
             }
         }, 300);
     }
@@ -932,7 +924,7 @@ class UIManager {
             appContainer.classList.toggle('desktop', !isMobile && !isTablet);
         }
 
-        console.log(`🔧 [UI] Responsive layout updated: ${isMobile ? 'mobile' : isTablet ? 'tablet' : 'desktop'}`);
+        console.log(`[UI] Responsive layout updated: ${isMobile ? 'mobile' : isTablet ? 'tablet' : 'desktop'}`);
     }
 
     /**
@@ -948,7 +940,7 @@ class UIManager {
         // Update any theme-aware elements
         this.updateThemeAwareElements(theme, colors);
 
-        console.log(`🔧 [UI] Theme changed to: ${theme}`);
+        console.log(`[UI] Theme changed to: ${theme}`);
     }
 
     /**
@@ -1165,21 +1157,21 @@ class UIManager {
         this.elements.clear();
         this.activeModals.clear();
 
-        console.log('🔧 [UI] UI manager cleaned up');
+        console.log('[UI] UI manager cleaned up');
     }
 
     /**
      * Debug UI information
      */
     debug() {
-        console.log('🔧 [UI DEBUG] === UI MANAGER INFO ===');
-        console.log('🔧 [UI DEBUG] Cached elements:', this.elements.size);
-        console.log('🔧 [UI DEBUG] Active modals:', this.activeModals.size);
-        console.log('🔧 [UI DEBUG] Current view:', this.currentView);
-        console.log('🔧 [UI DEBUG] Is loading:', this.isLoading);
-        console.log('🔧 [UI DEBUG] Event listeners:', this.eventListeners.size);
-        console.log('🔧 [UI DEBUG] Statistics:', this.getUIStatistics());
-        console.log('🔧 [UI DEBUG] === END DEBUG ===');
+        console.log('[UI DEBUG] === UI MANAGER INFO ===');
+        console.log('[UI DEBUG] Cached elements:', this.elements.size);
+        console.log('[UI DEBUG] Active modals:', this.activeModals.size);
+        console.log('[UI DEBUG] Current view:', this.currentView);
+        console.log('[UI DEBUG] Is loading:', this.isLoading);
+        console.log('[UI DEBUG] Event listeners:', this.eventListeners.size);
+        console.log('[UI DEBUG] Statistics:', this.getUIStatistics());
+        console.log('[UI DEBUG] === END DEBUG ===');
     }
 }
 
