@@ -46,7 +46,6 @@ class UIManager {
             // Main containers
             'appContainer': '.app-container',
             'mainContent': '.main-content',
-            'summaryCards': '.summary-cards',
             'dashboardContainers': '.dashboard-containers',
 
             // Dashboard views

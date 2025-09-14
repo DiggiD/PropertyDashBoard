@@ -16,7 +16,7 @@ class Storage {
 
         // Dexie database instance
         this.db = null;
-        this.dbVersion = 1;
+        this.dbVersion = 2; // Updated for enhanced schema
 
         // Storage limits
         this.maxLocalStorageSize = 5 * 1024 * 1024; // 5MB
@@ -38,11 +38,24 @@ class Storage {
         try {
             this.db = new Dexie('ExpenseDashboardDB');
 
+            // Enhanced schema for chronological data and multi-user support
             this.db.version(this.dbVersion).stores({
-                properties: '++id, name',
-                expenseCategories: '++id, name',
-                settings: 'key, value',
-                history: '++id, timestamp, name, description, data',
+                // Core data tables
+                properties: '++id, name, created_date, user_id',
+                expenseCategories: '++id, name, user_id',
+
+                // Enhanced expense tracking with chronological indexing
+                expenses: '++id, property_id, category, subcategory, amount, expense_date, quarter, year, user_id, [property_id+expense_date], [property_id+quarter], [user_id+expense_date]',
+
+                // User management for future multi-user features
+                users: '++id, username, email, last_sync, created_date',
+
+                // Audit trail for data integrity
+                audit_log: '++id, action, entity_type, entity_id, user_id, timestamp, [entity_type+timestamp], [user_id+timestamp]',
+
+                // Settings and metadata
+                settings: 'key, value, user_id',
+                history: '++id, timestamp, name, description, data, user_id',
                 metadata: 'key, value',
             });
 
@@ -137,48 +150,66 @@ class Storage {
     /**
      * Save data to Dexie database
      * @param {Object} data - Data to save
+     * @param {string} userId - User ID for multi-user support (optional)
      * @returns {boolean} Success status
      */
-    async saveToDatabase(data) {
+    async saveToDatabase(data, userId = 'default') {
         if (!this.db) {
             console.warn('[STORAGE] Database not available');
             return false;
         }
 
         try {
-            // Start transaction
-            await this.db.transaction('rw', ['properties', 'expenseCategories', 'metadata'], async () => {
-                // Clear existing data
-                await this.db.properties.clear();
-                await this.db.expenseCategories.clear();
+            const timestamp = new Date().toISOString();
 
-                // Save properties
+            // Start transaction with all tables
+            await this.db.transaction('rw', [
+                'properties', 'expenseCategories', 'expenses',
+                'users', 'audit_log', 'metadata'
+            ], async () => {
+
+                // Clear existing user-specific data
+                await this.db.properties.where('user_id').equals(userId).delete();
+                await this.db.expenseCategories.where('user_id').equals(userId).delete();
+                await this.db.expenses.where('user_id').equals(userId).delete();
+
+                // Save properties with enhanced fields
                 if (data.properties && Array.isArray(data.properties)) {
                     for (const property of data.properties) {
                         await this.db.properties.add({
                             id: property.id,
                             name: property.name,
+                            created_date: property.created_date || timestamp,
+                            user_id: userId,
                             quarterlyData: property.quarterlyData || {},
                             categoryTrends: property.categoryTrends || {},
                         });
+
+                        // Save expense data in separate table for better querying
+                        if (property.expenses) {
+                            await this.savePropertyExpenses(property, userId, timestamp);
+                        }
                     }
                 }
 
-                // Save categories
+                // Save categories with user association
                 if (data.expenseCategories && Array.isArray(data.expenseCategories)) {
                     for (const category of data.expenseCategories) {
-                        await this.db.expenseCategories.add({ name: category });
+                        await this.db.expenseCategories.add({
+                            name: category,
+                            user_id: userId
+                        });
                     }
                 }
 
                 // Save metadata
                 await this.db.metadata.put({
                     key: 'version',
-                    value: '1.0',
+                    value: '2.0',
                 });
                 await this.db.metadata.put({
                     key: 'lastSaved',
-                    value: new Date().toISOString(),
+                    value: timestamp,
                 });
                 await this.db.metadata.put({
                     key: 'currentTimePeriod',
@@ -188,9 +219,22 @@ class Storage {
                     key: 'currentView',
                     value: data.currentView || 'overview',
                 });
+                await this.db.metadata.put({
+                    key: 'currentUser',
+                    value: userId,
+                });
+
+                // Log audit entry
+                await this.db.audit_log.add({
+                    action: 'save',
+                    entity_type: 'database',
+                    entity_id: 'full_backup',
+                    user_id: userId,
+                    timestamp: timestamp,
+                });
             });
 
-            console.log('[STORAGE] Data saved to database successfully');
+            console.log('[STORAGE] Enhanced data saved to database successfully for user:', userId);
             return true;
         } catch (error) {
             console.error('[STORAGE] Failed to save to database:', error);
@@ -199,41 +243,107 @@ class Storage {
     }
 
     /**
+     * Save property expenses to separate table for better chronological queries
+     * @param {Object} property - Property object
+     * @param {string} userId - User ID
+     * @param {string} timestamp - Current timestamp
+     */
+    async savePropertyExpenses(property, userId, timestamp) {
+        // Extract expenses from quarterly data for chronological storage
+        if (property.quarterlyData) {
+            for (const [quarter, quarterData] of Object.entries(property.quarterlyData)) {
+                if (quarterData.expenses) {
+                    for (const [category, expenseValue] of Object.entries(quarterData.expenses)) {
+                        const year = quarter.split('_')[1] || new Date().getFullYear();
+
+                        if (typeof expenseValue === 'object' && expenseValue !== null) {
+                            // Hierarchical expenses (subcategories)
+                            for (const [subcategory, amount] of Object.entries(expenseValue)) {
+                                await this.db.expenses.add({
+                                    property_id: property.id,
+                                    category: category,
+                                    subcategory: subcategory,
+                                    amount: amount || 0,
+                                    expense_date: this.getQuarterDate(quarter),
+                                    quarter: quarter,
+                                    year: parseInt(year),
+                                    user_id: userId,
+                                });
+                            }
+                        } else {
+                            // Flat expenses
+                            await this.db.expenses.add({
+                                property_id: property.id,
+                                category: category,
+                                subcategory: null,
+                                amount: expenseValue || 0,
+                                expense_date: this.getQuarterDate(quarter),
+                                quarter: quarter,
+                                year: parseInt(year),
+                                user_id: userId,
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Convert quarter string to date
+     * @param {string} quarter - Quarter string (e.g., "Q1_2024")
+     * @returns {string} ISO date string
+     */
+    getQuarterDate(quarter) {
+        const [q, year] = quarter.split('_');
+        const quarterMonths = { Q1: '01', Q2: '04', Q3: '07', Q4: '10' };
+        return `${year}-${quarterMonths[q] || '01'}-01`;
+    }
+
+    /**
      * Load data from Dexie database
+     * @param {string} userId - User ID for multi-user support (optional)
      * @returns {Object|null} Loaded data or null if failed
      */
-    async loadFromDatabase() {
+    async loadFromDatabase(userId = 'default') {
         if (!this.db) {
             console.warn('[STORAGE] Database not available');
             return null;
         }
 
         try {
-            const [properties, categories, metadata] = await Promise.all([
-                this.db.properties.toArray(),
-                this.db.expenseCategories.toArray(),
+            // Load all data for the user
+            const [properties, categories, expenses, metadata] = await Promise.all([
+                this.db.properties.where('user_id').equals(userId).toArray(),
+                this.db.expenseCategories.where('user_id').equals(userId).toArray(),
+                this.db.expenses.where('user_id').equals(userId).toArray(),
                 this.db.metadata.toArray(),
             ]);
 
-            console.log('[STORAGE] Database query results:', {
+            console.log('[STORAGE] Enhanced database query results:', {
                 properties: properties.length,
                 categories: categories.length,
+                expenses: expenses.length,
                 metadata: metadata.length
             });
 
             // If no data in database, return null to allow fallback to localStorage
             if (properties.length === 0 && categories.length === 0) {
-                console.log('[STORAGE] No data found in database');
+                console.log('[STORAGE] No data found in database for user:', userId);
                 return null;
             }
+
+            // Reconstruct quarterly data from expenses table
+            const quarterlyData = this.reconstructQuarterlyData(expenses);
 
             const data = {
                 properties: properties.map(p => ({
                     id: p.id,
                     name: p.name,
-                    quarterlyData: p.quarterlyData || {},
+                    created_date: p.created_date,
+                    quarterlyData: quarterlyData[p.id] || {},
                     categoryTrends: p.categoryTrends || {},
-                    expenses: this.calculateExpensesFromQuarterly(p.quarterlyData),
+                    expenses: this.calculateExpensesFromQuarterly(quarterlyData[p.id]),
                 })),
                 expenseCategories: categories.map(c => c.name),
             };
@@ -247,16 +357,81 @@ class Storage {
             data.currentTimePeriod = metadataMap.currentTimePeriod || 'all';
             data.currentView = metadataMap.currentView || 'overview';
             data._lastSaved = metadataMap.lastSaved;
+            data.currentUser = metadataMap.currentUser || userId;
 
-            console.log('[STORAGE] Data loaded from database successfully:', {
+            console.log('[STORAGE] Enhanced data loaded from database successfully:', {
                 properties: data.properties.length,
-                categories: data.expenseCategories.length
+                categories: data.expenseCategories.length,
+                totalExpenses: expenses.length
             });
             return data;
         } catch (error) {
             console.error('[STORAGE] Failed to load from database:', error);
             return null;
         }
+    }
+
+    /**
+     * Reconstruct quarterly data from expenses table
+     * @param {Array} expenses - Expenses from database
+     * @returns {Object} Reconstructed quarterly data
+     */
+    reconstructQuarterlyData(expenses) {
+        const quarterlyData = {};
+
+        expenses.forEach(expense => {
+            const propertyId = expense.property_id;
+            const quarter = expense.quarter;
+
+            if (!quarterlyData[propertyId]) {
+                quarterlyData[propertyId] = {};
+            }
+
+            if (!quarterlyData[propertyId][quarter]) {
+                quarterlyData[propertyId][quarter] = {
+                    expenses: {},
+                    total: 0
+                };
+            }
+
+            const quarterData = quarterlyData[propertyId][quarter];
+
+            if (expense.subcategory) {
+                // Hierarchical expense
+                if (!quarterData.expenses[expense.category]) {
+                    quarterData.expenses[expense.category] = {};
+                }
+                quarterData.expenses[expense.category][expense.subcategory] = expense.amount;
+            } else {
+                // Flat expense
+                quarterData.expenses[expense.category] = expense.amount;
+            }
+
+            // Recalculate total
+            quarterData.total = this.calculateQuarterTotal(quarterData.expenses);
+        });
+
+        return quarterlyData;
+    }
+
+    /**
+     * Calculate total for a quarter
+     * @param {Object} expenses - Quarter expenses
+     * @returns {number} Total amount
+     */
+    calculateQuarterTotal(expenses) {
+        let total = 0;
+
+        for (const [category, value] of Object.entries(expenses)) {
+            if (typeof value === 'object' && value !== null) {
+                // Sum hierarchical values
+                total += Object.values(value).reduce((sum, val) => sum + (val || 0), 0);
+            } else {
+                total += value || 0;
+            }
+        }
+
+        return total;
     }
 
     /**
@@ -734,6 +909,256 @@ class Storage {
         // Initialize Dexie database
         await this.initDatabase();
         console.log('[STORAGE] Storage initialized');
+    }
+
+    /**
+     * Get chronological expenses for a property
+     * @param {number} propertyId - Property ID
+     * @param {string} startDate - Start date (YYYY-MM-DD)
+     * @param {string} endDate - End date (YYYY-MM-DD)
+     * @param {string} userId - User ID
+     * @returns {Array} Chronological expenses
+     */
+    async getChronologicalExpenses(propertyId, startDate, endDate, userId = 'default') {
+        if (!this.db) {
+            console.warn('[STORAGE] Database not available for chronological queries');
+            return [];
+        }
+
+        try {
+            const expenses = await this.db.expenses
+                .where('[property_id+expense_date]')
+                .between([propertyId, startDate], [propertyId, endDate])
+                .and(expense => expense.user_id === userId)
+                .sortBy('expense_date');
+
+            console.log(`[STORAGE] Found ${expenses.length} chronological expenses for property ${propertyId}`);
+            return expenses;
+        } catch (error) {
+            console.error('[STORAGE] Failed to get chronological expenses:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Get expenses by quarter for a property
+     * @param {number} propertyId - Property ID
+     * @param {string} quarter - Quarter (e.g., "Q1_2024")
+     * @param {string} userId - User ID
+     * @returns {Array} Quarter expenses
+     */
+    async getQuarterExpenses(propertyId, quarter, userId = 'default') {
+        if (!this.db) {
+            console.warn('[STORAGE] Database not available for quarter queries');
+            return [];
+        }
+
+        try {
+            const expenses = await this.db.expenses
+                .where('[property_id+quarter]')
+                .equals([propertyId, quarter])
+                .and(expense => expense.user_id === userId)
+                .toArray();
+
+            console.log(`[STORAGE] Found ${expenses.length} expenses for property ${propertyId} in quarter ${quarter}`);
+            return expenses;
+        } catch (error) {
+            console.error('[STORAGE] Failed to get quarter expenses:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Get monthly expense summary
+     * @param {number} year - Year
+     * @param {number} month - Month (1-12)
+     * @param {string} userId - User ID
+     * @returns {Object} Monthly summary
+     */
+    async getMonthlyExpenseSummary(year, month, userId = 'default') {
+        if (!this.db) {
+            console.warn('[STORAGE] Database not available for monthly summary');
+            return {};
+        }
+
+        try {
+            const startDate = `${year}-${month.toString().padStart(2, '0')}-01`;
+            const endDate = new Date(year, month, 0).toISOString().split('T')[0]; // Last day of month
+
+            const expenses = await this.db.expenses
+                .where('user_id').equals(userId)
+                .and(expense => expense.expense_date >= startDate && expense.expense_date <= endDate)
+                .toArray();
+
+            const summary = {};
+            expenses.forEach(expense => {
+                const category = expense.category;
+                if (!summary[category]) {
+                    summary[category] = 0;
+                }
+                summary[category] += expense.amount;
+            });
+
+            console.log(`[STORAGE] Monthly summary for ${year}-${month}:`, summary);
+            return summary;
+        } catch (error) {
+            console.error('[STORAGE] Failed to get monthly summary:', error);
+            return {};
+        }
+    }
+
+    /**
+     * Add or update user
+     * @param {Object} userData - User data
+     * @returns {boolean} Success status
+     */
+    async saveUser(userData) {
+        if (!this.db) {
+            console.warn('[STORAGE] Database not available for user operations');
+            return false;
+        }
+
+        try {
+            await this.db.users.put({
+                id: userData.id || Date.now(),
+                username: userData.username,
+                email: userData.email,
+                last_sync: new Date().toISOString(),
+                created_date: userData.created_date || new Date().toISOString(),
+            });
+
+            console.log('[STORAGE] User saved:', userData.username);
+            return true;
+        } catch (error) {
+            console.error('[STORAGE] Failed to save user:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Get user by ID
+     * @param {string} userId - User ID
+     * @returns {Object|null} User data
+     */
+    async getUser(userId) {
+        if (!this.db) {
+            console.warn('[STORAGE] Database not available for user queries');
+            return null;
+        }
+
+        try {
+            const user = await this.db.users.get(userId);
+            return user || null;
+        } catch (error) {
+            console.error('[STORAGE] Failed to get user:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Log audit event
+     * @param {string} action - Action performed
+     * @param {string} entityType - Type of entity
+     * @param {string} entityId - Entity ID
+     * @param {string} userId - User ID
+     * @returns {boolean} Success status
+     */
+    async logAuditEvent(action, entityType, entityId, userId = 'default') {
+        if (!this.db) {
+            console.warn('[STORAGE] Database not available for audit logging');
+            return false;
+        }
+
+        try {
+            await this.db.audit_log.add({
+                action: action,
+                entity_type: entityType,
+                entity_id: entityId,
+                user_id: userId,
+                timestamp: new Date().toISOString(),
+            });
+
+            console.log(`[STORAGE] Audit logged: ${action} on ${entityType}:${entityId}`);
+            return true;
+        } catch (error) {
+            console.error('[STORAGE] Failed to log audit event:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Get audit trail for entity
+     * @param {string} entityType - Entity type
+     * @param {string} entityId - Entity ID
+     * @param {string} userId - User ID
+     * @returns {Array} Audit trail
+     */
+    async getAuditTrail(entityType, entityId, userId = 'default') {
+        if (!this.db) {
+            console.warn('[STORAGE] Database not available for audit queries');
+            return [];
+        }
+
+        try {
+            const auditTrail = await this.db.audit_log
+                .where('[entity_type+timestamp]')
+                .between([entityType, '0000-00-00'], [entityType, '9999-99-99'])
+                .and(entry => entry.entity_id === entityId && entry.user_id === userId)
+                .reverse()
+                .limit(50)
+                .toArray();
+
+            console.log(`[STORAGE] Found ${auditTrail.length} audit entries for ${entityType}:${entityId}`);
+            return auditTrail;
+        } catch (error) {
+            console.error('[STORAGE] Failed to get audit trail:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Export user-specific data
+     * @param {string} userId - User ID
+     * @returns {Object} User data export
+     */
+    async exportUserData(userId = 'default') {
+        if (!this.db) {
+            console.warn('[STORAGE] Database not available for export');
+            return null;
+        }
+
+        try {
+            const [properties, categories, expenses, auditTrail] = await Promise.all([
+                this.db.properties.where('user_id').equals(userId).toArray(),
+                this.db.expenseCategories.where('user_id').equals(userId).toArray(),
+                this.db.expenses.where('user_id').equals(userId).toArray(),
+                this.db.audit_log.where('user_id').equals(userId).toArray(),
+            ]);
+
+            const exportData = {
+                userId: userId,
+                exportDate: new Date().toISOString(),
+                version: '2.0',
+                data: {
+                    properties: properties,
+                    expenseCategories: categories.map(c => c.name),
+                    expenses: expenses,
+                    auditTrail: auditTrail,
+                }
+            };
+
+            console.log(`[STORAGE] Exported data for user ${userId}:`, {
+                properties: properties.length,
+                categories: categories.length,
+                expenses: expenses.length,
+                auditEntries: auditTrail.length
+            });
+
+            return exportData;
+        } catch (error) {
+            console.error('[STORAGE] Failed to export user data:', error);
+            return null;
+        }
     }
 
     /**
