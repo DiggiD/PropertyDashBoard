@@ -8,13 +8,14 @@
  */
 
 class App {
-    constructor(dataManager, uiManager, eventHandler, chartRenderer, historyManager, formatter, storage, validator, themeManager) {
+    constructor(dataManager, uiManager, eventHandler, chartRenderer, historyManager, formatter, storage, validator, themeManager, propertiesManager) {
         // Core modules
         this.dataManager = dataManager;
         this.uiManager = uiManager;
         this.eventHandler = eventHandler;
         this.chartRenderer = chartRenderer;
         this.historyManager = historyManager;
+        this.propertiesManager = propertiesManager;
 
         // Utility modules
         this.formatter = formatter;
@@ -288,7 +289,7 @@ class App {
         console.log('🔧 [APP] Showing overview view');
 
         this.uiManager.hideAllDashboards();
-        this.uiManager.showElement('overviewDashboard');
+        this.uiManager.showDashboard('overview');
         this.uiManager.updateNavigationState('overview');
 
         // Render overview sankey diagram
@@ -302,7 +303,7 @@ class App {
         console.log('🔧 [APP] Showing expenses view');
 
         this.uiManager.hideAllDashboards();
-        this.uiManager.showElement('expensesDashboard');
+        this.uiManager.showDashboard('expenses');
         this.uiManager.updateNavigationState('expenses');
 
         // Update controls
@@ -319,7 +320,7 @@ class App {
         console.log('🔧 [APP] Showing income view');
 
         this.uiManager.hideAllDashboards();
-        this.uiManager.showElement('incomeDashboard');
+        this.uiManager.showDashboard('income');
         this.uiManager.updateNavigationState('income');
     }
 
@@ -330,8 +331,13 @@ class App {
         console.log('🔧 [APP] Showing properties view');
 
         this.uiManager.hideAllDashboards();
-        this.uiManager.showElement('propertiesDashboard');
+        this.uiManager.showDashboard('properties');
         this.uiManager.updateNavigationState('properties');
+
+        // Initialize properties manager if not already done
+        if (this.propertiesManager && typeof this.propertiesManager.initialize === 'function') {
+            this.propertiesManager.initialize();
+        }
     }
 
     /**
@@ -452,16 +458,26 @@ class App {
         // Force re-render of current view
         switch (this.currentView) {
             case 'overview':
-                this.showOverviewView();
+                this.uiManager.hideAllDashboards();
+                this.uiManager.showDashboard('overview');
+                this.chartRenderer.renderOverviewSankey();
                 break;
             case 'expenses':
-                this.showExpensesView();
+                this.uiManager.hideAllDashboards();
+                this.uiManager.showDashboard('expenses');
+                this.updateExpensesControls();
+                this.chartRenderer.renderExpenseChart();
                 break;
             case 'income':
-                this.showIncomeView();
+                this.uiManager.hideAllDashboards();
+                this.uiManager.showDashboard('income');
                 break;
             case 'properties':
-                this.showPropertiesView();
+                this.uiManager.hideAllDashboards();
+                this.uiManager.showDashboard('properties');
+                if (this.propertiesManager && typeof this.propertiesManager.initialize === 'function') {
+                    this.propertiesManager.initialize();
+                }
                 break;
         }
 
@@ -486,16 +502,26 @@ class App {
         // Re-render current view
         switch (this.currentView) {
             case 'overview':
-                this.showOverviewView();
+                this.uiManager.hideAllDashboards();
+                this.uiManager.showDashboard('overview');
+                this.chartRenderer.renderOverviewSankey();
                 break;
             case 'expenses':
-                this.showExpensesView();
+                this.uiManager.hideAllDashboards();
+                this.uiManager.showDashboard('expenses');
+                this.updateExpensesControls();
+                this.chartRenderer.renderExpenseChart();
                 break;
             case 'income':
-                this.showIncomeView();
+                this.uiManager.hideAllDashboards();
+                this.uiManager.showDashboard('income');
                 break;
             case 'properties':
-                this.showPropertiesView();
+                this.uiManager.hideAllDashboards();
+                this.uiManager.showDashboard('properties');
+                if (this.propertiesManager && typeof this.propertiesManager.initialize === 'function') {
+                    this.propertiesManager.initialize();
+                }
                 break;
         }
 

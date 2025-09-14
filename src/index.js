@@ -6,6 +6,8 @@
  * - Handles application startup and error recovery
  */
 
+/* global PropertiesManager, ModuleLoader, Formatter, Storage, Validator, ThemeManager, DataManager, UIManager, HistoryManager, EventHandler, ChartRenderer, App */
+
 // Global error handler for unhandled errors
 window.addEventListener('error', (event) => {
     console.error('🔧 [GLOBAL ERROR]', event.error);
@@ -134,6 +136,7 @@ async function initializeApplication() {
         moduleLoader.registerModule('historyManager', HistoryManager, ['storage', 'dataManager']);
         moduleLoader.registerModule('eventHandler', EventHandler, ['dataManager', 'uiManager', 'historyManager', 'themeManager']);
         moduleLoader.registerModule('chartRenderer', ChartRenderer, ['dataManager', 'uiManager', 'formatter']);
+        moduleLoader.registerModule('propertiesManager', PropertiesManager, ['dataManager', 'uiManager', 'eventHandler', 'historyManager']);
 
         // Main application orchestrator
         moduleLoader.registerModule('app', App, [
@@ -146,6 +149,7 @@ async function initializeApplication() {
             'storage',
             'validator',
             'themeManager',
+            'propertiesManager'
         ]);
 
         console.log('🔧 [INIT] All modules registered, loading...');

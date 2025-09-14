@@ -114,6 +114,12 @@ class UIManager {
             'expensesAvgTrend': '#expensesAvgTrend',
         };
 
+        // Store selectors for fallback
+        this.elementSelectors = new Map();
+        Object.entries(elementSelectors).forEach(([key, selector]) => {
+            this.elementSelectors.set(key, selector);
+        });
+
         // Cache elements
         Object.entries(elementSelectors).forEach(([key, selector]) => {
             const element = document.querySelector(selector);
@@ -131,7 +137,18 @@ class UIManager {
      * @returns {HTMLElement|null} DOM element or null
      */
     getElement(key) {
-        return this.elements.get(key) || null;
+        let element = this.elements.get(key);
+        if (element && document.body.contains(element)) {
+            return element;
+        }
+        // Fallback to querySelector
+        const selector = this.elementSelectors.get(key) || '#' + key;
+        element = document.querySelector(selector);
+        if (element) {
+            this.elements.set(key, element);
+            return element;
+        }
+        return null;
     }
 
     /**
@@ -255,6 +272,19 @@ class UIManager {
         dashboards.forEach(dashboardKey => {
             const dashboard = this.getElement(dashboardKey);
             if (dashboard) {
+                // Remove focus from any focused elements inside the dashboard before hiding
+                const focusedElement = dashboard.querySelector(':focus');
+                if (focusedElement) {
+                    // Move focus to a safe element before hiding
+                    const mainContent = this.getElement('mainContent');
+                    if (mainContent) {
+                        mainContent.focus();
+                    } else {
+                        // Fallback: blur the focused element
+                        focusedElement.blur();
+                    }
+                }
+
                 dashboard.classList.add('hidden');
                 dashboard.setAttribute('aria-hidden', 'true');
             }
@@ -298,6 +328,7 @@ class UIManager {
         if (element) {
             element.classList.remove('hidden');
             element.style.display = '';
+            element.setAttribute('aria-hidden', 'false');
             console.log(`🔧 [UI] Element shown: ${elementKey}`);
         }
     }
@@ -643,7 +674,7 @@ class UIManager {
 
         this.activeModals.add(modalKey);
 
-        // Focus management
+        // Focus management - move focus to modal
         setTimeout(() => {
             const focusableElement = modal.querySelector('input, textarea, button');
             if (focusableElement) {
@@ -684,6 +715,8 @@ class UIManager {
             this.closeModal(modalKey);
         });
     }
+
+
 
     /**
      * Toggle dropdown

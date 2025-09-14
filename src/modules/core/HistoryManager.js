@@ -462,9 +462,12 @@ class HistoryManager {
                 };
             }
 
-            // Confirm with user (this would be handled by UI)
-            const confirmed = confirm(
-                `Load snapshot "${snapshot.name}"?\n\nThis will replace your current data.\n\nCreated: ${new Date(snapshot.timestamp).toLocaleString()}\nTotal Expenses: ₹${snapshot.totalExpenses.toLocaleString()}`,
+            // Show inline confirmation instead of browser popup
+            const confirmed = await this.showInlineConfirmation(
+                `Load Snapshot "${snapshot.name}"`,
+                `This will replace your current data with the snapshot.\n\nCreated: ${new Date(snapshot.timestamp).toLocaleString()}\nTotal Expenses: ₹${snapshot.totalExpenses.toLocaleString()}`,
+                'Load',
+                'Cancel'
             );
 
             if (!confirmed) {
@@ -540,8 +543,14 @@ class HistoryManager {
             const snapshot = this.history[snapshotIndex];
             const currentName = snapshot.name || 'Unnamed';
 
-            // Prompt for new name
-            const newName = prompt(`Rename snapshot "${currentName}"`, currentName);
+            // Show inline input dialog instead of browser popup
+            const newName = await this.showInlineInputDialog(
+                `Rename Snapshot "${currentName}"`,
+                'Enter a new name for this snapshot:',
+                currentName,
+                'Rename',
+                'Cancel'
+            );
 
             if (!newName || newName.trim() === '') {
                 return { success: false, message: 'Rename cancelled' };
@@ -610,9 +619,12 @@ class HistoryManager {
 
             const snapshot = history[snapshotIndex];
 
-            // Confirm deletion
-            const confirmed = confirm(
-                `Delete snapshot "${snapshot.name}"?\n\nThis action cannot be undone.`,
+            // Show inline confirmation instead of browser popup
+            const confirmed = await this.showInlineConfirmation(
+                `Delete Snapshot "${snapshot.name}"`,
+                `This will permanently delete the snapshot "${snapshot.name}".\n\nThis action cannot be undone.`,
+                'Delete',
+                'Cancel'
             );
 
             if (!confirmed) {
@@ -1849,9 +1861,12 @@ class HistoryManager {
             // Get filename without extension for snapshot naming
             const fileName = file.name.replace(/\.[^/.]+$/, ''); // Remove extension
 
-            // Confirm import
-            const confirmed = confirm(
-                'Are you sure you want to import this data?\n\nThis will replace your current data and cannot be undone.'
+            // Show inline confirmation instead of browser popup
+            const confirmed = await this.showInlineConfirmation(
+                'Confirm Import',
+                'Are you sure you want to import this data?\n\nThis will replace your current data and cannot be undone.',
+                'Import',
+                'Cancel'
             );
 
             if (!confirmed) {
@@ -2413,14 +2428,17 @@ class HistoryManager {
         try {
             console.log('🔧 [DELETE] Delete All Data button clicked');
 
-            const confirmed = confirm(
-                '⚠️ WARNING: This will delete ALL data including:\n' +
+            // Show inline confirmation instead of browser popup
+            const confirmed = await this.showInlineConfirmation(
+                '⚠️ Delete All Data',
+                'This will delete ALL data including:\n' +
                 '• All properties and their expenses\n' +
                 '• All expense categories\n' +
                 '• All history and snapshots\n' +
                 '• All stored data in browser\n\n' +
-                'This action CANNOT be undone!\n\n' +
-                'Are you sure you want to continue?'
+                'This action CANNOT be undone!',
+                'Delete Everything',
+                'Cancel'
             );
 
             if (!confirmed) {
@@ -2482,8 +2500,17 @@ class HistoryManager {
 
             // Add a small delay to ensure all async operations complete
             setTimeout(() => {
-                alert('✅ All data has been deleted successfully!\n\nThe page will now reload to ensure a clean state.');
-                window.location.reload();
+                // Show inline success message instead of browser popup
+                this.showInlineConfirmation(
+                    '✅ Data Deleted Successfully',
+                    'All data has been deleted successfully!\n\nThe page will now reload to ensure a clean state.',
+                    'Reload Page',
+                    'Cancel'
+                ).then((confirmed) => {
+                    if (confirmed) {
+                        window.location.reload();
+                    }
+                });
             }, 500);
 
             return { success: true, message: 'All data deleted successfully' };
@@ -2538,6 +2565,252 @@ class HistoryManager {
         } catch (error) {
             console.error('🔧 [HISTORY] Failed to show import status:', error);
         }
+    }
+
+    /**
+     * Show inline input dialog
+     * @param {string} title - Dialog title
+     * @param {string} message - Dialog message
+     * @param {string} defaultValue - Default input value
+     * @param {string} confirmText - Text for confirm button
+     * @param {string} cancelText - Text for cancel button
+     * @returns {Promise<string|null>} Promise that resolves to input value or null if cancelled
+     */
+    showInlineInputDialog(title, message, defaultValue = '', confirmText = 'OK', cancelText = 'Cancel') {
+        return new Promise((resolve) => {
+            // Create input dialog overlay
+            const overlay = document.createElement('div');
+            overlay.id = 'inline-input-overlay';
+            overlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.5);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 10000;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            `;
+
+            overlay.innerHTML = `
+                <div style="
+                    background: var(--color-surface, white);
+                    border: 1px solid var(--color-border, #ddd);
+                    border-radius: var(--radius-base, 8px);
+                    padding: var(--space-24, 24px);
+                    max-width: 400px;
+                    text-align: center;
+                    box-shadow: var(--shadow-lg, 0 10px 25px rgba(0, 0, 0, 0.2));
+                ">
+                    <div style="
+                        font-size: var(--font-size-xl, 24px);
+                        margin-bottom: var(--space-16, 16px);
+                        color: var(--color-text, #333);
+                        font-weight: 600;
+                    ">${title}</div>
+                    <div style="
+                        margin-bottom: var(--space-16, 16px);
+                        color: var(--color-text-secondary, #666);
+                        line-height: 1.5;
+                        text-align: left;
+                    ">${message}</div>
+                    <input type="text" id="inline-input-field" value="${defaultValue}" style="
+                        width: 100%;
+                        padding: var(--space-12, 12px);
+                        border: 1px solid var(--color-border, #ddd);
+                        border-radius: var(--radius-base, 8px);
+                        font-size: var(--font-size-base, 14px);
+                        margin-bottom: var(--space-20, 20px);
+                        box-sizing: border-box;
+                        outline: none;
+                    " />
+                    <div style="
+                        display: flex;
+                        gap: var(--space-12, 12px);
+                        justify-content: center;
+                    ">
+                        <button id="inline-input-cancel-btn" style="
+                            background: var(--color-surface-secondary, #f8f9fa);
+                            color: var(--color-text, #333);
+                            border: 1px solid var(--color-border, #ddd);
+                            padding: var(--space-12, 12px) var(--space-20, 20px);
+                            border-radius: var(--radius-base, 8px);
+                            cursor: pointer;
+                            font-size: var(--font-size-base, 14px);
+                            font-weight: 500;
+                            transition: all 0.2s ease;
+                        ">${cancelText}</button>
+                        <button id="inline-input-confirm-btn" style="
+                            background: var(--color-primary, #007bff);
+                            color: white;
+                            border: none;
+                            padding: var(--space-12, 12px) var(--space-20, 20px);
+                            border-radius: var(--radius-base, 8px);
+                            cursor: pointer;
+                            font-size: var(--font-size-base, 14px);
+                            font-weight: 500;
+                            transition: all 0.2s ease;
+                        ">${confirmText}</button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(overlay);
+
+            // Setup event listeners
+            const inputField = document.getElementById('inline-input-field');
+            const cancelBtn = document.getElementById('inline-input-cancel-btn');
+            const confirmBtn = document.getElementById('inline-input-confirm-btn');
+
+            const closeDialog = (result) => {
+                if (overlay.parentNode) {
+                    overlay.remove();
+                }
+                resolve(result);
+            };
+
+            cancelBtn.addEventListener('click', () => closeDialog(null));
+            confirmBtn.addEventListener('click', () => {
+                const value = inputField.value.trim();
+                closeDialog(value || null);
+            });
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) {
+                    closeDialog(null);
+                }
+            });
+
+            // Handle Enter key
+            inputField.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const value = inputField.value.trim();
+                    closeDialog(value || null);
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    closeDialog(null);
+                }
+            });
+
+            // Focus the input field for accessibility
+            setTimeout(() => {
+                if (inputField) {
+                    inputField.focus();
+                    inputField.select();
+                }
+            }, 100);
+        });
+    }
+
+    /**
+     * Show inline confirmation dialog
+     * @param {string} title - Confirmation title
+     * @param {string} message - Confirmation message
+     * @param {string} confirmText - Text for confirm button
+     * @param {string} cancelText - Text for cancel button
+     * @returns {Promise<boolean>} Promise that resolves to true if confirmed, false if cancelled
+     */
+    showInlineConfirmation(title, message, confirmText = 'Confirm', cancelText = 'Cancel') {
+        return new Promise((resolve) => {
+            // Create confirmation overlay
+            const overlay = document.createElement('div');
+            overlay.id = 'inline-confirmation-overlay';
+            overlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.5);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 10000;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            `;
+
+            overlay.innerHTML = `
+                <div style="
+                    background: var(--color-surface, white);
+                    border: 1px solid var(--color-border, #ddd);
+                    border-radius: var(--radius-base, 8px);
+                    padding: var(--space-24, 24px);
+                    max-width: 400px;
+                    text-align: center;
+                    box-shadow: var(--shadow-lg, 0 10px 25px rgba(0, 0, 0, 0.2));
+                ">
+                    <div style="
+                        font-size: var(--font-size-xl, 24px);
+                        margin-bottom: var(--space-16, 16px);
+                        color: var(--color-text, #333);
+                        font-weight: 600;
+                    ">${title}</div>
+                    <div style="
+                        margin-bottom: var(--space-20, 20px);
+                        color: var(--color-text-secondary, #666);
+                        line-height: 1.5;
+                        white-space: pre-line;
+                    ">${message}</div>
+                    <div style="
+                        display: flex;
+                        gap: var(--space-12, 12px);
+                        justify-content: center;
+                    ">
+                        <button id="inline-cancel-btn" style="
+                            background: var(--color-surface-secondary, #f8f9fa);
+                            color: var(--color-text, #333);
+                            border: 1px solid var(--color-border, #ddd);
+                            padding: var(--space-12, 12px) var(--space-20, 20px);
+                            border-radius: var(--radius-base, 8px);
+                            cursor: pointer;
+                            font-size: var(--font-size-base, 14px);
+                            font-weight: 500;
+                            transition: all 0.2s ease;
+                        ">${cancelText}</button>
+                        <button id="inline-confirm-btn" style="
+                            background: var(--color-primary, #007bff);
+                            color: white;
+                            border: none;
+                            padding: var(--space-12, 12px) var(--space-20, 20px);
+                            border-radius: var(--radius-base, 8px);
+                            cursor: pointer;
+                            font-size: var(--font-size-base, 14px);
+                            font-weight: 500;
+                            transition: all 0.2s ease;
+                        ">${confirmText}</button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(overlay);
+
+            // Setup event listeners
+            const cancelBtn = document.getElementById('inline-cancel-btn');
+            const confirmBtn = document.getElementById('inline-confirm-btn');
+
+            const closeConfirmation = (result) => {
+                if (overlay.parentNode) {
+                    overlay.remove();
+                }
+                resolve(result);
+            };
+
+            cancelBtn.addEventListener('click', () => closeConfirmation(false));
+            confirmBtn.addEventListener('click', () => closeConfirmation(true));
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) {
+                    closeConfirmation(false);
+                }
+            });
+
+            // Focus the cancel button for accessibility
+            setTimeout(() => {
+                if (cancelBtn) cancelBtn.focus();
+            }, 100);
+        });
     }
 
     /**
