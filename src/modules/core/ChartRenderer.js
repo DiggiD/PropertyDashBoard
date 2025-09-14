@@ -949,11 +949,29 @@ class ChartRenderer {
         const links = [];
         const nodeMap = new Map();
 
-        // Define hierarchical categories and their subcategories
-        const hierarchicalCategories = {
-            'Utilities': ['Electricity', 'Water', 'Gas'],
-            'Maintenance': ['Cleaning', 'Repairs', 'Landscaping']
-        };
+        // Dynamically detect hierarchical categories and their subcategories from current expenses
+        const hierarchicalCategories = {};
+
+        // Scan through all properties to find hierarchical categories in current expenses
+        properties.forEach(property => {
+            const currentExpenses = property.expenses || {};
+            Object.entries(currentExpenses).forEach(([category, expenseData]) => {
+                if (typeof expenseData === 'object' && expenseData !== null) {
+                    // This is a hierarchical category - collect all subcategories
+                    if (!hierarchicalCategories[category]) {
+                        hierarchicalCategories[category] = new Set();
+                    }
+                    Object.keys(expenseData).forEach(subCategory => {
+                        hierarchicalCategories[category].add(subCategory);
+                    });
+                }
+            });
+        });
+
+        // Convert Sets to Arrays for easier processing
+        Object.keys(hierarchicalCategories).forEach(category => {
+            hierarchicalCategories[category] = Array.from(hierarchicalCategories[category]);
+        });
 
         // Step 1: Create property nodes (Level 1) - sorted by amount
         const propertyNodes = [];
@@ -999,24 +1017,26 @@ class ChartRenderer {
         // Step 2: Create category nodes (Level 2) - sorted by amount
         const categoryTotals = new Map();
 
-        // Calculate category totals
-        categories.forEach((category, categoryIndex) => {
+        // Calculate category totals from all quarterly data for consistent sorting
+        categories.forEach((category) => {
             let total = 0;
             properties.forEach(property => {
-                const propertyData = this.dataManager.getCurrentPeriodData(property, null, true);
-                const expenseData = propertyData.expenses[category];
-
-                if (hierarchicalCategories[category]) {
-                    // Hierarchical category - sum subcategory values
-                    if (typeof expenseData === 'object' && expenseData !== null) {
-                        Object.values(expenseData).forEach(value => {
-                            if (value > 0) total += value;
-                        });
-                    }
-                } else {
-                    // Flat category - direct value
-                    const value = expenseData || 0;
-                    if (value > 0) total += value;
+                if (property.quarterlyData) {
+                    Object.values(property.quarterlyData).forEach(quarterData => {
+                        if (quarterData.expenses && quarterData.expenses[category]) {
+                            const expenseData = quarterData.expenses[category];
+                            if (typeof expenseData === 'object' && expenseData !== null) {
+                                // Hierarchical category - sum all subcategory values
+                                Object.values(expenseData).forEach(value => {
+                                    if (value > 0) total += value;
+                                });
+                            } else {
+                                // Flat category - direct value
+                                const value = expenseData || 0;
+                                if (value > 0) total += value;
+                            }
+                        }
+                    });
                 }
             });
             categoryTotals.set(category, total);
@@ -1301,7 +1321,7 @@ class ChartRenderer {
                 .append('path')
                 .attr('d', d3.sankeyLinkHorizontal())
                 .attr('stroke', d => d.source.color)
-                .attr('stroke-width', d => Math.max(1, d.width || 1))
+                .attr('stroke-width', d => Math.max(5, d.width || 1))
                 .attr('fill', 'none')
                 .attr('opacity', 0.6)
                 .attr('class', d => this.getLinkClass(d))

@@ -1619,7 +1619,7 @@ select.form-control {
 }
 
 /* Panel header '+' buttons styling */
-.panel-header .btn {
+.btn.btn--outline.btn--sm {
     font-size: var(--font-size-sm);
     padding: var(--space-4) var(--space-8);
     min-width: 32px;
@@ -1633,13 +1633,13 @@ select.form-control {
     font-weight: var(--font-weight-bold);
 }
 
-.panel-header .btn:hover {
+.btn.btn--outline.btn--sm:hover {
     background: var(--color-text);
     color: var(--color-background);
     border-color: var(--color-text);
 }
 
-.panel-header .btn:focus {
+.btn.btn--outline.btn--sm:focus {
     background: var(--color-text);
     color: var(--color-background);
     border-color: var(--color-text);
@@ -2688,6 +2688,129 @@ input[type="number"].expense-input[type="number"],
 /* Delete button visibility */
 .delete-hidden {
   display: none !important;
+}
+
+/* Delete Confirmation Popup - Speech Bubble Style */
+.delete-confirmation-popup {
+  position: fixed;
+  background: var(--color-surface);
+  border: 2px solid var(--color-primary);
+  border-radius: var(--radius-base);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-12);
+  min-width: 200px;
+  max-width: 280px;
+  z-index: 1000;
+  opacity: 0;
+  transform: scale(0.95);
+  animation: popup-appear 0.15s ease-out forwards;
+  font-family: var(--font-family-base);
+}
+
+@keyframes popup-appear {
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.delete-confirmation-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+}
+
+.delete-confirmation-message {
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+  text-align: center;
+  line-height: 1.4;
+  margin: 0;
+  font-weight: var(--font-weight-medium);
+}
+
+.delete-confirmation-message strong {
+  color: var(--color-text);
+  font-weight: var(--font-weight-semibold);
+}
+
+.delete-confirmation-actions {
+  display: flex;
+  gap: var(--space-8);
+  justify-content: center;
+  align-items: center;
+}
+
+.delete-confirmation-actions .btn {
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-6) var(--space-12);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  border-radius: var(--radius-sm);
+  transition: all var(--duration-fast) var(--ease-standard);
+}
+
+.delete-confirmation-actions .btn:focus {
+  box-shadow: 0 0 0 2px var(--color-focus-ring);
+}
+
+/* Speech bubble arrow */
+.delete-confirmation-arrow {
+  position: absolute;
+  width: 0;
+  height: 0;
+  border: 8px solid transparent;
+  pointer-events: none;
+}
+
+/* Arrow pointing up (popup above button) */
+.delete-confirmation-popup.above .delete-confirmation-arrow {
+  bottom: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-top: 8px solid var(--color-primary);
+  border-bottom: none;
+}
+
+/* Arrow pointing down (popup below button) */
+.delete-confirmation-popup.below .delete-confirmation-arrow {
+  top: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-bottom: 8px solid var(--color-primary);
+  border-top: none;
+}
+
+/* Dark mode support for delete confirmation popup */
+@media (prefers-color-scheme: dark) {
+  .delete-confirmation-popup {
+    background: var(--color-surface);
+    border-color: var(--color-primary);
+  }
+}
+
+:root[data-color-scheme="dark"] .delete-confirmation-popup {
+  background: var(--color-surface);
+  border-color: var(--color-primary);
+}
+
+/* Responsive adjustments for delete confirmation popup */
+@media (max-width: 480px) {
+  .delete-confirmation-popup {
+    min-width: 180px;
+    max-width: 250px;
+    padding: var(--space-10);
+  }
+
+  .delete-confirmation-actions {
+    gap: var(--space-6);
+  }
+
+  .delete-confirmation-actions .btn {
+    padding: var(--space-6) var(--space-10);
+    font-size: var(--font-size-xs);
+  }
 }
 
 @media (max-width: 480px) {

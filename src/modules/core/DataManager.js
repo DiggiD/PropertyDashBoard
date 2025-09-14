@@ -263,10 +263,21 @@ class DataManager {
             Object.keys(property.expenses).forEach(category => {
                 const value = property.expenses[category];
                 if (typeof value === 'object' && value !== null) {
-                    // Handle hierarchical expenses - sum the values
-                    const total = Object.values(value).reduce((sum, val) => sum + (val || 0), 0);
-                    console.log(`[DATAMANAGER] Converting hierarchical expense ${category} to total: ${total}`);
-                    property.expenses[category] = total;
+                    // Handle hierarchical expenses - keep hierarchical if latest quarter has hierarchical data
+                    const latestQuarterData = property.quarterlyData?.[Object.keys(property.quarterlyData).sort().pop()];
+                    const latestExpenseData = latestQuarterData?.expenses?.[category];
+                    const hasLatestHierarchical = typeof latestExpenseData === 'object' && latestExpenseData !== null;
+
+                    if (hasLatestHierarchical) {
+                        // Keep hierarchical structure from latest quarter
+                        console.log(`[DATAMANAGER] Keeping hierarchical expense ${category} for ${property.name}`);
+                        property.expenses[category] = { ...latestExpenseData };
+                    } else {
+                        // Convert to total if no hierarchical data in latest quarter
+                        const total = Object.values(value).reduce((sum, val) => sum + (val || 0), 0);
+                        console.log(`[DATAMANAGER] Converting hierarchical expense ${category} to total: ${total}`);
+                        property.expenses[category] = total;
+                    }
                 } else if (typeof value !== 'number' || isNaN(value)) {
                     console.warn(`[DATAMANAGER] Invalid expense value for ${property.name} - ${category}: ${value}, setting to 0`);
                     property.expenses[category] = 0;
@@ -674,6 +685,15 @@ class DataManager {
             if (property.expenses.hasOwnProperty(categoryName)) {
                 delete property.expenses[categoryName];
             }
+
+            // Also remove from quarterly data to prevent cached hierarchical data from persisting
+            if (property.quarterlyData) {
+                Object.keys(property.quarterlyData).forEach(quarter => {
+                    if (property.quarterlyData[quarter] && property.quarterlyData[quarter].expenses) {
+                        delete property.quarterlyData[quarter].expenses[categoryName];
+                    }
+                });
+            }
         });
 
         this.markAsChanged();
@@ -753,21 +773,40 @@ class DataManager {
             const totalExpenses = {};
             let grandTotal = 0;
 
+            // Find the most recent quarter for hierarchical data
+            const quarters = Object.keys(property.quarterlyData || {}).sort();
+            const latestQuarter = quarters.length > 0 ? property.quarterlyData[quarters[quarters.length - 1]] : null;
+
             this.data.expenseCategories.forEach(category => {
                 let categoryTotal = 0;
-                allQuarters.forEach(quarter => {
-                    const expenseData = quarter.expenses[category];
-                    if (preserveHierarchy && typeof expenseData === 'object' && expenseData !== null) {
-                        // Preserve hierarchical structure
-                        if (!totalExpenses[category]) {
-                            totalExpenses[category] = {};
-                        }
-                        Object.entries(expenseData).forEach(([subCategory, value]) => {
-                            totalExpenses[category][subCategory] = (totalExpenses[category][subCategory] || 0) + value;
-                            categoryTotal += value;
+
+                // Check if the latest quarter has hierarchical data for this category
+                const latestExpenseData = latestQuarter?.expenses?.[category];
+                const hasLatestHierarchical = preserveHierarchy && typeof latestExpenseData === 'object' && latestExpenseData !== null;
+
+                if (hasLatestHierarchical) {
+                    // Aggregate hierarchical data from all quarters, but only include subcategories that exist in the latest quarter
+                    const aggregatedHierarchical = {};
+                    Object.keys(latestExpenseData).forEach(subCategory => {
+                        let subTotal = 0;
+                        allQuarters.forEach(quarter => {
+                            const quarterExpenseData = quarter.expenses?.[category];
+                            if (typeof quarterExpenseData === 'object' && quarterExpenseData !== null && quarterExpenseData[subCategory]) {
+                                subTotal += quarterExpenseData[subCategory] || 0;
+                            }
                         });
-                    } else {
-                        // Sum hierarchical data or use flat value
+                        if (subTotal > 0) {
+                            aggregatedHierarchical[subCategory] = subTotal;
+                        }
+                    });
+                    totalExpenses[category] = aggregatedHierarchical;
+                    Object.values(aggregatedHierarchical).forEach(value => {
+                        categoryTotal += value || 0;
+                    });
+                } else {
+                    // Aggregate flat data from all quarters
+                    allQuarters.forEach(quarter => {
+                        const expenseData = quarter.expenses[category];
                         if (typeof expenseData === 'object' && expenseData !== null) {
                             Object.values(expenseData).forEach(subAmount => {
                                 categoryTotal += subAmount || 0;
@@ -775,20 +814,18 @@ class DataManager {
                         } else {
                             categoryTotal += expenseData || 0;
                         }
-                        if (!preserveHierarchy) {
-                            totalExpenses[category] = categoryTotal;
-                        }
-                    }
-                });
-                if (!preserveHierarchy) {
-                    grandTotal += categoryTotal;
-                } else if (typeof totalExpenses[category] !== 'object') {
+                    });
+                    // Set the aggregated value for non-hierarchical categories
                     totalExpenses[category] = categoryTotal;
-                    grandTotal += categoryTotal;
-                } else {
+                }
+
+                // Calculate grand total
+                if (hasLatestHierarchical) {
                     // For hierarchical categories, sum the subcategory totals
                     const hierarchicalTotal = Object.values(totalExpenses[category]).reduce((sum, val) => sum + val, 0);
                     grandTotal += hierarchicalTotal;
+                } else {
+                    grandTotal += categoryTotal;
                 }
             });
 

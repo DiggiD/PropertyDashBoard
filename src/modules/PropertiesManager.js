@@ -8,11 +8,12 @@
  */
 
 class PropertiesManager {
-    constructor(dataManager, uiManager, eventHandler, historyManager) {
+    constructor(dataManager, uiManager, eventHandler, historyManager, chartRenderer) {
         this.dataManager = dataManager;
         this.uiManager = uiManager;
         this.eventHandler = eventHandler;
         this.historyManager = historyManager;
+        this.chartRenderer = chartRenderer;
 
         // Current state
         this.currentPropertyId = null;
@@ -345,7 +346,7 @@ class PropertiesManager {
                 </div>
 
                 <!-- Panel 3: Subcategories -->
-                <div class="panel values-panel">
+                <div class="panel subcategories-panel">
                     <div class="panel-header">
                         ${selectedCategory && selectedProperty && isSelectedCategoryHierarchical ? `
                             <button class="btn btn--outline btn--sm" id="add-subcategory-btn" title="Add Subcategory">
@@ -354,7 +355,7 @@ class PropertiesManager {
                         ` : ''}
                     </div>
                     <div class="panel-content">
-                        ${selectedCategory && isSelectedCategoryHierarchical ? this.renderValuesPanel(selectedProperty, selectedCategory, selectedSubcategory) : ''}
+                        ${selectedCategory && isSelectedCategoryHierarchical ? this.renderSubcategoriesPanel(selectedProperty, selectedCategory, selectedSubcategory) : ''}
                     </div>
                 </div>
             </div>
@@ -408,8 +409,8 @@ class PropertiesManager {
                                 </div>
                             </div>
                             <div class="property-actions">
-                                <button class="property-action delete-hidden" data-action="delete" data-property-id="${property.id || ''}" title="Delete property">
-                                    Delete
+                                <button class="property-action delete-hidden btn btn--outline btn--sm" data-action="delete" data-property-id="${property.id || ''}" title="Delete property">
+                                    ×
                                 </button>
                             </div>
                         </div>
@@ -477,8 +478,8 @@ class PropertiesManager {
                                     </div>
                                 </div>
                                 <div class="category-actions">
-                                    <button class="category-action delete-hidden" data-action="delete" data-category="${category || ''}" title="Delete category">
-                                        Delete
+                                    <button class="category-action delete-hidden btn btn--outline btn--sm" data-action="delete" data-category="${category || ''}" title="Delete category">
+                                        ×
                                     </button>
                                 </div>
                             </div>
@@ -496,8 +497,8 @@ class PropertiesManager {
                                     </div>
                                 </div>
                                 <div class="category-actions">
-                                    <button class="category-action delete-hidden" data-action="delete" data-category="${category || ''}" title="Delete category">
-                                        Delete
+                                    <button class="category-action delete-hidden btn btn--outline btn--sm" data-action="delete" data-category="${category || ''}" title="Delete category">
+                                        ×
                                     </button>
                                 </div>
                             </div>
@@ -509,9 +510,9 @@ class PropertiesManager {
     }
 
     /**
-     * Render values panel (shows flat categories for editing or subcategories for hierarchical categories)
+     * Render subcategories panel (shows flat categories for editing or subcategories for hierarchical categories)
      */
-    renderValuesPanel(property, category, subcategory) {
+    renderSubcategoriesPanel(property, category, subcategory) {
         const expenseValue = this.getCategoryExpenseValue(property, category);
         const isHierarchical = typeof expenseValue === 'object' && expenseValue !== null;
 
@@ -565,8 +566,8 @@ class PropertiesManager {
                             </div>
                         </div>
                         <div class="subcategory-actions">
-                            <button class="category-action delete-hidden" data-action="delete" data-category="${category}" data-subcategory="${subcat}" title="Delete subcategory">
-                                Delete
+                            <button class="category-action delete-hidden btn btn--outline btn--sm" data-action="delete" data-category="${category}" data-subcategory="${subcat}" title="Delete subcategory">
+                                ×
                             </button>
                         </div>
                     </div>
@@ -1166,8 +1167,11 @@ class PropertiesManager {
         // Save to storage
         this.dataManager.save();
 
-        // Re-render
+        // Re-render properties dashboard
         this.renderPropertiesDashboard();
+
+        // Trigger chart refresh if overview view is active
+        this.refreshChartsIfNeeded();
 
         // Show success message
         this.uiManager.showToast(`Expense updated successfully`, 'success');
@@ -1950,6 +1954,7 @@ class PropertiesManager {
             this.historyManager.createSnapshot(`Deleted property "${property.name}"`, '', false);
             this.currentPropertyId = null;
             this.renderPropertiesDashboard();
+            this.refreshChartsIfNeeded();
             this.uiManager.showToast(result.message, 'success');
         } else {
             this.uiManager.showToast(result.message, 'error');
@@ -2040,6 +2045,7 @@ class PropertiesManager {
         // Save and refresh
         this.dataManager.save();
         this.renderPropertiesDashboard();
+        this.refreshChartsIfNeeded();
         this.uiManager.showToast(`Category "${category}" deleted successfully`, 'success');
     }
 
@@ -2056,78 +2062,124 @@ class PropertiesManager {
      */
     deleteSubcategory(category, subcategory) {
         const property = this.dataManager.getPropertyById(this.currentPropertyId);
-        if (!property || !property.expenses.hasOwnProperty(category)) return;
+        if (!property) return;
 
-        const categoryValue = property.expenses[category];
-        if (typeof categoryValue !== 'object' || !categoryValue.hasOwnProperty(subcategory)) return;
+        // Use the same data source as getCategoryExpenseValue for consistency
+        let categoryValue = null;
+
+        // Check quarterly data first (same as getCategoryExpenseValue)
+        if (property.quarterlyData) {
+            const quarters = Object.keys(property.quarterlyData);
+            if (quarters.length > 0) {
+                const latestQuarter = quarters[quarters.length - 1];
+                const quarterData = property.quarterlyData[latestQuarter];
+                if (quarterData && quarterData.expenses && quarterData.expenses[category]) {
+                    categoryValue = quarterData.expenses[category];
+                }
+            }
+        }
+
+        // Fallback to expenses object
+        if (categoryValue === null && property.expenses.hasOwnProperty(category)) {
+            categoryValue = property.expenses[category];
+        }
+
+        if (categoryValue === null) return;
+
+        if (typeof categoryValue !== 'object' || categoryValue === null) return;
+
+        if (!categoryValue.hasOwnProperty(subcategory)) return;
 
         // Create snapshot
         this.historyManager.createSnapshot(`Deleted subcategory "${subcategory}" from ${category}`, '', false);
 
-        // Remove subcategory
-        delete categoryValue[subcategory];
+        // Remove subcategory from both quarterly data and main expenses
+        if (property.quarterlyData) {
+            const quarters = Object.keys(property.quarterlyData);
+            if (quarters.length > 0) {
+                const latestQuarter = quarters[quarters.length - 1];
+                const quarterData = property.quarterlyData[latestQuarter];
+                if (quarterData && quarterData.expenses && quarterData.expenses[category] &&
+                    typeof quarterData.expenses[category] === 'object') {
+                    delete quarterData.expenses[category][subcategory];
 
-        // If category becomes empty, convert it to flat category
-        if (Object.keys(categoryValue).length === 0) {
-            property.expenses[category] = 0;
+                    // Recalculate total for the quarter
+                    const total = Object.values(quarterData.expenses).reduce((sum, expense) => {
+                        if (typeof expense === 'object' && expense !== null) {
+                            return sum + Object.values(expense).reduce((subSum, val) => subSum + (val || 0), 0);
+                        }
+                        return sum + (expense || 0);
+                    }, 0);
+                    quarterData.total = total;
+                }
+            }
+        }
+
+        // Remove from main expenses object
+        if (property.expenses[category] && typeof property.expenses[category] === 'object') {
+            delete property.expenses[category][subcategory];
+
+            // If category becomes empty, convert it to flat category
+            if (Object.keys(property.expenses[category]).length === 0) {
+                property.expenses[category] = 0;
+            }
         }
 
         // Save and refresh
         this.dataManager.save();
         this.renderPropertiesDashboard();
+        this.refreshChartsIfNeeded();
         this.uiManager.showToast(`Subcategory "${subcategory}" deleted successfully`, 'success');
     }
 
     /**
-     * Show inline delete confirmation
+     * Show inline delete confirmation as a speech bubble popup
      */
     showInlineDeleteConfirmation(itemId, itemType, itemName, category = null) {
+        // Remove any existing confirmation popups
+        this.removeExistingConfirmations();
+
         const container = this.uiManager.getElement('propertiesDashboard');
         if (!container) return;
 
+        // Find the delete button that triggered this confirmation
+        const deleteButton = this.findDeleteButton(itemId, itemType, itemName, category);
+        if (!deleteButton) return;
+
         const timestamp = Date.now();
         const confirmationHtml = `
-            <div class="delete-confirmation-overlay" id="delete-confirmation-overlay-${timestamp}">
-                <div class="delete-confirmation-modal">
-                    <div class="delete-confirmation-header">
-                        <h4>Confirm Deletion</h4>
+            <div class="delete-confirmation-popup" id="delete-confirmation-popup-${timestamp}">
+                <div class="delete-confirmation-content">
+                    <div class="delete-confirmation-message">
+                        Delete <strong>"${itemName}"</strong>?
                     </div>
-                    <div class="delete-confirmation-body">
-                        <p>Are you sure you want to delete <strong>"${itemName}"</strong>?</p>
-                        <p class="delete-warning">This action cannot be undone.</p>
-                    </div>
-                    <div class="delete-confirmation-footer">
-                        <button class="btn btn--outline" id="cancel-delete-btn-${timestamp}">Cancel</button>
-                        <button class="btn btn--danger" id="confirm-delete-btn-${timestamp}">Delete</button>
+                    <div class="delete-confirmation-actions">
+                        <button class="btn btn--outline btn--sm" id="cancel-delete-btn-${timestamp}">Cancel</button>
+                        <button class="btn btn--danger btn--sm" id="confirm-delete-btn-${timestamp}">Delete</button>
                     </div>
                 </div>
+                <div class="delete-confirmation-arrow"></div>
             </div>
         `;
 
-        // Insert confirmation overlay
-        const contentElement = container.querySelector('.dashboard-content');
-        if (contentElement) {
-            contentElement.insertAdjacentHTML('beforeend', confirmationHtml);
-        }
+        // Insert confirmation popup
+        document.body.insertAdjacentHTML('beforeend', confirmationHtml);
 
-        // Setup event listeners
+        const popup = document.getElementById(`delete-confirmation-popup-${timestamp}`);
         const cancelBtn = document.getElementById(`cancel-delete-btn-${timestamp}`);
         const confirmBtn = document.getElementById(`confirm-delete-btn-${timestamp}`);
-        const overlay = document.getElementById(`delete-confirmation-overlay-${timestamp}`);
+
+        // Position the popup relative to the delete button
+        this.positionConfirmationPopup(popup, deleteButton);
 
         const closeConfirmation = () => {
-            if (overlay) {
-                overlay.remove();
+            if (popup) {
+                popup.remove();
             }
         };
 
+        // Event listeners
         cancelBtn.addEventListener('click', closeConfirmation);
-        overlay.addEventListener('click', (e) => {
-            if (e.target === overlay) {
-                closeConfirmation();
-            }
-        });
-
         confirmBtn.addEventListener('click', () => {
             closeConfirmation();
             if (itemType === 'property') {
@@ -2139,10 +2191,83 @@ class PropertiesManager {
             }
         });
 
+        // Close on outside click
+        document.addEventListener('click', (e) => {
+            if (!popup.contains(e.target) && !deleteButton.contains(e.target)) {
+                closeConfirmation();
+            }
+        }, { once: true });
+
+        // Close on escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeConfirmation();
+            }
+        }, { once: true });
+
         // Focus the cancel button for accessibility
         setTimeout(() => {
             if (cancelBtn) cancelBtn.focus();
         }, 100);
+    }
+
+    /**
+     * Remove existing confirmation popups
+     */
+    removeExistingConfirmations() {
+        const existingPopups = document.querySelectorAll('.delete-confirmation-popup');
+        existingPopups.forEach(popup => popup.remove());
+    }
+
+    /**
+     * Find the delete button that triggered the confirmation
+     */
+    findDeleteButton(itemId, itemType, itemName, category = null) {
+        let selector = '';
+
+        if (itemType === 'property') {
+            selector = `.property-action[data-action="delete"][data-property-id="${itemId}"]`;
+        } else if (itemType === 'category') {
+            selector = `.category-action[data-action="delete"][data-category="${CSS.escape(itemName)}"]:not([data-subcategory])`;
+        } else if (itemType === 'subcategory') {
+            selector = `.category-action[data-action="delete"][data-category="${CSS.escape(category)}"][data-subcategory="${CSS.escape(itemName)}"]`;
+        }
+
+        return document.querySelector(selector);
+    }
+
+    /**
+     * Position the confirmation popup relative to the delete button
+     */
+    positionConfirmationPopup(popup, deleteButton) {
+        const buttonRect = deleteButton.getBoundingClientRect();
+        const popupRect = popup.getBoundingClientRect();
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+
+        // Calculate preferred position (above the button, centered)
+        let top = buttonRect.top - popupRect.height - 8; // 8px gap
+        let left = buttonRect.left + (buttonRect.width / 2) - (popupRect.width / 2);
+
+        // Adjust if popup would go off-screen
+        if (top < 10) {
+            // Not enough space above, position below
+            top = buttonRect.bottom + 8;
+            popup.classList.add('below');
+        } else {
+            popup.classList.add('above');
+        }
+
+        if (left < 10) {
+            left = 10;
+        } else if (left + popupRect.width > viewportWidth - 10) {
+            left = viewportWidth - popupRect.width - 10;
+        }
+
+        popup.style.position = 'fixed';
+        popup.style.top = `${top}px`;
+        popup.style.left = `${left}px`;
+        popup.style.zIndex = '1000';
     }
 
     /**
@@ -2284,6 +2409,31 @@ class PropertiesManager {
 
         // Clear the visible map
         this.visibleDeleteButtons.clear();
+    }
+
+    /**
+     * Refresh charts if needed (when data changes)
+     */
+    refreshChartsIfNeeded() {
+        try {
+            // Check if overview view is currently active
+            const currentView = this.dataManager.getCurrentView();
+
+            if (currentView === 'overview') {
+                console.log('[PROPERTIES] Refreshing sankey diagram after data change');
+
+                // Trigger sankey diagram refresh using the proper chartRenderer reference
+                if (this.chartRenderer && typeof this.chartRenderer.renderOverviewSankey === 'function') {
+                    this.chartRenderer.renderOverviewSankey();
+                } else {
+                    console.warn('[PROPERTIES] ChartRenderer not available for sankey refresh');
+                }
+            } else {
+                console.log(`[PROPERTIES] Skipping chart refresh - current view is ${currentView}`);
+            }
+        } catch (error) {
+            console.error('[PROPERTIES] Error refreshing charts:', error);
+        }
     }
 
     /**
