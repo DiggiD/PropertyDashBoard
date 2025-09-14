@@ -39,48 +39,40 @@
 
         <!-- Enhanced main content with proper roles and sidebar support -->
         <main class="main-content" role="main" aria-label="Expense visualization chart">
-            <!-- Summary Cards Sidebar -->
-            <div class="summary-cards" id="summaryCards">
-                <!-- Overview Button -->
-                <button class="summary-button" id="overviewBtn" data-metric="overview">
-                    <div class="button__body">
-                        <div class="button-icon">O</div>
-                        <div class="button-content">
-                            <div class="button-label">Overview</div>
-                        </div>
+            <!-- New Smooth Sidebar -->
+            <nav class="sidebar-nav" id="sidebarNav">
+                <!-- Overview Item -->
+                <div class="nav-item" id="overviewBtn" data-metric="overview">
+                    <div class="nav-icon">O</div>
+                    <div class="nav-text">
+                        <span class="nav-label">Overview</span>
                     </div>
-                </button>
-                
-                <!-- Properties Button -->
-                <button class="summary-button" id="propertiesBtn" data-metric="properties">
-                    <div class="button__body">
-                        <div class="button-icon">P</div>
-                        <div class="button-content">
-                            <div class="button-label">Properties</div>
-                        </div>
-                    </div>
-                </button>
+                </div>
 
-                <!-- Income Button -->
-                <button class="summary-button" id="incomeBtn" data-metric="income">
-                    <div class="button__body">
-                        <div class="button-icon">I</div>
-                        <div class="button-content">
-                            <div class="button-label">Income</div>
-                        </div>
+                <!-- Properties Item -->
+                <div class="nav-item" id="propertiesBtn" data-metric="properties">
+                    <div class="nav-icon">P</div>
+                    <div class="nav-text">
+                        <span class="nav-label">Properties</span>
                     </div>
-                </button>
+                </div>
 
-                <!-- Analytics Button -->
-                <button class="summary-button" id="analyticsBtn" data-metric="analytics">
-                    <div class="button__body">
-                        <div class="button-icon">A</div>
-                        <div class="button-content">
-                            <div class="button-label">Analytics</div>
-                        </div>
+                <!-- Income Item -->
+                <div class="nav-item" id="incomeBtn" data-metric="income">
+                    <div class="nav-icon">I</div>
+                    <div class="nav-text">
+                        <span class="nav-label">Income</span>
                     </div>
-                </button>
-            </div>
+                </div>
+
+                <!-- Analytics Item -->
+                <div class="nav-item" id="analyticsBtn" data-metric="analytics">
+                    <div class="nav-icon">A</div>
+                    <div class="nav-text">
+                        <span class="nav-label">Analytics</span>
+                    </div>
+                </div>
+            </nav>
             
             <!-- Dashboard Containers Section -->
             <div class="dashboard-containers">
@@ -143,11 +135,11 @@
 
                 <!-- Income Dashboard Container -->
                 <div id="incomeDashboard" class="dashboard-container dashboard-income hidden">
-                    <div class="dashboard-header">
-                        <h2 class="dashboard-title">Income Dashboard</h2>
-                        <p class="dashboard-subtitle">Track your income sources and trends</p>
-                    </div>
-                    <div class="dashboard-content">
+                    <div id="incomeChart" class="income-container" role="img" aria-label="Income visualization chart">
+                        <div class="loading-state" id="incomeLoadingState">
+                            <div class="loading-spinner"></div>
+                            <p>Loading income chart...</p>
+                        </div>
                         <div class="coming-soon">
                             <div class="coming-soon-icon">Soon</div>
                             <h3>Income Dashboard Coming Soon</h3>

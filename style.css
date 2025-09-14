@@ -2180,102 +2180,126 @@ input[type="number"].expense-input[type="number"],
         margin: 0 -var(--space-16);
     }
 }
-/* Enhanced Dashboard Styles */
-
-/* Summary Cards - Collapsible Sidebar */
-.summary-cards {
-  /* Each button acts as its own sidebar segment */
-  width: 60px; /* Keep narrow for collapsed state */
-  height: 100%; /* Full height of main-content */
+/* Fixed Sidebar Implementation - Individual Button Labels Only */
+.sidebar-nav {
+  width: 80px; /* Fixed width - increased to 80px */
+  height: 100%;
   background: var(--color-background);
-  transition: width 0.3s ease;
-  display: flex;
-  flex-direction: column;
-  gap: 0; /* Remove gap between buttons for seamless segments */
-  padding: 0;
-  overflow: visible; /* Allow content to expand beyond button bounds */
-  flex-shrink: 0; /* Prevent shrinking */
-  position: relative; /* Ensure proper positioning */
-  z-index: 5; /* Above main content but below modals */
+  position: relative;
+  overflow: visible; /* Allow labels to extend outside */
+  flex-shrink: 0;
+  z-index: 10;
 }
 
-.summary-button {
-  background: transparent;
-  border: 2px solid transparent;
-  border-radius: 0;
-  padding: var(--space-12) var(--space-8);
-  transition: all 0.3s ease;
-  cursor: pointer;
-  width: 150px; /* Set to full expanded width */
-  text-align: left;
-  position: relative;
+.nav-item {
+  width: 100%;
   min-height: 60px;
+  position: relative;
+  cursor: pointer;
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  flex: 1;
-  overflow: visible;
-  /* Create invisible hover area that extends to full width */
+  transition: background-color 0.2s ease;
 }
 
-.summary-button::before {
+.nav-item::before {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
-  width: 125px; /* Full expanded width for hover area */
-  z-index: 1;
-  pointer-events: auto;
-}
-
-.summary-button.selected {
-  background: rgba(var(--color-teal-500-rgb), 0.06);
-  width: 150px; /* Full expanded width */
-  position: relative;
-  z-index: 10;
-  justify-content: flex-start;
-}
-
-.summary-button:hover {
-  width: 150px; /* Full expanded width */
-  z-index: 5;
-  justify-content: flex-start;
-  background: rgba(var(--color-teal-500-rgb), 0.06);
-}
-
-/* Hide content by default in collapsed state */
-.summary-cards:not(:hover) .button-content {
+  width: 100%;
+  height: 100%;
+  background: rgba(var(--color-teal-500-rgb), 0.03);
   opacity: 0;
-  transform: translateX(-10px);
+  transition: all 0.2s ease;
+  z-index: 1;
+}
+
+.nav-item:hover::before,
+.nav-item.selected::before {
+  opacity: 1;
+  width: 180px; /* Extend to cover the label area (80px sidebar + 100px label) */
+}
+
+.nav-item.selected::before {
+  background: rgba(var(--color-teal-500-rgb), 0.06);
+}
+
+.nav-icon {
+  width: 80px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
+}
+
+.nav-text {
+  position: absolute;
+  left: 80px; /* Position just outside the fixed sidebar */
+  top: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-6) 0 var(--space-6);
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateX(-20px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   pointer-events: none;
+  background: var(--color-background);
+  border-radius: 0 var(--radius-base) var(--radius-base) 0;
+  box-shadow: var(--shadow-sm);
+  min-width: 80px;
+  max-width: 100px;
 }
 
-.summary-cards:not(:hover) .button-label {
-  display: none;
-}
-
-.summary-cards:not(:hover) .button-value {
-  display: none;
-}
-
-/* Show content on individual button hover or selection */
-.summary-button:hover .button-content,
-.summary-button.selected .button-content {
+/* Show text for the specific nav-item being hovered or selected */
+.nav-item:hover .nav-text,
+.nav-item.selected .nav-text {
   opacity: 1;
   transform: translateX(0);
   pointer-events: auto;
 }
 
-.summary-button:hover .button-label,
-.summary-button.selected .button-label {
-  display: block;
+.nav-label {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-.summary-button:hover .button-value,
+/* Smooth sliding animation using width expansion */
+.summary-cards:not(:hover) .button-content {
+  opacity: 0;
+  transform: translateX(-15px);
+  pointer-events: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.summary-cards:not(:hover) .button-label {
+  opacity: 0;
+  transform: translateX(-10px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.summary-cards:not(:hover) .button-value {
+  opacity: 0;
+  transform: translateX(-10px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Always show content for selected buttons */
+.summary-button.selected .button-content,
+.summary-button.selected .button-label,
 .summary-button.selected .button-value {
-  display: block;
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
 }
 
 .button__body {
@@ -2309,10 +2333,24 @@ input[type="number"].expense-input[type="number"],
 
 .button-icon {
   font-size: 1.5rem;
-  transition: all 0.3s ease;
+  transition: none; /* Prevent icon from moving */
   flex-shrink: 0;
   width: 24px; /* Fixed width for consistent alignment */
   text-align: center; /* Center the icon character */
+  position: relative;
+  z-index: 3; /* Above everything else */
+  color: var(--color-text-secondary);
+}
+
+/* Dark mode button icon visibility */
+@media (prefers-color-scheme: dark) {
+  .button-icon {
+    color: var(--color-gray-200); /* More visible in dark mode */
+  }
+}
+
+:root[data-color-scheme="dark"] .button-icon {
+  color: var(--color-gray-200); /* More visible in dark mode */
 }
 
 .summary-cards:not(:hover) .button-icon {
@@ -2327,9 +2365,33 @@ input[type="number"].expense-input[type="number"],
   align-items: flex-start;
   gap: var(--space-4);
   width: 100%;
+  opacity: 1;
+  transform: none;
   transition: all 0.3s ease;
+}
+
+.button-label {
   opacity: 0;
-  transform: translateX(-10px);
+  transform: translateX(-20px);
+  transition: all 0.3s ease;
+  display: block;
+}
+
+/* Show content on hover with smooth slide */
+.summary-button:hover .button-content {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+.summary-button:hover .button-label {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.summary-button:hover .button-value {
+  opacity: 1;
+  transform: translateX(0);
 }
 
 .button-label {
@@ -2355,11 +2417,61 @@ input[type="number"].expense-input[type="number"],
   display: flex;
   flex-direction: column;
   position: relative;
-  margin-left: 125px; /* Start after the expanded button width */
-  transition: margin-left 0.3s ease; /* Smooth transition when sidebar expands */
+  margin-left: 80px; /* Fixed margin matching sidebar width */
   min-width: 0; /* Allow flex item to shrink */
-  width: calc(100% - 125px); /* Explicit width calculation */
+  width: calc(100% - 80px); /* Fixed width calculation */
   overflow: visible; /* Ensure content doesn't get clipped */
+}
+
+/* Ensure all dashboard containers respect the parent margin */
+.dashboard-container {
+  width: 100%;
+  position: relative;
+  left: 0; /* Explicitly set left to 0 to prevent any offset */
+}
+
+/* Ensure dashboard headers don't overlap with sidebar */
+.dashboard-header {
+  position: relative;
+  left: 0;
+  width: 100%;
+  margin-left: 0;
+  padding-left: var(--space-24);
+  padding-right: var(--space-24);
+}
+
+/* Ensure chart containers don't overlap with sidebar */
+.analytics-container,
+.overview-container,
+.income-container {
+  position: relative;
+  left: 0;
+  width: 100%;
+  margin-left: 0;
+}
+
+/* Ensure chart content doesn't overlap with sidebar */
+.chart-content {
+  position: relative;
+  left: 0;
+  width: 100%;
+  margin-left: 0;
+}
+
+/* Ensure SVG charts don't overlap with sidebar */
+.chart-content svg {
+  position: relative;
+  left: 0;
+  margin-left: 0;
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Ensure any chart wrapper elements don't overlap */
+.chart-content > * {
+  position: relative;
+  left: 0;
+  margin-left: 0;
 }
 
 /* Responsive adjustments */
@@ -2836,6 +2948,24 @@ input[type="number"].expense-input[type="number"],
 
 /* Overview Chart Container */
 .overview-container {
+  width: 100%;
+  height: calc(100vh - 120px); /* Full height minus header */
+  position: relative;
+  background: var(--color-background);
+  overflow: hidden;
+}
+
+/* Analytics Chart Container */
+.analytics-container {
+  width: 100%;
+  height: calc(100vh - 120px); /* Full height minus header */
+  position: relative;
+  background: var(--color-background);
+  overflow: hidden;
+}
+
+/* Income Chart Container */
+.income-container {
   width: 100%;
   height: calc(100vh - 120px); /* Full height minus header */
   position: relative;

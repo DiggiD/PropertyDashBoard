@@ -268,18 +268,44 @@ class ChartRenderer {
 
             const yPosition = yScale(property.name);
 
-            // Property label
-            svg.append('text')
+            // Property label with text wrapping
+            const labelText = property.name.toUpperCase();
+            const maxLineLength = 12; // Maximum characters per line
+            const words = labelText.split(' ');
+            const lines = [];
+            let currentLine = '';
+
+            // Split text into lines
+            words.forEach(word => {
+                if ((currentLine + ' ' + word).trim().length <= maxLineLength) {
+                    currentLine = (currentLine + ' ' + word).trim();
+                } else {
+                    if (currentLine) lines.push(currentLine);
+                    currentLine = word;
+                }
+            });
+            if (currentLine) lines.push(currentLine);
+
+            // Create text element with tspans for each line
+            const labelGroup = svg.append('g')
                 .attr('class', 'property-label')
-                .attr('x', -10)
-                .attr('y', yPosition + yScale.bandwidth() / 2)
-                .attr('text-anchor', 'end')
-                .attr('dominant-baseline', 'middle')
-                .style('font-weight', 'bold')
-                .style('fill', this.chartConfig.colors.properties[propertyIndex % this.chartConfig.colors.properties.length])
-                .text(property.name.toUpperCase())
                 .style('cursor', 'pointer')
                 .on('click', () => this.handlePropertyClick(property));
+
+            const lineHeight = 12; // Height between lines
+            const totalTextHeight = lines.length * lineHeight;
+            const startY = yPosition + yScale.bandwidth() / 2 - (totalTextHeight - lineHeight) / 2;
+
+            lines.forEach((line, lineIndex) => {
+                labelGroup.append('text')
+                    .attr('x', -10)
+                    .attr('y', startY + lineIndex * lineHeight)
+                    .attr('text-anchor', 'end')
+                    .attr('dominant-baseline', 'middle')
+                    .style('font-weight', 'bold')
+                    .style('fill', this.chartConfig.colors.properties[propertyIndex % this.chartConfig.colors.properties.length])
+                    .text(line);
+            });
 
             // Create stacked segments
             categories.forEach((category, categoryIndex) => {
