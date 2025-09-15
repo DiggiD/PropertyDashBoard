@@ -452,10 +452,28 @@ class DataManager {
             categoryTrends: {},
         };
 
-        // Initialize expenses for all categories
+        // Initialize expenses for all categories, preserving hierarchical structure
         this.data.expenseCategories.forEach(category => {
-            newProperty.expenses[category] = 0;
+            // Check if any existing property has hierarchical data for this category
+            const existingHierarchicalProperty = this.data.properties.find(prop => {
+                return prop.expenses[category] && typeof prop.expenses[category] === 'object';
+            });
+
+            if (existingHierarchicalProperty) {
+                // Copy the hierarchical structure from existing property
+                newProperty.expenses[category] = {};
+                const hierarchicalData = existingHierarchicalProperty.expenses[category];
+                Object.keys(hierarchicalData).forEach(subcategory => {
+                    newProperty.expenses[category][subcategory] = 0;
+                });
+            } else {
+                // Initialize as flat category
+                newProperty.expenses[category] = 0;
+            }
         });
+
+        // Initialize quarterly data structure for the new property
+        this.initializeQuarterlyDataForNewProperty(newProperty);
 
         // Add to data
         this.data.properties.push(newProperty);
@@ -775,9 +793,10 @@ class DataManager {
             return { total: 0, expenses: {} };
         }
 
-        if (!property.quarterlyData) {
-            console.warn('[DATAMANAGER] Property.quarterlyData is undefined for property:', property.name);
-            return { total: 0, expenses: {} };
+        // If no quarterly data exists, fall back to property expenses
+        if (!property.quarterlyData || Object.keys(property.quarterlyData).length === 0) {
+            console.log('[DATAMANAGER] No quarterly data found for property:', property.name, '- using property expenses directly');
+            return this.getPropertyExpenseData(property, preserveHierarchy);
         }
 
         if (period === 'all') {
@@ -1175,6 +1194,115 @@ class DataManager {
             this.lastSaved = null;
         }
         return success;
+    }
+
+    /**
+     * Initialize quarterly data structure for a new property
+     * @param {Object} property - The new property object
+     */
+    initializeQuarterlyDataForNewProperty(property) {
+        // Get current date to determine the current quarter
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth() + 1; // JavaScript months are 0-indexed
+
+        // Determine current quarter
+        let currentQuarter;
+        if (currentMonth <= 3) {
+            currentQuarter = 'Q1';
+        } else if (currentMonth <= 6) {
+            currentQuarter = 'Q2';
+        } else if (currentMonth <= 9) {
+            currentQuarter = 'Q3';
+        } else {
+            currentQuarter = 'Q4';
+        }
+
+        const quarterKey = `${currentQuarter} ${currentYear}`;
+
+        // Initialize quarterly data structure
+        property.quarterlyData = {};
+        property.quarterlyData[quarterKey] = {
+            expenses: {},
+            total: 0,
+        };
+
+        // Copy the expense structure to quarterly data
+        Object.entries(property.expenses).forEach(([category, value]) => {
+            if (typeof value === 'object' && value !== null) {
+                // Hierarchical category - copy the structure
+                property.quarterlyData[quarterKey].expenses[category] = { ...value };
+            } else {
+                // Flat category - copy the value
+                property.quarterlyData[quarterKey].expenses[category] = value;
+            }
+        });
+
+        // Calculate initial total
+        property.quarterlyData[quarterKey].total = this.calculatePropertyTotal(property.expenses);
+
+        console.log(`[DATAMANAGER] Initialized quarterly data for new property: ${property.name}, Quarter: ${quarterKey}`);
+    }
+
+    /**
+     * Get property expense data directly from expenses object (fallback when no quarterly data)
+     * @param {Object} property - Property object
+     * @param {boolean} preserveHierarchy - Whether to preserve hierarchical structure
+     * @returns {Object} Expense data with total and expenses
+     */
+    getPropertyExpenseData(property, preserveHierarchy = false) {
+        if (!property || !property.expenses) {
+            return { total: 0, expenses: {} };
+        }
+
+        const expenses = { ...property.expenses };
+        let total = 0;
+
+        // Process each category
+        Object.keys(expenses).forEach(category => {
+            const value = expenses[category];
+
+            if (typeof value === 'object' && value !== null) {
+                // Hierarchical category
+                if (preserveHierarchy) {
+                    // Keep hierarchical structure
+                    total += Object.values(value).reduce((sum, val) => sum + (val || 0), 0);
+                } else {
+                    // Sum hierarchical values
+                    const categoryTotal = Object.values(value).reduce((sum, val) => sum + (val || 0), 0);
+                    expenses[category] = categoryTotal;
+                    total += categoryTotal;
+                }
+            } else {
+                // Flat category
+                total += value || 0;
+            }
+        });
+
+        return { total, expenses };
+    }
+
+    /**
+     * Calculate total expenses for a property from its expenses object
+     * @param {Object} expenses - Expenses object
+     * @returns {number} Total amount
+     */
+    calculatePropertyTotal(expenses) {
+        let total = 0;
+
+        Object.values(expenses).forEach(value => {
+            if (typeof value === 'object' && value !== null) {
+                // Sum hierarchical values
+                Object.values(value).forEach(subValue => {
+                    total += subValue || 0;
+                });
+            } else {
+                // Add flat value
+                total += value || 0;
+            }
+        });
+
+        return total;
     }
 
     /**

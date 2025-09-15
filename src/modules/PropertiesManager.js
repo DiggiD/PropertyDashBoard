@@ -1003,7 +1003,12 @@ class PropertiesManager {
     getCategoryExpenseValue(property, category) {
         if (!property) return 0;
 
-        // For hierarchical detection, check the quarterly data first
+        // Check expenses object first (this is the source of truth)
+        if (property.expenses && property.expenses.hasOwnProperty(category)) {
+            return property.expenses[category];
+        }
+
+        // Fallback to quarterly data if expenses object doesn't have the category
         if (property.quarterlyData) {
             const quarters = Object.keys(property.quarterlyData);
             if (quarters.length > 0) {
@@ -1015,9 +1020,39 @@ class PropertiesManager {
             }
         }
 
-        // Fallback to expenses object
-        if (!property.expenses) return 0;
-        return property.expenses[category];
+        // If neither expenses nor quarterly data has the category, check if it exists in global categories
+        // This handles the case where a category was added but the property hasn't been updated yet
+        if (window.dataManager && typeof window.dataManager.getExpenseCategories === 'function') {
+            const globalCategories = window.dataManager.getExpenseCategories();
+            if (globalCategories.includes(category)) {
+                // Category exists globally but not in this property - initialize it
+                console.log(`[PROPERTIES] Initializing missing category "${category}" for property: ${property.name}`);
+                if (!property.expenses) property.expenses = {};
+
+                // Check if any other property has hierarchical data for this category
+                const dataManager = window.dataManager;
+                const allProperties = dataManager.getProperties();
+                const hierarchicalProperty = allProperties.find(prop =>
+                    prop.expenses && prop.expenses[category] && typeof prop.expenses[category] === 'object'
+                );
+
+                if (hierarchicalProperty) {
+                    // Initialize as hierarchical
+                    property.expenses[category] = {};
+                    const hierarchicalData = hierarchicalProperty.expenses[category];
+                    Object.keys(hierarchicalData).forEach(subcategory => {
+                        property.expenses[category][subcategory] = 0;
+                    });
+                    return property.expenses[category];
+                } else {
+                    // Initialize as flat
+                    property.expenses[category] = 0;
+                    return 0;
+                }
+            }
+        }
+
+        return 0;
     }
 
     /**
@@ -1366,6 +1401,12 @@ class PropertiesManager {
 
         // Trigger chart refresh if overview view is active
         this.refreshChartsIfNeeded();
+
+        // Force UI refresh to update totals
+        if (this.uiManager && typeof this.uiManager.updateDataDisplay === 'function') {
+            const stats = this.dataManager.getDataStatistics();
+            this.uiManager.updateDataDisplay(stats);
+        }
 
         // Show success message
         this.uiManager.showToast(`Expense updated successfully`, 'success');
