@@ -990,8 +990,11 @@ class ChartRenderer {
         try {
             this.uiManager.showLoadingState('Loading overview...');
 
-            // Use yearly data for the overview Sankey chart
-            const sankeyData = this.prepareSankeyData('year');
+            // Get selected year from data manager
+            const selectedYear = this.dataManager.getSelectedYear();
+
+            // Use yearly data for the overview Sankey chart, filtered by selected year
+            const sankeyData = this.prepareSankeyData('year', selectedYear);
 
             if (!sankeyData || sankeyData.nodes.length === 0) {
                 this.showOverviewPlaceholder(container);
@@ -1008,15 +1011,23 @@ class ChartRenderer {
     }
 
     /**
+     * Render overview sankey diagram (alias for renderOverviewSankey)
+     */
+    renderOverviewSankeyDiagram() {
+        this.renderOverviewSankey();
+    }
+
+    /**
      * Prepare data for sankey diagram
      * @param {string} timePeriod - Time period to use ('all', 'year', 'quarter', 'month')
+     * @param {string} selectedYear - Selected year to filter by ('all' for all years)
      */
-    prepareSankeyData(timePeriod = null) {
+    prepareSankeyData(timePeriod = null, selectedYear = null) {
         const allProperties = this.dataManager.getProperties();
         const categories = this.dataManager.getExpenseCategories();
 
         // Filter out properties that don't have any meaningful expense or income data
-        const properties = allProperties.filter(property => {
+        let properties = allProperties.filter(property => {
             // Check if property has any expenses at all (not just empty objects)
             const hasAnyExpenses = property.expenses &&
                                   typeof property.expenses === 'object' &&
@@ -1100,6 +1111,25 @@ class ChartRenderer {
             const propertyData = this.dataManager.getCurrentPeriodData(property, timePeriod);
             propertyTotals.set(property.id, propertyData.total);
         });
+
+        // If a specific year is selected, filter properties to only include those with data for that year
+        if (selectedYear !== 'all') {
+            properties = properties.filter(property => {
+                if (!property.monthlyData) return false;
+
+                // Check if property has any data for the selected year
+                return Object.keys(property.monthlyData).some(monthKey => {
+                    const parts = monthKey.split(' ');
+                    return parts.length === 2 && parts[1] === selectedYear;
+                });
+            });
+
+            // If no properties have data for the selected year, return null
+            if (properties.length === 0) {
+                console.log('[CHART] No properties found with data for year:', selectedYear);
+                return null;
+            }
+        }
 
         // Sort properties by absolute total amount descending (highest to lowest)
         const sortedProperties = properties.slice().sort((a, b) => {
@@ -2481,7 +2511,7 @@ class ChartRenderer {
         }
 
         if (analyticsContainer && analyticsContainer.children.length > 0) {
-            this.renderExpenseChart();
+            this.renderAnalyticsChart();
         }
     }
 

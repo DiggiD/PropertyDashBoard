@@ -217,6 +217,10 @@ class PropertiesManager {
 
             this.setupEventListeners();
             this.renderPropertiesDashboard();
+
+            // Initialize year/month pickers after rendering
+            this.initializeYearMonthPickers();
+
             console.log('[PROPERTIES] PropertiesManager initialized successfully');
         } catch (error) {
             console.error('[PROPERTIES] Error during initialization:', error);
@@ -513,6 +517,35 @@ class PropertiesManager {
 
         return `
             <div class="properties-multi-panel">
+                <!-- Properties Panel Header with Year/Month Pickers -->
+                <div class="properties-controls">
+                    <div class="control-item">
+                        <label class="control-label" for="propertiesYearSelect">Year</label>
+                        <select class="control-select" id="propertiesYearSelect">
+                            <option value="all">All Years</option>
+                            <!-- Years will be populated dynamically -->
+                        </select>
+                    </div>
+                    <div class="control-item">
+                        <label class="control-label" for="propertiesMonthSelect">Month</label>
+                        <select class="control-select" id="propertiesMonthSelect">
+                            <option value="all">All Months</option>
+                            <option value="01">January</option>
+                            <option value="02">February</option>
+                            <option value="03">March</option>
+                            <option value="04">April</option>
+                            <option value="05">May</option>
+                            <option value="06">June</option>
+                            <option value="07">July</option>
+                            <option value="08">August</option>
+                            <option value="09">September</option>
+                            <option value="10">October</option>
+                            <option value="11">November</option>
+                            <option value="12">December</option>
+                        </select>
+                    </div>
+                </div>
+
                 <!-- Panel 1: Properties -->
                 <div class="panel properties-panel">
                     <div class="panel-header">
@@ -2756,6 +2789,296 @@ class PropertiesManager {
         // const incomeCategories = this.dataManager.getIncomeCategories();
         // return incomeCategories && incomeCategories.includes(category);
         return false;
+    }
+
+    /**
+     * Initialize year/month pickers
+     */
+    initializeYearMonthPickers() {
+        console.log('[PROPERTIES] Initializing year/month pickers...');
+
+        // Populate year picker
+        this.populateYearPicker();
+
+        // Populate month picker (already has static options)
+        this.setCurrentMonth();
+
+        // Setup event listeners for pickers
+        this.setupPickerEventListeners();
+
+        console.log('[PROPERTIES] Year/month pickers initialized');
+    }
+
+    /**
+     * Populate year picker with available years from data
+     */
+    populateYearPicker() {
+        const yearSelect = document.getElementById('propertiesYearSelect');
+        if (!yearSelect) {
+            console.warn('[PROPERTIES] Year picker not found');
+            return;
+        }
+
+        // Get available years from data
+        const availableYears = this.dataManager.getAvailableYears();
+        if (availableYears.length === 0) {
+            console.log('[PROPERTIES] No years available in data');
+            return;
+        }
+
+        // Clear existing options except "All Years"
+        const allYearsOption = yearSelect.querySelector('option[value="all"]');
+        yearSelect.innerHTML = '';
+        if (allYearsOption) {
+            yearSelect.appendChild(allYearsOption);
+        } else {
+            // Add "All Years" option if it doesn't exist
+            const allOption = document.createElement('option');
+            allOption.value = 'all';
+            allOption.textContent = 'All Years';
+            yearSelect.appendChild(allOption);
+        }
+
+        // Add available years
+        availableYears.forEach(year => {
+            const option = document.createElement('option');
+            option.value = year;
+            option.textContent = year;
+            yearSelect.appendChild(option);
+        });
+
+        console.log(`[PROPERTIES] Populated year picker with ${availableYears.length} years:`, availableYears);
+    }
+
+    /**
+     * Set current month as default selection, or last available if current has no data
+     */
+    setCurrentMonth() {
+        const monthSelect = document.getElementById('propertiesMonthSelect');
+        const yearSelect = document.getElementById('propertiesYearSelect');
+
+        if (!monthSelect || !yearSelect) {
+            console.warn('[PROPERTIES] Month or year picker not found');
+            return;
+        }
+
+        // Get current date info
+        const now = new Date();
+        const currentYear = now.getFullYear().toString();
+        const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
+
+        // Check if current month/year has data
+        const hasCurrentData = this.hasDataForMonthYear(currentYear, currentMonth);
+
+        if (hasCurrentData) {
+            // Use current month/year
+            yearSelect.value = currentYear;
+            monthSelect.value = currentMonth;
+            console.log(`[PROPERTIES] Set to current month/year: ${currentMonth}/${currentYear}`);
+        } else {
+            // Find the most recent month/year with data
+            const lastAvailable = this.getLastAvailableMonthYear();
+            if (lastAvailable) {
+                yearSelect.value = lastAvailable.year;
+                monthSelect.value = lastAvailable.month;
+                console.log(`[PROPERTIES] Current month/year has no data, set to last available: ${lastAvailable.month}/${lastAvailable.year}`);
+            } else {
+                // Fallback to current if no data at all
+                yearSelect.value = currentYear;
+                monthSelect.value = currentMonth;
+                console.log(`[PROPERTIES] No data found, defaulting to current month/year: ${currentMonth}/${currentYear}`);
+            }
+        }
+    }
+
+    /**
+     * Setup event listeners for year/month pickers
+     */
+    setupPickerEventListeners() {
+        const yearSelect = document.getElementById('propertiesYearSelect');
+        const monthSelect = document.getElementById('propertiesMonthSelect');
+
+        if (yearSelect) {
+            yearSelect.addEventListener('change', (e) => {
+                console.log(`[PROPERTIES] Year changed to: ${e.target.value}`);
+                this.handleYearMonthChange();
+            });
+        }
+
+        if (monthSelect) {
+            monthSelect.addEventListener('change', (e) => {
+                console.log(`[PROPERTIES] Month changed to: ${e.target.value}`);
+                this.handleYearMonthChange();
+            });
+        }
+    }
+
+    /**
+     * Handle year/month picker changes
+     */
+    handleYearMonthChange() {
+        const yearSelect = document.getElementById('propertiesYearSelect');
+        const monthSelect = document.getElementById('propertiesMonthSelect');
+
+        if (!yearSelect || !monthSelect) return;
+
+        const selectedYear = yearSelect.value;
+        const selectedMonth = monthSelect.value;
+
+        console.log(`[PROPERTIES] Filtering data by year: ${selectedYear}, month: ${selectedMonth}`);
+
+        // Update data filtering in DataManager
+        this.dataManager.setSelectedYear(selectedYear);
+        this.dataManager.setSelectedMonth(selectedMonth);
+
+        // Re-render the properties dashboard to reflect filtered data
+        this.renderPropertiesDashboard();
+
+        // Update chart calculations if needed
+        this.updateChartCalculations();
+
+        // Show feedback
+        const yearText = selectedYear === 'all' ? 'all years' : selectedYear;
+        const monthText = selectedMonth === 'all' ? 'all months' : this.getMonthName(selectedMonth);
+        this.uiManager.showToast(`Showing data for ${monthText} ${yearText}`, 'info');
+    }
+
+    /**
+     * Get month name from month number
+     * @param {string} monthNumber - Month number (01-12)
+     * @returns {string} Month name
+     */
+    getMonthName(monthNumber) {
+        const monthNames = {
+            '01': 'January',
+            '02': 'February',
+            '03': 'March',
+            '04': 'April',
+            '05': 'May',
+            '06': 'June',
+            '07': 'July',
+            '08': 'August',
+            '09': 'September',
+            '10': 'October',
+            '11': 'November',
+            '12': 'December'
+        };
+        return monthNames[monthNumber] || monthNumber;
+    }
+
+    /**
+     * Check if there's data for a specific month and year
+     * @param {string} year - Year to check
+     * @param {string} month - Month to check (MM format)
+     * @returns {boolean} True if data exists for the month/year
+     */
+    hasDataForMonthYear(year, month) {
+        const properties = this.dataManager.getProperties();
+
+        // Check if any property has data for this month/year
+        for (const property of properties) {
+            if (property.monthlyData) {
+                // Look for month key in format "MMM YYYY"
+                const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                                   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                const monthIndex = parseInt(month) - 1;
+                const monthName = monthNames[monthIndex];
+
+                if (monthName) {
+                    const monthKey = `${monthName} ${year}`;
+                    if (property.monthlyData[monthKey]) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Get the last available month and year with data
+     * @returns {Object|null} Object with year and month properties, or null if no data
+     */
+    getLastAvailableMonthYear() {
+        const properties = this.dataManager.getProperties();
+        let latestMonthKey = null;
+
+        // Find the most recent month key across all properties
+        for (const property of properties) {
+            if (property.monthlyData) {
+                const monthKeys = Object.keys(property.monthlyData);
+                if (monthKeys.length > 0) {
+                    // Sort month keys to find the latest
+                    const sortedKeys = monthKeys.sort((a, b) => {
+                        // Parse month keys like "Jan 2025" to compare dates
+                        const dateA = this.parseMonthKey(a);
+                        const dateB = this.parseMonthKey(b);
+                        return dateB - dateA;
+                    });
+
+                    const latestKey = sortedKeys[0];
+                    if (!latestMonthKey || this.parseMonthKey(latestKey) > this.parseMonthKey(latestMonthKey)) {
+                        latestMonthKey = latestKey;
+                    }
+                }
+            }
+        }
+
+        if (!latestMonthKey) {
+            return null;
+        }
+
+        // Parse the month key to extract year and month
+        const parts = latestMonthKey.split(' ');
+        if (parts.length === 2) {
+            const monthName = parts[0];
+            const year = parts[1];
+
+            // Convert month name to MM format
+            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                               'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const monthIndex = monthNames.indexOf(monthName);
+            if (monthIndex !== -1) {
+                const month = String(monthIndex + 1).padStart(2, '0');
+                return { year, month };
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Parse month key (e.g., "Jan 2025") to Date object for comparison
+     * @param {string} monthKey - Month key in format "MMM YYYY"
+     * @returns {Date} Date object for comparison
+     */
+    parseMonthKey(monthKey) {
+        const parts = monthKey.split(' ');
+        if (parts.length === 2) {
+            const monthName = parts[0];
+            const year = parseInt(parts[1]);
+
+            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                               'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const monthIndex = monthNames.indexOf(monthName);
+
+            if (monthIndex !== -1 && !isNaN(year)) {
+                return new Date(year, monthIndex, 1);
+            }
+        }
+
+        // Return a very old date if parsing fails
+        return new Date(1900, 0, 1);
+    }
+
+    /**
+     * Update chart calculations (placeholder for future implementation)
+     */
+    updateChartCalculations() {
+        // This method can be expanded to update any chart calculations
+        // that depend on the filtered data
+        console.log('[PROPERTIES] Chart calculations updated');
     }
 
     /**

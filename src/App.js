@@ -273,17 +273,46 @@ class App {
                 this.updateView();
             });
         }
+
+        // Year selector for overview
+        const yearSelect = this.uiManager.getElement('overviewYearSelect');
+        if (yearSelect) {
+            yearSelect.addEventListener('change', (e) => {
+                const selectedYear = e.target.value;
+                this.dataManager.setSelectedYear(selectedYear);
+                // Re-render the overview sankey chart with the new year filter
+                this.chartRenderer.renderOverviewSankey();
+            });
+        }
     }
 
     /**
      * Show overview view
      */
-    showOverviewView() {
+    async showOverviewView() {
         console.log('[APP] Showing overview view');
 
         this.uiManager.hideAllDashboards();
         this.uiManager.showDashboard('overview');
         this.uiManager.updateNavigationState('overview');
+
+        // Populate year picker with available years from loaded data
+        const availableYears = this.dataManager.getAvailableYears();
+        if (availableYears.length > 0) {
+            this.uiManager.populateYearPicker(availableYears);
+
+            // Automatically select the most recent year
+            const mostRecentYear = availableYears[availableYears.length - 1];
+            this.dataManager.setSelectedYear(mostRecentYear);
+
+            // Update the year picker UI to reflect the selected year
+            const yearSelect = this.uiManager.getElement('overviewYearSelect');
+            if (yearSelect) {
+                yearSelect.value = mostRecentYear;
+            }
+
+            console.log('[APP] Auto-selected most recent year:', mostRecentYear);
+        }
 
         // Render overview sankey diagram
         this.chartRenderer.renderOverviewSankey();
@@ -469,6 +498,27 @@ class App {
         // Force update of any UI elements that display data
         if (this.uiManager && typeof this.uiManager.updateDataDisplay === 'function') {
             this.uiManager.updateDataDisplay(stats);
+        }
+
+        // Populate year picker with available years from loaded data
+        const availableYears = this.dataManager.getAvailableYears();
+        if (availableYears.length > 0 && this.uiManager && typeof this.uiManager.populateYearPicker === 'function') {
+            this.uiManager.populateYearPicker(availableYears);
+
+            // If no year is currently selected, auto-select the most recent year
+            const currentSelectedYear = this.dataManager.getSelectedYear();
+            if (!currentSelectedYear || currentSelectedYear === 'all') {
+                const mostRecentYear = availableYears[availableYears.length - 1];
+                this.dataManager.setSelectedYear(mostRecentYear);
+
+                // Update the year picker UI to reflect the selected year
+                const yearSelect = this.uiManager.getElement('overviewYearSelect');
+                if (yearSelect) {
+                    yearSelect.value = mostRecentYear;
+                }
+
+                console.log('[APP] Auto-selected most recent year in forceUIRefresh:', mostRecentYear);
+            }
         }
 
         console.log('[APP] UI refresh forced complete');

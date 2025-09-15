@@ -362,7 +362,7 @@ class UIManager {
      * @param {Object} options - Control options
      */
     updateChartControls(options = {}) {
-        const { view, timePeriod } = options;
+        const { view, timePeriod, selectedYear } = options;
 
         // Update view select
         if (view !== undefined) {
@@ -379,6 +379,49 @@ class UIManager {
                 timePeriodSelect.value = timePeriod;
             }
         }
+
+        // Update year select
+        if (selectedYear !== undefined) {
+            const yearSelect = this.getElement('overviewYearSelect');
+            if (yearSelect) {
+                yearSelect.value = selectedYear;
+            }
+        }
+    }
+
+    /**
+     * Populate year picker with available years
+     * @param {Array} availableYears - Array of available years
+     */
+    populateYearPicker(availableYears) {
+        const yearSelect = this.getElement('overviewYearSelect');
+        if (!yearSelect) {
+            console.warn('[UI] Year picker not found');
+            return;
+        }
+
+        // Clear existing options except "All Years"
+        const allYearsOption = yearSelect.querySelector('option[value="all"]');
+        yearSelect.innerHTML = '';
+        if (allYearsOption) {
+            yearSelect.appendChild(allYearsOption);
+        } else {
+            // Add "All Years" option if it doesn't exist
+            const allOption = document.createElement('option');
+            allOption.value = 'all';
+            allOption.textContent = 'All Years';
+            yearSelect.appendChild(allOption);
+        }
+
+        // Add available years
+        availableYears.forEach(year => {
+            const option = document.createElement('option');
+            option.value = year;
+            option.textContent = year;
+            yearSelect.appendChild(option);
+        });
+
+        console.log(`[UI] Populated year picker with ${availableYears.length} years:`, availableYears);
     }
 
     /**

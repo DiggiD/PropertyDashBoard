@@ -105,7 +105,7 @@
                             <!-- Chart Controls -->
                             <div class="chart-controls">
                                 <div class="control-item">
-                                    <label class="control-label">View</label>
+                                    <label class="control-label" for="analyticsViewSelect">View</label>
                                     <select class="control-select" id="analyticsViewSelect">
                                         <option value="overview">Overview</option>
                                         <option value="trends">Trends</option>
@@ -114,7 +114,7 @@
                                     </select>
                                 </div>
                                 <div class="control-item">
-                                    <label class="control-label">Time Period</label>
+                                    <label class="control-label" for="analyticsTimePeriodSelect">Time Period</label>
                                     <select class="control-select" id="analyticsTimePeriodSelect">
                                         <option value="all">All Time</option>
                                         <option value="year">This Year</option>
@@ -168,10 +168,21 @@
 
                 <!-- Overview Dashboard Container -->
                 <div id="overviewDashboard" class="dashboard-container dashboard-overview hidden">
-                    <!-- Remove the dashboard-header div entirely -->
-                    
+                    <!-- Overview Controls -->
+                    <div class="dashboard-header">
+                        <div class="chart-controls">
+                            <div class="control-item">
+                                <label class="control-label" for="overviewYearSelect">Year</label>
+                                <select class="control-select" id="overviewYearSelect">
+                                    <option value="all">All Years</option>
+                                    <!-- Years will be populated dynamically -->
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Overview Chart Container - Ready for beautiful sankey diagram -->
-                    <div id="overviewChart" class="overview-container" role="img" 
+                    <div id="overviewChart" class="overview-container" role="img"
                             aria-label="Overview sankey visualization chart">
                         <div class="loading-state" id="overviewLoadingState">
                             <div class="loading-spinner"></div>

@@ -53,6 +53,8 @@ class DataManager {
             incomeCategories: [], // Future feature: income categories
             currentTimePeriod: 'all',
             currentView: 'overview',
+            selectedYear: 'all', // New: selected year for filtering
+            selectedMonth: 'all', // New: selected month for filtering
         };
 
         // Income data structure for future feature
@@ -134,6 +136,8 @@ class DataManager {
             expenseCategories: [],
             currentTimePeriod: 'all',
             currentView: 'overview',
+            selectedYear: 'all',
+            selectedMonth: 'all',
         };
     }
 
@@ -251,6 +255,8 @@ class DataManager {
             expenseCategories: [],
             currentTimePeriod: 'all',
             currentView: 'overview',
+            selectedYear: 'all',
+            selectedMonth: 'all',
         };
     }
 
@@ -511,6 +517,69 @@ class DataManager {
             this.data.currentView = view;
             this.markAsChanged();
         }
+    }
+
+    /**
+     * Get selected year
+     * @returns {string} Selected year
+     */
+    getSelectedYear() {
+        return this.data.selectedYear;
+    }
+
+    /**
+     * Set selected year
+     * @param {string} year - Year to set ('all' for all years)
+     */
+    setSelectedYear(year) {
+        this.data.selectedYear = year;
+        this.markAsChanged();
+        console.log('[DATAMANAGER] Selected year set to:', year);
+    }
+
+    /**
+     * Get selected month
+     * @returns {string} Selected month
+     */
+    getSelectedMonth() {
+        return this.data.selectedMonth;
+    }
+
+    /**
+     * Set selected month
+     * @param {string} month - Month to set ('all' for all months)
+     */
+    setSelectedMonth(month) {
+        this.data.selectedMonth = month;
+        this.markAsChanged();
+        console.log('[DATAMANAGER] Selected month set to:', month);
+    }
+
+    /**
+     * Get available years from the data
+     * @returns {Array} Array of available years
+     */
+    getAvailableYears() {
+        const years = new Set();
+
+        // Scan through all properties to find years in monthly data
+        this.data.properties.forEach(property => {
+            if (property.monthlyData) {
+                Object.keys(property.monthlyData).forEach(monthKey => {
+                    // Extract year from month key (format: "MMM YYYY")
+                    const parts = monthKey.split(' ');
+                    if (parts.length === 2) {
+                        const year = parts[1];
+                        if (!isNaN(year) && year.length === 4) {
+                            years.add(year);
+                        }
+                    }
+                });
+            }
+        });
+
+        // Return sorted years
+        return Array.from(years).sort();
     }
 
     /**
