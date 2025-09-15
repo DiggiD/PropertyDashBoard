@@ -698,35 +698,51 @@ class Storage {
     }
 
     /**
-     * Save data using best available storage method
+     * Save data using Dexie database as primary storage
      * @param {Object} data - Data to save
      * @returns {boolean} Success status
      */
     async save(data) {
-        // Try database first, then localStorage as fallback
-        const dbSuccess = await this.saveToDatabase(data);
-        const localSuccess = this.saveToLocalStorage(data);
+        // Use Dexie database as primary storage
+        if (this.db) {
+            const dbSuccess = await this.saveToDatabase(data);
+            if (dbSuccess) {
+                console.log('[STORAGE] Data saved to Dexie database successfully');
+                return true;
+            }
+        }
 
-        return dbSuccess || localSuccess;
+        // Fallback to localStorage only if database is unavailable
+        console.warn('[STORAGE] Database unavailable, falling back to localStorage');
+        const localSuccess = this.saveToLocalStorage(data);
+        return localSuccess;
     }
 
     /**
-     * Load data using best available storage method
+     * Load data using Dexie database as primary storage
      * @returns {Object|null} Loaded data
      */
     async load() {
         console.log('[STORAGE] Loading data from storage...');
 
-        // Try database first, then localStorage as fallback
-        let data = await this.loadFromDatabase();
-
-        if (!data) {
-            console.log('[STORAGE] Database load failed or empty, trying localStorage...');
-            data = this.loadFromLocalStorage();
+        // Use Dexie database as primary storage
+        if (this.db) {
+            const data = await this.loadFromDatabase();
+            if (data) {
+                console.log('[STORAGE] Data loaded from Dexie database successfully:', {
+                    properties: data.properties?.length || 0,
+                    categories: data.expenseCategories?.length || 0,
+                    hasQuarterlyData: data.properties?.some(p => p.quarterlyData) || false
+                });
+                return data;
+            }
         }
 
+        // Fallback to localStorage only if database is unavailable or empty
+        console.warn('[STORAGE] Database unavailable or empty, falling back to localStorage');
+        const data = this.loadFromLocalStorage();
         if (data) {
-            console.log('[STORAGE] Data loaded successfully:', {
+            console.log('[STORAGE] Data loaded from localStorage fallback:', {
                 properties: data.properties?.length || 0,
                 categories: data.expenseCategories?.length || 0,
                 hasQuarterlyData: data.properties?.some(p => p.quarterlyData) || false
@@ -753,7 +769,31 @@ class Storage {
                 dataSize: JSON.stringify(snapshot).length
             });
 
-            // Save to localStorage
+            // Save to database as primary storage
+            if (this.db) {
+                await this.db.history.add({
+                    timestamp: snapshot.timestamp,
+                    name: snapshot.name,
+                    description: snapshot.description,
+                    data: snapshot.data,
+                    user_id: 'default', // Add user_id for consistency
+                });
+                console.log('[STORAGE] History saved to Dexie database');
+
+                // Clean up old history items to maintain limit
+                const historyCount = await this.db.history.count();
+                if (historyCount > this.maxHistoryItems) {
+                    const excessCount = historyCount - this.maxHistoryItems;
+                    const oldItems = await this.db.history.orderBy('timestamp').limit(excessCount).toArray();
+                    await this.db.history.bulkDelete(oldItems.map(item => item.id));
+                    console.log(`[STORAGE] Cleaned up ${excessCount} old history items`);
+                }
+
+                return true;
+            }
+
+            // Fallback to localStorage only if database is unavailable
+            console.warn('[STORAGE] Database unavailable, falling back to localStorage for history');
             const history = this.loadHistoryFromStorage() || [];
             console.log('[STORAGE] Current history length before save:', history.length);
 
@@ -767,17 +807,6 @@ class Storage {
             localStorage.setItem(this.historyStorageKey, JSON.stringify(history));
             console.log('[STORAGE] History saved to localStorage, new length:', history.length);
 
-            // Save to database if available
-            if (this.db) {
-                await this.db.history.add({
-                    timestamp: snapshot.timestamp,
-                    name: snapshot.name,
-                    description: snapshot.description,
-                    data: snapshot.data,
-                });
-                console.log('[STORAGE] History also saved to database');
-            }
-
             console.log('[STORAGE] History snapshot saved successfully');
             return true;
         } catch (error) {
@@ -790,8 +819,34 @@ class Storage {
      * Load history from storage
      * @returns {Array} History snapshots
      */
-    loadHistoryFromStorage() {
+    async loadHistoryFromStorage() {
         try {
+            // Try database first
+            if (this.db) {
+                const history = await this.db.history
+                    .where('user_id').equals('default')
+                    .reverse()
+                    .sortBy('timestamp');
+
+                console.log('[STORAGE] History loaded from Dexie database:', {
+                    length: history.length,
+                    firstItem: history[0] ? {
+                        name: history[0].name,
+                        timestamp: history[0].timestamp
+                    } : null
+                });
+
+                // Convert database format to expected format
+                return history.map(item => ({
+                    name: item.name,
+                    timestamp: item.timestamp,
+                    description: item.description,
+                    data: item.data
+                }));
+            }
+
+            // Fallback to localStorage
+            console.warn('[STORAGE] Database unavailable, loading history from localStorage');
             const historyString = localStorage.getItem(this.historyStorageKey);
             console.log('[STORAGE] Loading history from localStorage:', {
                 key: this.historyStorageKey,
@@ -825,10 +880,30 @@ class Storage {
      * @param {Object} settings - Settings object
      * @returns {boolean} Success status
      */
-    saveSettings(settings) {
+    async saveSettings(settings) {
         try {
+            // Save to database as primary storage
+            if (this.db) {
+                // Clear existing settings and save new ones
+                await this.db.settings.where('user_id').equals('default').delete();
+
+                // Save each setting as a separate record
+                for (const [key, value] of Object.entries(settings)) {
+                    await this.db.settings.put({
+                        key: key,
+                        value: value,
+                        user_id: 'default'
+                    });
+                }
+
+                console.log('[STORAGE] Settings saved to Dexie database');
+                return true;
+            }
+
+            // Fallback to localStorage only if database is unavailable
+            console.warn('[STORAGE] Database unavailable, falling back to localStorage for settings');
             localStorage.setItem(this.settingsStorageKey, JSON.stringify(settings));
-            console.log('[STORAGE] Settings saved');
+            console.log('[STORAGE] Settings saved to localStorage');
             return true;
         } catch (error) {
             console.error('[STORAGE] Failed to save settings:', error);
@@ -840,10 +915,27 @@ class Storage {
      * Load settings
      * @returns {Object} Settings object
      */
-    loadSettings() {
+    async loadSettings() {
         try {
+            // Try database first
+            if (this.db) {
+                const settingsRecords = await this.db.settings.where('user_id').equals('default').toArray();
+                const settings = {};
+
+                settingsRecords.forEach(record => {
+                    settings[record.key] = record.value;
+                });
+
+                console.log('[STORAGE] Settings loaded from Dexie database:', Object.keys(settings));
+                return settings;
+            }
+
+            // Fallback to localStorage
+            console.warn('[STORAGE] Database unavailable, loading settings from localStorage');
             const settingsString = localStorage.getItem(this.settingsStorageKey);
-            return settingsString ? JSON.parse(settingsString) : {};
+            const settings = settingsString ? JSON.parse(settingsString) : {};
+            console.log('[STORAGE] Settings loaded from localStorage:', Object.keys(settings));
+            return settings;
         } catch (error) {
             console.error('[STORAGE] Failed to load settings:', error);
             return {};
@@ -954,10 +1046,10 @@ class Storage {
     async exportAllData() {
         const exportData = {
             currentData: await this.load(),
-            history: this.loadHistoryFromStorage(),
-            settings: this.loadSettings(),
+            history: await this.loadHistoryFromStorage(),
+            settings: await this.loadSettings(),
             exportDate: new Date().toISOString(),
-            version: '1.0',
+            version: '2.0',
         };
 
         // Add database data if available
@@ -994,13 +1086,28 @@ class Storage {
 
                 // Import history if present
                 if (importData.history && Array.isArray(importData.history)) {
-                    localStorage.setItem(this.historyStorageKey, JSON.stringify(importData.history));
-                    console.log('[STORAGE] Imported history data');
+                    // Save history to database
+                    if (this.db) {
+                        for (const historyItem of importData.history) {
+                            await this.db.history.add({
+                                timestamp: historyItem.timestamp,
+                                name: historyItem.name,
+                                description: historyItem.description,
+                                data: historyItem.data,
+                                user_id: 'default',
+                            });
+                        }
+                        console.log('[STORAGE] Imported history data to database');
+                    } else {
+                        // Fallback to localStorage
+                        localStorage.setItem(this.historyStorageKey, JSON.stringify(importData.history));
+                        console.log('[STORAGE] Imported history data to localStorage');
+                    }
                 }
 
                 // Import settings if present
                 if (importData.settings) {
-                    this.saveSettings(importData.settings);
+                    await this.saveSettings(importData.settings);
                     console.log('[STORAGE] Imported settings data');
                 }
             }
@@ -1131,15 +1238,16 @@ class Storage {
 
     /**
      * Get storage statistics
-     * @returns {Object} Storage statistics
+     * @returns {Promise<Object>} Storage statistics
      */
-    getStorageStats() {
+    async getStorageStats() {
+        const history = await this.loadHistoryFromStorage();
         return {
             localStorage: this.isStorageAvailable('localStorage'),
             database: this.isStorageAvailable('database'),
             usage: this.getStorageUsage(),
             lastSaved: localStorage.getItem(`${this.storageKey}-lastSaved`),
-            historyItems: this.loadHistoryFromStorage().length,
+            historyItems: history.length,
         };
     }
 
@@ -1406,12 +1514,13 @@ class Storage {
     /**
      * Debug storage information
      */
-    debug() {
+    async debug() {
         console.log('[STORAGE DEBUG] === STORAGE INFORMATION ===');
         console.log('[STORAGE DEBUG] localStorage available:', this.isStorageAvailable('localStorage'));
         console.log('[STORAGE DEBUG] Database available:', this.isStorageAvailable('database'));
         console.log('[STORAGE DEBUG] Storage usage:', this.getStorageUsage());
-        console.log('[STORAGE DEBUG] Storage stats:', this.getStorageStats());
+        const stats = await this.getStorageStats();
+        console.log('[STORAGE DEBUG] Storage stats:', stats);
         console.log('[STORAGE DEBUG] === END DEBUG ===');
     }
 }

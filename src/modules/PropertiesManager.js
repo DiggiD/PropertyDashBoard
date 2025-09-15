@@ -2225,12 +2225,20 @@ class PropertiesManager {
     /**
      * Delete property
      */
-    deleteProperty(propertyId) {
+    async deleteProperty(propertyId) {
         const property = this.dataManager.getPropertyById(propertyId);
         if (!property) return;
 
         const result = this.dataManager.deleteProperty(propertyId);
         if (result.success) {
+            // Save the changes to storage to ensure persistence
+            const saveResult = await this.dataManager.save();
+            if (!saveResult) {
+                console.error('[PROPERTIES] Failed to save property deletion to storage');
+                this.uiManager.showToast('Failed to save changes to storage', 'error');
+                return;
+            }
+
             this.historyManager.createSnapshot(`Deleted property "${property.name}"`, '', false);
             this.currentPropertyId = null;
             this.renderPropertiesDashboard();
