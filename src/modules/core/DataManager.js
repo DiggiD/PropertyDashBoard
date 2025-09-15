@@ -50,8 +50,15 @@ class DataManager {
         this.data = {
             properties: [],
             expenseCategories: [],
+            incomeCategories: [], // Future feature: income categories
             currentTimePeriod: 'all',
             currentView: 'overview',
+        };
+
+        // Income data structure for future feature
+        this.incomeData = {
+            categories: [],
+            propertyIncomes: {}, // property_id -> income data
         };
 
         // Change tracking
@@ -163,13 +170,12 @@ class DataManager {
                     id: property.id || this.generatePropertyId(),
                     name: property.name || `Property ${index + 1}`,
                     expenses: {},
-                    quarterlyData: property.quarterlyData || {},
-                    categoryTrends: property.categoryTrends || {},
+                    monthlyData: property.monthlyData || {},
                 };
 
-                // Ensure expenses is an object
+                // Ensure expenses is an object and convert positive values to negative (expenses)
                 if (property.expenses && typeof property.expenses === 'object') {
-                    normalizedProperty.expenses = { ...property.expenses };
+                    normalizedProperty.expenses = this.convertToExpenseValues(property.expenses);
                 }
 
                 return normalizedProperty;
@@ -208,6 +214,34 @@ class DataManager {
     }
 
     /**
+     * Convert positive values to negative (expenses)
+     * @param {Object} expenses - Expenses object to convert
+     * @returns {Object} Expenses with negative values
+     */
+    convertToExpenseValues(expenses) {
+        const convertedExpenses = {};
+
+        Object.entries(expenses).forEach(([category, value]) => {
+            if (typeof value === 'object' && value !== null) {
+                // Handle hierarchical expenses
+                convertedExpenses[category] = {};
+                Object.entries(value).forEach(([subcategory, subValue]) => {
+                    // Convert positive values to negative for expenses
+                    convertedExpenses[category][subcategory] = typeof subValue === 'number' && subValue > 0 ? -subValue : subValue;
+                });
+            } else if (typeof value === 'number') {
+                // Convert positive values to negative for expenses
+                convertedExpenses[category] = value > 0 ? -value : value;
+            } else {
+                // Keep non-numeric values as-is
+                convertedExpenses[category] = value;
+            }
+        });
+
+        return convertedExpenses;
+    }
+
+    /**
      * Get empty data structure
      * @returns {Object} Empty data structure
      */
@@ -243,10 +277,10 @@ class DataManager {
                 property.expenses = {};
             }
 
-            // Initialize from quarterly data if expenses are empty
-            if (Object.keys(property.expenses).length === 0 && property.quarterlyData) {
-                console.log(`[DATAMANAGER] Initializing expenses from quarterly data for: ${property.name}`);
-                this.initializeExpensesFromQuarterlyData(property);
+            // Initialize from monthly data if expenses are empty
+            if (Object.keys(property.expenses).length === 0 && property.monthlyData) {
+                console.log(`[DATAMANAGER] Initializing expenses from monthly data for: ${property.name}`);
+                this.initializeExpensesFromMonthlyData(property);
             }
 
             // Ensure all categories have entries in expenses
@@ -263,21 +297,30 @@ class DataManager {
             Object.keys(property.expenses).forEach(category => {
                 const value = property.expenses[category];
                 if (typeof value === 'object' && value !== null) {
-                    // Handle hierarchical expenses - keep hierarchical if latest quarter has hierarchical data
-                    const latestQuarterData = property.quarterlyData?.[Object.keys(property.quarterlyData).sort().pop()];
-                    const latestExpenseData = latestQuarterData?.expenses?.[category];
+                    // Handle hierarchical expenses - keep hierarchical if latest month has hierarchical data
+                    const latestMonthData = property.monthlyData?.[Object.keys(property.monthlyData).sort().pop()];
+                    const latestExpenseData = latestMonthData?.expenses?.[category];
                     const hasLatestHierarchical = typeof latestExpenseData === 'object' && latestExpenseData !== null;
 
                     if (hasLatestHierarchical) {
-                        // Keep hierarchical structure from latest quarter
+                        // Keep hierarchical structure from latest month and ensure all values are negative (expenses)
                         console.log(`[DATAMANAGER] Keeping hierarchical expense ${category} for ${property.name}`);
-                        property.expenses[category] = { ...latestExpenseData };
+                        property.expenses[category] = {};
+                        Object.entries(latestExpenseData).forEach(([subcategory, subValue]) => {
+                            // Ensure hierarchical subcategory values are negative for expenses
+                            property.expenses[category][subcategory] = typeof subValue === 'number' && subValue > 0 ? -subValue : subValue;
+                        });
                     } else {
-                        // Convert to total if no hierarchical data in latest quarter
+                        // Convert to total if no hierarchical data in latest month
                         const total = Object.values(value).reduce((sum, val) => sum + (val || 0), 0);
-                        console.log(`[DATAMANAGER] Converting hierarchical expense ${category} to total: ${total}`);
-                        property.expenses[category] = total;
+                        // Ensure the total is negative for expenses
+                        const expenseTotal = total > 0 ? -total : total;
+                        console.log(`[DATAMANAGER] Converting hierarchical expense ${category} to total: ${expenseTotal}`);
+                        property.expenses[category] = expenseTotal;
                     }
+                } else if (typeof value === 'number') {
+                    // Ensure flat category values are negative for expenses
+                    property.expenses[category] = value > 0 ? -value : value;
                 } else if (typeof value !== 'number' || isNaN(value)) {
                     console.warn(`[DATAMANAGER] Invalid expense value for ${property.name} - ${category}: ${value}, setting to 0`);
                     property.expenses[category] = 0;
@@ -286,6 +329,61 @@ class DataManager {
         });
 
         console.log('[DATAMANAGER] Property expenses initialization complete');
+    }
+
+    /**
+     * Manually initialize expenses from monthly data for a property
+     * This should only be called when explicitly requested by the user
+     * @param {Object} property - Property object
+     * @param {boolean} force - Whether to force initialization even if expenses already exist
+     */
+    initializeExpensesFromMonthlyData(property, force = false) {
+        if (!property.monthlyData || typeof property.monthlyData !== 'object') {
+            console.warn('[DATAMANAGER] Invalid monthly data for property:', property.name);
+            return;
+        }
+
+        try {
+            // Get all months and sort them
+            const months = Object.keys(property.monthlyData).sort();
+
+            if (months.length === 0) {
+                console.warn('[DATAMANAGER] No months found in monthly data for property:', property.name);
+                return;
+            }
+
+            // Use the most recent month
+            const latestMonth = months[months.length - 1];
+            const latestMonthData = property.monthlyData[latestMonth];
+
+            if (!latestMonthData || !latestMonthData.expenses) {
+                console.warn('[DATAMANAGER] No expenses found in latest month for property:', property.name);
+                return;
+            }
+
+            console.log(`[DATAMANAGER] Initializing expenses from month: ${latestMonth} for property: ${property.name}`);
+
+            // Copy expenses from the latest month
+            Object.entries(latestMonthData.expenses).forEach(([category, value]) => {
+                if (typeof value === 'object' && value !== null) {
+                    // Handle hierarchical expenses - sum the values and ensure negative for expenses
+                    const total = Object.values(value).reduce((sum, val) => sum + (val || 0), 0);
+                    // Ensure the total is negative for expenses
+                    property.expenses[category] = total > 0 ? -total : total;
+                    console.log(`[DATAMANAGER] Hierarchical expense ${category}: ${property.expenses[category]}`);
+                } else if (typeof value === 'number') {
+                    // Ensure flat values are negative for expenses
+                    property.expenses[category] = value > 0 ? -value : value;
+                    console.log(`[DATAMANAGER] Flat expense ${category}: ${property.expenses[category]}`);
+                } else {
+                    console.warn(`[DATAMANAGER] Invalid expense value for ${category}: ${value}`);
+                    property.expenses[category] = 0;
+                }
+            });
+
+        } catch (error) {
+            console.error('[DATAMANAGER] Error initializing expenses from monthly data:', error);
+        }
     }
 
     /**
@@ -323,13 +421,15 @@ class DataManager {
             // Copy expenses from the latest quarter
             Object.entries(latestQuarterData.expenses).forEach(([category, value]) => {
                 if (typeof value === 'object' && value !== null) {
-                    // Handle hierarchical expenses - sum the values
+                    // Handle hierarchical expenses - sum the values and ensure negative for expenses
                     const total = Object.values(value).reduce((sum, val) => sum + (val || 0), 0);
-                    property.expenses[category] = total;
-                    console.log(`[DATAMANAGER] Hierarchical expense ${category}: ${total}`);
+                    // Ensure the total is negative for expenses
+                    property.expenses[category] = total > 0 ? -total : total;
+                    console.log(`[DATAMANAGER] Hierarchical expense ${category}: ${property.expenses[category]}`);
                 } else if (typeof value === 'number') {
-                    property.expenses[category] = value;
-                    console.log(`[DATAMANAGER] Flat expense ${category}: ${value}`);
+                    // Ensure flat values are negative for expenses
+                    property.expenses[category] = value > 0 ? -value : value;
+                    console.log(`[DATAMANAGER] Flat expense ${category}: ${property.expenses[category]}`);
                 } else {
                     console.warn(`[DATAMANAGER] Invalid expense value for ${category}: ${value}`);
                     property.expenses[category] = 0;
@@ -363,6 +463,14 @@ class DataManager {
      */
     getExpenseCategories() {
         return [...this.data.expenseCategories];
+    }
+
+    /**
+     * Get income categories
+     * @returns {Array} Income categories array
+     */
+    getIncomeCategories() {
+        return [...(this.data.incomeCategories || [])];
     }
 
     /**
@@ -448,8 +556,7 @@ class DataManager {
             id: this.generatePropertyId(),
             name: name.trim(),
             expenses: {},
-            quarterlyData: {},
-            categoryTrends: {},
+            monthlyData: {},
         };
 
         // Initialize expenses for all categories, preserving hierarchical structure
@@ -472,8 +579,8 @@ class DataManager {
             }
         });
 
-        // Initialize quarterly data structure for the new property
-        this.initializeQuarterlyDataForNewProperty(newProperty);
+        // Initialize monthly data structure for the new property
+        this.initializeMonthlyDataForNewProperty(newProperty);
 
         // Add to data
         this.data.properties.push(newProperty);
@@ -738,6 +845,143 @@ class DataManager {
     }
 
     /**
+     * Add income category
+     * @param {string} name - Category name
+     * @returns {Object} Result with success status
+     */
+    addIncomeCategory(name) {
+        // Validate input
+        const validation = this.validator.validateCategoryName(name);
+        if (!validation.isValid) {
+            return {
+                success: false,
+                message: validation.message,
+            };
+        }
+
+        // Initialize incomeCategories array if it doesn't exist
+        if (!this.data.incomeCategories) {
+            this.data.incomeCategories = [];
+        }
+
+        // Check for duplicates
+        const existingCategory = this.data.incomeCategories.find(c =>
+            c.toLowerCase() === name.toLowerCase(),
+        );
+
+        if (existingCategory) {
+            return {
+                success: false,
+                message: 'An income category with this name already exists',
+            };
+        }
+
+        // Check limits
+        if (this.data.incomeCategories.length >= 10) {
+            return {
+                success: false,
+                message: 'Maximum of 10 income categories allowed',
+            };
+        }
+
+        // Add category
+        this.data.incomeCategories.push(name.trim());
+
+        this.markAsChanged();
+
+        console.log('[DATAMANAGER] Income category added:', name);
+
+        return {
+            success: true,
+            message: `Income category "${name}" added successfully`,
+        };
+    }
+
+    /**
+     * Update income category name
+     * @param {string} oldName - Old category name
+     * @param {string} newName - New category name
+     * @returns {Object} Result with success status
+     */
+    updateIncomeCategory(oldName, newName) {
+        if (!this.data.incomeCategories) {
+            this.data.incomeCategories = [];
+        }
+
+        const categoryIndex = this.data.incomeCategories.indexOf(oldName);
+        if (categoryIndex === -1) {
+            return {
+                success: false,
+                message: 'Income category not found',
+            };
+        }
+
+        // Validate new name
+        const validation = this.validator.validateCategoryName(newName);
+        if (!validation.isValid) {
+            return {
+                success: false,
+                message: validation.message,
+            };
+        }
+
+        // Check for duplicates
+        const existingCategory = this.data.incomeCategories.find(c =>
+            c !== oldName && c.toLowerCase() === newName.toLowerCase(),
+        );
+
+        if (existingCategory) {
+            return {
+                success: false,
+                message: 'An income category with this name already exists',
+            };
+        }
+
+        // Update category name
+        this.data.incomeCategories[categoryIndex] = newName.trim();
+
+        this.markAsChanged();
+
+        console.log('[DATAMANAGER] Income category renamed:', oldName, '->', newName);
+
+        return {
+            success: true,
+            message: `Income category renamed from "${oldName}" to "${newName}"`,
+        };
+    }
+
+    /**
+     * Delete income category
+     * @param {string} categoryName - Category name to delete
+     * @returns {Object} Result with success status
+     */
+    deleteIncomeCategory(categoryName) {
+        if (!this.data.incomeCategories) {
+            this.data.incomeCategories = [];
+        }
+
+        const categoryIndex = this.data.incomeCategories.indexOf(categoryName);
+        if (categoryIndex === -1) {
+            return {
+                success: false,
+                message: 'Income category not found',
+            };
+        }
+
+        // Remove category
+        this.data.incomeCategories.splice(categoryIndex, 1);
+
+        this.markAsChanged();
+
+        console.log('[DATAMANAGER] Income category deleted:', categoryName);
+
+        return {
+            success: true,
+            message: `Income category "${categoryName}" deleted successfully`,
+        };
+    }
+
+    /**
      * Update property expense
      * @param {number} propertyId - Property ID
      * @param {string} category - Expense category
@@ -793,38 +1037,38 @@ class DataManager {
             return { total: 0, expenses: {} };
         }
 
-        // If no quarterly data exists, fall back to property expenses
-        if (!property.quarterlyData || Object.keys(property.quarterlyData).length === 0) {
-            console.log('[DATAMANAGER] No quarterly data found for property:', property.name, '- using property expenses directly');
+        // If no monthly data exists, fall back to property expenses
+        if (!property.monthlyData || Object.keys(property.monthlyData).length === 0) {
+            console.log('[DATAMANAGER] No monthly data found for property:', property.name, '- using property expenses directly');
             return this.getPropertyExpenseData(property, preserveHierarchy);
         }
 
         if (period === 'all') {
-            // Calculate totals across all quarters
-            const allQuarters = Object.values(property.quarterlyData || {});
+            // Calculate totals across all months
+            const allMonths = Object.values(property.monthlyData || {});
             const totalExpenses = {};
             let grandTotal = 0;
 
-            // Find the most recent quarter for hierarchical data
-            const quarters = Object.keys(property.quarterlyData || {}).sort();
-            const latestQuarter = quarters.length > 0 ? property.quarterlyData[quarters[quarters.length - 1]] : null;
+            // Find the most recent month for hierarchical data
+            const months = Object.keys(property.monthlyData || {}).sort();
+            const latestMonth = months.length > 0 ? property.monthlyData[months[months.length - 1]] : null;
 
             this.data.expenseCategories.forEach(category => {
                 let categoryTotal = 0;
 
-                // Check if the latest quarter has hierarchical data for this category
-                const latestExpenseData = latestQuarter?.expenses?.[category];
+                // Check if the latest month has hierarchical data for this category
+                const latestExpenseData = latestMonth?.expenses?.[category];
                 const hasLatestHierarchical = preserveHierarchy && typeof latestExpenseData === 'object' && latestExpenseData !== null;
 
                 if (hasLatestHierarchical) {
-                    // Aggregate hierarchical data from all quarters, but only include subcategories that exist in the latest quarter
+                    // Aggregate hierarchical data from all months, but only include subcategories that exist in the latest month
                     const aggregatedHierarchical = {};
                     Object.keys(latestExpenseData).forEach(subCategory => {
                         let subTotal = 0;
-                        allQuarters.forEach(quarter => {
-                            const quarterExpenseData = quarter.expenses?.[category];
-                            if (typeof quarterExpenseData === 'object' && quarterExpenseData !== null && quarterExpenseData[subCategory]) {
-                                subTotal += quarterExpenseData[subCategory] || 0;
+                        allMonths.forEach(month => {
+                            const monthExpenseData = month.expenses?.[category];
+                            if (typeof monthExpenseData === 'object' && monthExpenseData !== null && monthExpenseData[subCategory]) {
+                                subTotal += monthExpenseData[subCategory] || 0;
                             }
                         });
                         if (subTotal > 0) {
@@ -836,9 +1080,9 @@ class DataManager {
                         categoryTotal += value || 0;
                     });
                 } else {
-                    // Aggregate flat data from all quarters
-                    allQuarters.forEach(quarter => {
-                        const expenseData = quarter.expenses[category];
+                    // Aggregate flat data from all months
+                    allMonths.forEach(month => {
+                        const expenseData = month.expenses[category];
                         if (typeof expenseData === 'object' && expenseData !== null) {
                             Object.values(expenseData).forEach(subAmount => {
                                 categoryTotal += subAmount || 0;
@@ -864,43 +1108,47 @@ class DataManager {
             return { total: grandTotal, expenses: totalExpenses };
         }
 
-        // Get all available quarters for this property
-        const allQuarters = Object.keys(property.quarterlyData || {});
+        // Get all available months for this property
+        const allMonths = Object.keys(property.monthlyData || {});
 
-        if (allQuarters.length === 0) {
-            console.warn('[DATAMANAGER] No quarters found for property:', property.name);
+        if (allMonths.length === 0) {
+            console.warn('[DATAMANAGER] No months found for property:', property.name);
             return { total: 0, expenses: {} };
         }
 
-        let quartersToInclude = [];
+        let monthsToInclude = [];
 
-        // Filter quarters based on time period
+        // Filter months based on time period
         if (period === 'year') {
             // Find the latest year available in the data
-            const years = [...new Set(allQuarters.map(q => q.split(' ')[1]))].sort();
+            const years = [...new Set(allMonths.map(m => m.split(' ')[1]))].sort();
             const latestYear = years[years.length - 1];
-            quartersToInclude = allQuarters.filter(quarter => quarter.includes(latestYear));
-        } else if (period === 'quarter' || period === 'month') {
-            // Include only the latest quarter
-            quartersToInclude = [allQuarters[allQuarters.length - 1]];
+            monthsToInclude = allMonths.filter(month => month.includes(latestYear));
+        } else if (period === 'quarter') {
+            // Get the latest 3 months for quarter view
+            const sortedMonths = allMonths.sort();
+            monthsToInclude = sortedMonths.slice(-3);
+        } else if (period === 'month') {
+            // Include only the latest month
+            monthsToInclude = [allMonths[allMonths.length - 1]];
         }
 
-        // Fallback: if no quarters match the filter, use latest quarter
-        if (quartersToInclude.length === 0) {
-            console.warn('[DATAMANAGER] No quarters found for time period:', period, 'for property:', property.name, '- using latest quarter as fallback');
-            quartersToInclude = [allQuarters[allQuarters.length - 1]];
+        // Fallback: if no months match the filter, use latest month
+        if (monthsToInclude.length === 0) {
+            console.warn('[DATAMANAGER] No months found for time period:', period, 'for property:', property.name, '- using latest month as fallback');
+            monthsToInclude = [allMonths[allMonths.length - 1]];
         }
 
-        // Aggregate data from selected quarters
+        // Aggregate data from selected months
         const totalExpenses = {};
         let grandTotal = 0;
 
         this.data.expenseCategories.forEach(category => {
             let categoryTotal = 0;
-            quartersToInclude.forEach(quarter => {
-                const quarterData = property.quarterlyData[quarter];
-                if (quarterData && quarterData.expenses) {
-                    const expenseData = quarterData.expenses[category];
+            monthsToInclude.forEach(month => {
+                const monthData = property.monthlyData[month];
+                if (monthData && monthData.expenses) {
+                    const expenseData = monthData.expenses[category];
                     if (preserveHierarchy && typeof expenseData === 'object' && expenseData !== null) {
                         // Preserve hierarchical structure
                         if (!totalExpenses[category]) {
@@ -1125,12 +1373,12 @@ class DataManager {
                     totalExpenses: this.calculateTotalExpenses()
                 });
 
-                // Initialize expenses from quarterly data for imported properties
-                console.log('[DATAMANAGER] Initializing expenses from quarterly data for imported properties...');
+                // Initialize expenses from monthly data for imported properties
+                console.log('[DATAMANAGER] Initializing expenses from monthly data for imported properties...');
                 this.data.properties.forEach(property => {
-                    if (property.quarterlyData && Object.keys(property.expenses).length === 0) {
+                    if (property.monthlyData && Object.keys(property.expenses).length === 0) {
                         console.log(`[DATAMANAGER] Initializing expenses for imported property: ${property.name}`);
-                        this.initializeExpensesFromQuarterlyData(property, true);
+                        this.initializeExpensesFromMonthlyData(property, true);
                     }
                 });
 
@@ -1194,6 +1442,44 @@ class DataManager {
             this.lastSaved = null;
         }
         return success;
+    }
+
+    /**
+     * Initialize monthly data structure for a new property
+     * @param {Object} property - The new property object
+     */
+    initializeMonthlyDataForNewProperty(property) {
+        // Get current date to determine the current month
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth() + 1; // JavaScript months are 0-indexed
+
+        // Format month as "MMM YYYY" (e.g., "Jan 2025")
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const monthKey = `${monthNames[currentMonth - 1]} ${currentYear}`;
+
+        // Initialize monthly data structure
+        property.monthlyData = {};
+        property.monthlyData[monthKey] = {
+            expenses: {},
+            total: 0,
+        };
+
+        // Copy the expense structure to monthly data
+        Object.entries(property.expenses).forEach(([category, value]) => {
+            if (typeof value === 'object' && value !== null) {
+                // Hierarchical category - copy the structure
+                property.monthlyData[monthKey].expenses[category] = { ...value };
+            } else {
+                // Flat category - copy the value
+                property.monthlyData[monthKey].expenses[category] = value;
+            }
+        });
+
+        // Calculate initial total
+        property.monthlyData[monthKey].total = this.calculatePropertyTotal(property.expenses);
+
+        console.log(`[DATAMANAGER] Initialized monthly data for new property: ${property.name}, Month: ${monthKey}`);
     }
 
     /**

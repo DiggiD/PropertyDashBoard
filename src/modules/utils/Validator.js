@@ -28,6 +28,10 @@ class Validator {
                 max: 10000000, // 1 crore
                 message: 'Amount must be between ₹0 and ₹1,00,00,000',
             },
+            month: {
+                pattern: /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s\d{4}$/,
+                message: 'Month must be in format MMM YYYY (e.g., Jan 2024)',
+            },
             quarter: {
                 pattern: /^Q[1-4]\s\d{4}$/,
                 message: 'Quarter must be in format Q1-Q4 YYYY',
@@ -123,6 +127,23 @@ class Validator {
 
         if (numAmount > this.rules.amount.max) {
             return { isValid: false, message: 'Amount is too large. Please enter a smaller value.' };
+        }
+
+        return { isValid: true, message: '' };
+    }
+
+    /**
+     * Validate month format
+     * @param {string} month - Month string to validate
+     * @returns {Object} Validation result {isValid: boolean, message: string}
+     */
+    validateMonth(month) {
+        if (!month || typeof month !== 'string') {
+            return { isValid: false, message: 'Month is required' };
+        }
+
+        if (!this.rules.month.pattern.test(month)) {
+            return { isValid: false, message: this.rules.month.message };
         }
 
         return { isValid: true, message: '' };

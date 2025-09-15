@@ -138,16 +138,47 @@ class ChartRenderer {
      * Setup chart containers
      */
     setupChartContainers() {
-        // Ensure chart containers exist
-        const expenseChart = this.uiManager.getElement('expenseChart');
-        const overviewChart = this.uiManager.getElement('overviewChart');
+        // Setup chart containers for different views
+        const containers = [
+            'overviewChartContent',
+            'analyticsChartContent'
+        ];
 
-        if (expenseChart) {
-            expenseChart.style.position = 'relative';
-        }
+        containers.forEach(containerId => {
+            const container = this.uiManager.getElement(containerId);
+            if (container) {
+                // Clear any existing content
+                container.innerHTML = '';
 
-        if (overviewChart) {
-            overviewChart.style.position = 'relative';
+                // Set up basic container styling
+                container.style.position = 'relative';
+                container.style.width = '100%';
+                container.style.height = '100%';
+                container.style.overflow = 'hidden';
+
+                console.log(`[CHART] Setup container: ${containerId}`);
+            } else {
+                console.warn(`[CHART] Container not found: ${containerId}`);
+            }
+        });
+    }
+
+    /**
+     * Format axis labels for charts
+     * @param {number} value - The value to format (negative for expenses)
+     * @param {boolean} compact - Whether to use compact notation
+     * @returns {string} Formatted axis label
+     */
+    formatAxisLabel(value, compact = false) {
+        // For expenses (negative values), convert to positive for display
+        const displayValue = value < 0 ? Math.abs(value) : value;
+
+        if (displayValue >= 1000000) {
+            return `${(displayValue / 1000000).toFixed(1)}M`;
+        } else if (displayValue >= 1000) {
+            return `${(displayValue / 1000).toFixed(1)}K`;
+        } else {
+            return compact ? this.formatCurrency(displayValue, true) : this.formatCurrency(displayValue);
         }
     }
 
@@ -959,7 +990,8 @@ class ChartRenderer {
         try {
             this.uiManager.showLoadingState('Loading overview...');
 
-            const sankeyData = this.prepareSankeyData();
+            // Use yearly data for the overview Sankey chart
+            const sankeyData = this.prepareSankeyData('year');
 
             if (!sankeyData || sankeyData.nodes.length === 0) {
                 this.showOverviewPlaceholder(container);
@@ -977,13 +1009,56 @@ class ChartRenderer {
 
     /**
      * Prepare data for sankey diagram
+     * @param {string} timePeriod - Time period to use ('all', 'year', 'quarter', 'month')
      */
-    prepareSankeyData() {
-        const properties = this.dataManager.getProperties();
+    prepareSankeyData(timePeriod = null) {
+        const allProperties = this.dataManager.getProperties();
         const categories = this.dataManager.getExpenseCategories();
 
+        // Filter out properties that don't have any meaningful expense or income data
+        const properties = allProperties.filter(property => {
+            // Check if property has any expenses at all (not just empty objects)
+            const hasAnyExpenses = property.expenses &&
+                                  typeof property.expenses === 'object' &&
+                                  Object.keys(property.expenses).length > 0 &&
+                                  // Check if any category has actual non-zero values
+                                  Object.entries(property.expenses).some(([category, value]) => {
+                                      if (typeof value === 'number') {
+                                          return value !== 0;
+                                      } else if (typeof value === 'object' && value !== null) {
+                                          // For hierarchical categories, check if any subcategory has non-zero values
+                                          return Object.values(value).some(subValue =>
+                                              typeof subValue === 'number' && subValue !== 0
+                                          );
+                                      }
+                                      return false;
+                                  });
+
+            // Check if property has monthly data with actual expense values
+            const hasMonthlyData = property.monthlyData &&
+                                  typeof property.monthlyData === 'object' &&
+                                  Object.keys(property.monthlyData).length > 0 &&
+                                  Object.values(property.monthlyData).some(monthData =>
+                                      monthData && typeof monthData === 'object' &&
+                                      Object.values(monthData).some(value =>
+                                          typeof value === 'number' && value !== 0
+                                      )
+                                  );
+
+            // Check if property has quarterly data with actual values
+            const hasQuarterlyData = property.quarterlyData &&
+                                    typeof property.quarterlyData === 'object' &&
+                                    Object.keys(property.quarterlyData).length > 0 &&
+                                    Object.values(property.quarterlyData).some(quarterData =>
+                                        quarterData && typeof quarterData === 'object' &&
+                                        typeof quarterData.total === 'number' && quarterData.total !== 0
+                                    );
+
+            return hasAnyExpenses || hasMonthlyData || hasQuarterlyData;
+        });
+
         if (!properties || properties.length === 0) {
-            console.log('[CHART] No data available for sankey');
+            console.log('[CHART] No properties with data available for sankey');
             return null;
         }
 
@@ -1022,16 +1097,16 @@ class ChartRenderer {
 
         // Calculate property totals first
         properties.forEach((property, index) => {
-            const propertyData = this.dataManager.getCurrentPeriodData(property);
+            const propertyData = this.dataManager.getCurrentPeriodData(property, timePeriod);
             propertyTotals.set(property.id, propertyData.total);
         });
 
-        // Sort properties by total amount descending
+        // Sort properties by absolute total amount descending (highest to lowest)
         const sortedProperties = properties.slice().sort((a, b) => {
             const totalA = propertyTotals.get(a.id) || 0;
             const totalB = propertyTotals.get(b.id) || 0;
             if (totalA !== totalB) {
-                return totalB - totalA; // Descending
+                return Math.abs(totalB) - Math.abs(totalA); // Sort by absolute value descending
             }
             return a.name.localeCompare(b.name); // Stable sort
         });
@@ -1060,37 +1135,34 @@ class ChartRenderer {
         // Step 2: Create category nodes (Level 2) - sorted by amount
         const categoryTotals = new Map();
 
-        // Calculate category totals from all quarterly data for consistent sorting
+        // Calculate category totals using the same data source as the sankey data
         categories.forEach((category) => {
             let total = 0;
             properties.forEach(property => {
-                if (property.quarterlyData) {
-                    Object.values(property.quarterlyData).forEach(quarterData => {
-                        if (quarterData.expenses && quarterData.expenses[category]) {
-                            const expenseData = quarterData.expenses[category];
-                            if (typeof expenseData === 'object' && expenseData !== null) {
-                                // Hierarchical category - sum all subcategory values
-                                Object.values(expenseData).forEach(value => {
-                                    if (value > 0) total += value;
-                                });
-                            } else {
-                                // Flat category - direct value
-                                const value = expenseData || 0;
-                                if (value > 0) total += value;
-                            }
-                        }
-                    });
+                const propertyData = this.dataManager.getCurrentPeriodData(property, timePeriod, true);
+                const expenseData = propertyData.expenses[category];
+                if (expenseData) {
+                    if (typeof expenseData === 'object' && expenseData !== null) {
+                        // Hierarchical category - sum all subcategory values
+                        Object.values(expenseData).forEach(value => {
+                            if (value !== 0) total += Math.abs(value); // Include negative values (expenses) using absolute value
+                        });
+                    } else {
+                        // Flat category - direct value
+                        const value = expenseData || 0;
+                        if (value !== 0) total += Math.abs(value); // Include negative values (expenses) using absolute value
+                    }
                 }
             });
             categoryTotals.set(category, total);
         });
 
-        // Sort categories by total amount descending
+        // Sort categories by absolute total amount descending (highest to lowest)
         const sortedCategories = categories.slice().sort((a, b) => {
             const totalA = categoryTotals.get(a) || 0;
             const totalB = categoryTotals.get(b) || 0;
             if (totalA !== totalB) {
-                return totalB - totalA; // Descending
+                return Math.abs(totalB) - Math.abs(totalA); // Sort by absolute value descending
             }
             return a.localeCompare(b); // Stable sort
         });
@@ -1103,7 +1175,7 @@ class ChartRenderer {
 
         // Create category nodes in sorted order
         sortedCategories.forEach((category, sortedIndex) => {
-            const nodeId = `category-${categories.indexOf(category)}`; // Use original index for consistency
+            const nodeId = `category-${sortedIndex}`; // Use sorted index for node ID to ensure proper ordering
             nodeMap.set(nodeId, nodes.length);
             nodes.push({
                 id: nodeId,
@@ -1114,7 +1186,7 @@ class ChartRenderer {
                 hasSubcategories: hierarchicalCategories[category] !== undefined,
                 categoryIndex: categories.indexOf(category),
                 sortedIndex: sortedIndex, // Add sorted index for proper grouping
-                originalIndex: nodes.length
+                originalIndex: sortedIndex // Use sorted index as original index for proper sorting
             });
         });
 
@@ -1128,7 +1200,7 @@ class ChartRenderer {
                 subcategories.forEach(subCategory => {
                     let total = 0;
                     properties.forEach(property => {
-                        const propertyData = this.dataManager.getCurrentPeriodData(property, null, true);
+                        const propertyData = this.dataManager.getCurrentPeriodData(property, timePeriod, true);
                         const expenseData = propertyData.expenses[category];
                         if (typeof expenseData === 'object' && expenseData && expenseData[subCategory]) {
                             total += expenseData[subCategory];
@@ -1137,12 +1209,12 @@ class ChartRenderer {
                     subcategoryTotals.set(subCategory, total);
                 });
 
-                // Sort subcategories by amount descending
+                // Sort subcategories by absolute amount descending (highest to lowest)
                 const sortedSubcategories = subcategories.slice().sort((a, b) => {
                     const totalA = subcategoryTotals.get(a) || 0;
                     const totalB = subcategoryTotals.get(b) || 0;
                     if (totalA !== totalB) {
-                        return totalB - totalA; // Descending
+                        return Math.abs(totalB) - Math.abs(totalA); // Sort by absolute value descending
                     }
                     return a.localeCompare(b); // Stable sort
                 });
@@ -1159,7 +1231,7 @@ class ChartRenderer {
                         level: 3,
                         color: this.chartConfig.colors.categories[subcategoryIndex++ % this.chartConfig.colors.categories.length],
                         parentCategory: category,
-                        parentCategoryIndex: categories.indexOf(category),
+                        parentCategoryIndex: categorySortedIndex.get(category),
                         originalIndex: nodes.length,
                         totalAmount: totalAmount
                     });
@@ -1181,7 +1253,7 @@ class ChartRenderer {
 
         // Step 4: Create links with laminar flow
         properties.forEach((property, propIndex) => {
-            const propertyData = this.dataManager.getCurrentPeriodData(property, null, true);
+            const propertyData = this.dataManager.getCurrentPeriodData(property, timePeriod, true);
             const sortedPropertyIndex = propertySortedIndex.get(property.id);
 
             categories.forEach((category, categoryIndex) => {
@@ -1192,17 +1264,17 @@ class ChartRenderer {
                     if (typeof expenseData === 'object' && expenseData !== null) {
                         let categoryTotal = 0;
                         Object.entries(expenseData).forEach(([subCategory, value]) => {
-                            if (value > 0) {
+                            if (value < 0) { // Expenses are negative values
                                 categoryTotal += value;
                             }
                         });
 
                         // Link property -> category (intermediate node)
-                        if (categoryTotal > 0) {
+                        if (categoryTotal < 0) { // categoryTotal will be negative for expenses
                             links.push({
                                 source: nodeMap.get(`property-${property.id}`),
-                                target: nodeMap.get(`category-${categoryIndex}`),
-                                value: categoryTotal,
+                                target: nodeMap.get(`category-${categorySortedIndex.get(category)}`),
+                                value: Math.abs(categoryTotal), // Convert negative to positive for sankey
                                 property: property.name,
                                 category,
                                 flowType: 'property-to-category',
@@ -1211,12 +1283,12 @@ class ChartRenderer {
 
                             // Link category -> subcategories
                             Object.entries(expenseData).forEach(([subCategory, value]) => {
-                                if (value > 0) {
+                                if (value < 0) { // Expenses are negative values
                                     const subNodeId = `sub-${category}-${subCategory}`;
                                     links.push({
-                                        source: nodeMap.get(`category-${categoryIndex}`),
+                                        source: nodeMap.get(`category-${categorySortedIndex.get(category)}`),
                                         target: nodeMap.get(subNodeId),
-                                        value,
+                                        value: Math.abs(value), // Convert negative to positive for sankey
                                         property: property.name,
                                         category: subCategory,
                                         flowType: 'category-to-subcategory',
@@ -1229,11 +1301,11 @@ class ChartRenderer {
                 } else {
                     // Flat category - direct flow to category node
                     const value = expenseData || 0;
-                    if (value > 0) {
+                    if (value < 0) { // Expenses are negative values
                         links.push({
                             source: nodeMap.get(`property-${property.id}`),
-                            target: nodeMap.get(`category-${categoryIndex}`),
-                            value,
+                            target: nodeMap.get(`category-${categorySortedIndex.get(category)}`),
+                            value: Math.abs(value), // Convert negative to positive for sankey
                             property: property.name,
                             category,
                             flowType: 'property-to-category-flat'
@@ -1241,7 +1313,7 @@ class ChartRenderer {
 
                         // Add dummy link from flat category to dummy sink to ensure it's on level 2
                         links.push({
-                            source: nodeMap.get(`category-${categoryIndex}`),
+                            source: nodeMap.get(`category-${categorySortedIndex.get(category)}`),
                             target: nodeMap.get(dummySinkId),
                             value: 0.001, // Very small value
                             property: '',
@@ -1320,8 +1392,8 @@ class ChartRenderer {
 
             // Calculate spacing between category groups
             const categoryGroupKeys = Object.keys(categoryGroups).sort((a, b) => {
-                const parentA = data.nodes.find(n => n.level === 2 && n.name === a);
-                const parentB = data.nodes.find(n => n.level === 2 && n.name === b);
+                const parentA = data.nodes.find(n => n.level === 2 && n.name === a.toUpperCase());
+                const parentB = data.nodes.find(n => n.level === 2 && n.name === b.toUpperCase());
                 return (parentA?.sortedIndex || 0) - (parentB?.sortedIndex || 0);
             });
 
@@ -1346,13 +1418,13 @@ class ChartRenderer {
                             return parentAIndex - parentBIndex;
                         }
 
-                        // Within the same parent category, sort by amount (descending)
-                        return (b.totalAmount || 0) - (a.totalAmount || 0);
+                        // Within the same parent category, sort by absolute amount (descending)
+                        return Math.abs(b.totalAmount || 0) - Math.abs(a.totalAmount || 0);
                     }
 
                     // For level 2 (categories), maintain amount-based sorting
                     if (a.level === 2 && b.level === 2) {
-                        return a.originalIndex - b.originalIndex;
+                        return (a.sortedIndex || 0) - (b.sortedIndex || 0);
                     }
 
                     // For level 1 (properties), maintain amount-based sorting
@@ -1389,10 +1461,10 @@ class ChartRenderer {
                     // Properties use property colors
                     const propertyIndex = d.propertyIndex !== undefined ? d.propertyIndex : propertyNodes.indexOf(d);
                     d.color = themeColors.properties[propertyIndex % themeColors.properties.length];
-                } else if (d.type === 'category') {
-                    // Categories use category colors
-                    const categoryIndex = d.categoryIndex !== undefined ? d.categoryIndex : categoryNodes.indexOf(d);
-                    d.color = themeColors.categories[categoryIndex % themeColors.categories.length];
+    } else if (d.type === 'category') {
+        // Categories use category colors based on sorted index for proper gradient application
+        const categoryIndex = d.sortedIndex !== undefined ? d.sortedIndex : (d.categoryIndex !== undefined ? d.categoryIndex : categoryNodes.indexOf(d));
+        d.color = themeColors.categories[categoryIndex % themeColors.categories.length];
                 } else if (d.type === 'subcategory') {
                     // Subcategories use parent category colors
                     const parentIndex = d.parentCategoryIndex !== undefined ? d.parentCategoryIndex : 0;
@@ -2218,7 +2290,10 @@ class ChartRenderer {
         if (this.selectedFlow.category) {
             content += `<br/>${this.selectedFlow.category}`;
         }
-        content += `<br/>${this.formatter.formatCurrency(this.selectedFlow.value)}`;
+        // Show negative values for expenses in tooltips
+        const displayValue = this.selectedFlow.flowType === 'dummy' ? this.selectedFlow.value : -Math.abs(this.selectedFlow.value);
+        const formattedValue = this.formatter.formatCurrency(Math.abs(displayValue));
+        content += `<br/>${displayValue < 0 ? '-' : ''}${formattedValue}`;
 
         // Position and show tooltip
         this.tooltip
@@ -2282,7 +2357,9 @@ class ChartRenderer {
         }
 
         if (totalValue > 0) {
-            content += `<br/>${this.formatter.formatCurrency(totalValue)}`;
+            // Show negative values for expenses in tooltips
+            const formattedValue = this.formatter.formatCurrency(Math.abs(-totalValue));
+            content += `<br/>-${formattedValue}`;
         }
 
 

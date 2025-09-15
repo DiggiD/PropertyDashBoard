@@ -43,9 +43,13 @@ class Storage {
                 // Core data tables
                 properties: '++id, name, created_date, user_id',
                 expenseCategories: '++id, name, user_id',
+                incomeCategories: '++id, name, user_id',
 
                 // Enhanced expense tracking with chronological indexing
-                expenses: '++id, property_id, category, subcategory, amount, expense_date, quarter, year, user_id, [property_id+expense_date], [property_id+quarter], [user_id+expense_date]',
+                expenses: '++id, property_id, category, subcategory, amount, expense_date, month, year, user_id, [property_id+expense_date], [property_id+month], [user_id+expense_date]',
+
+                // Income tracking for future income categories feature
+                incomes: '++id, property_id, category, subcategory, amount, income_date, month, year, user_id, [property_id+income_date], [property_id+month], [user_id+income_date]',
 
                 // User management for future multi-user features
                 users: '++id, username, email, last_sync, created_date',
@@ -164,14 +168,16 @@ class Storage {
 
             // Start transaction with all tables
             await this.db.transaction('rw', [
-                'properties', 'expenseCategories', 'expenses',
+                'properties', 'expenseCategories', 'incomeCategories', 'expenses', 'incomes',
                 'users', 'audit_log', 'metadata'
             ], async () => {
 
                 // Clear existing user-specific data
                 await this.db.properties.where('user_id').equals(userId).delete();
                 await this.db.expenseCategories.where('user_id').equals(userId).delete();
+                await this.db.incomeCategories.where('user_id').equals(userId).delete();
                 await this.db.expenses.where('user_id').equals(userId).delete();
+                await this.db.incomes.where('user_id').equals(userId).delete();
 
                 // Save properties with enhanced fields
                 if (data.properties && Array.isArray(data.properties)) {
@@ -181,13 +187,18 @@ class Storage {
                             name: property.name,
                             created_date: property.created_date || timestamp,
                             user_id: userId,
+                            monthlyData: property.monthlyData || {},
                             quarterlyData: property.quarterlyData || {},
                             categoryTrends: property.categoryTrends || {},
                         });
 
                         // Save expense data in separate table for better querying
-                        if (property.expenses) {
-                            await this.savePropertyExpenses(property, userId, timestamp);
+                        if (property.monthlyData) {
+                            await this.savePropertyMonthlyExpenses(property, userId, timestamp);
+                        } else if (property.quarterlyData) {
+                            await this.savePropertyQuarterlyExpenses(property, userId, timestamp);
+                        } else if (property.expenses) {
+                            await this.savePropertyFlatExpenses(property, userId, timestamp);
                         }
                     }
                 }
@@ -196,6 +207,16 @@ class Storage {
                 if (data.expenseCategories && Array.isArray(data.expenseCategories)) {
                     for (const category of data.expenseCategories) {
                         await this.db.expenseCategories.add({
+                            name: category,
+                            user_id: userId
+                        });
+                    }
+                }
+
+                // Save income categories for future feature
+                if (data.incomeCategories && Array.isArray(data.incomeCategories)) {
+                    for (const category of data.incomeCategories) {
+                        await this.db.incomeCategories.add({
                             name: category,
                             user_id: userId
                         });
@@ -243,19 +264,70 @@ class Storage {
     }
 
     /**
-     * Save property expenses to separate table for better chronological queries
+     * Save property monthly expenses to separate table for better chronological queries
      * @param {Object} property - Property object
      * @param {string} userId - User ID
      * @param {string} timestamp - Current timestamp
      */
-    async savePropertyExpenses(property, userId, timestamp) {
+    async savePropertyMonthlyExpenses(property, userId, timestamp) {
+        // Extract expenses from monthly data for chronological storage
+        if (property.monthlyData) {
+            for (const [monthKey, monthData] of Object.entries(property.monthlyData)) {
+                if (monthData.expenses) {
+                    // Parse month key (e.g., "Jan 2021" -> year: 2021, month: 1)
+                    const [monthName, yearStr] = monthKey.split(' ');
+                    const year = parseInt(yearStr);
+                    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                    const month = monthNames.indexOf(monthName) + 1;
+
+                    for (const [category, expenseValue] of Object.entries(monthData.expenses)) {
+                        if (typeof expenseValue === 'object' && expenseValue !== null) {
+                            // Hierarchical expenses (subcategories)
+                            for (const [subcategory, amount] of Object.entries(expenseValue)) {
+                                await this.db.expenses.add({
+                                    property_id: property.id,
+                                    category: category,
+                                    subcategory: subcategory,
+                                    amount: amount || 0,
+                                    expense_date: `${year}-${month.toString().padStart(2, '0')}-01`,
+                                    month: monthKey,
+                                    year: year,
+                                    user_id: userId,
+                                });
+                            }
+                        } else {
+                            // Flat expenses
+                            await this.db.expenses.add({
+                                property_id: property.id,
+                                category: category,
+                                subcategory: null,
+                                amount: expenseValue || 0,
+                                expense_date: `${year}-${month.toString().padStart(2, '0')}-01`,
+                                month: monthKey,
+                                year: year,
+                                user_id: userId,
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Save property quarterly expenses to separate table for better chronological queries
+     * @param {Object} property - Property object
+     * @param {string} userId - User ID
+     * @param {string} timestamp - Current timestamp
+     */
+    async savePropertyQuarterlyExpenses(property, userId, timestamp) {
         // Extract expenses from quarterly data for chronological storage
         if (property.quarterlyData) {
             for (const [quarter, quarterData] of Object.entries(property.quarterlyData)) {
                 if (quarterData.expenses) {
-                    for (const [category, expenseValue] of Object.entries(quarterData.expenses)) {
-                        const year = quarter.split('_')[1] || new Date().getFullYear();
+                    const year = quarter.split('_')[1] || new Date().getFullYear();
 
+                    for (const [category, expenseValue] of Object.entries(quarterData.expenses)) {
                         if (typeof expenseValue === 'object' && expenseValue !== null) {
                             // Hierarchical expenses (subcategories)
                             for (const [subcategory, amount] of Object.entries(expenseValue)) {
@@ -290,6 +362,62 @@ class Storage {
     }
 
     /**
+     * Save property flat expenses to separate table
+     * @param {Object} property - Property object
+     * @param {string} userId - User ID
+     * @param {string} timestamp - Current timestamp
+     */
+    async savePropertyFlatExpenses(property, userId, timestamp) {
+        // Save flat expenses as current month data
+        if (property.expenses) {
+            const currentDate = new Date();
+            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const monthKey = `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
+
+            for (const [category, expenseValue] of Object.entries(property.expenses)) {
+                if (typeof expenseValue === 'object' && expenseValue !== null) {
+                    // Hierarchical expenses (subcategories)
+                    for (const [subcategory, amount] of Object.entries(expenseValue)) {
+                        await this.db.expenses.add({
+                            property_id: property.id,
+                            category: category,
+                            subcategory: subcategory,
+                            amount: amount || 0,
+                            expense_date: currentDate.toISOString().split('T')[0],
+                            month: monthKey,
+                            year: currentDate.getFullYear(),
+                            user_id: userId,
+                        });
+                    }
+                } else {
+                    // Flat expenses
+                    await this.db.expenses.add({
+                        property_id: property.id,
+                        category: category,
+                        subcategory: null,
+                        amount: expenseValue || 0,
+                        expense_date: currentDate.toISOString().split('T')[0],
+                        month: monthKey,
+                        year: currentDate.getFullYear(),
+                        user_id: userId,
+                    });
+                }
+            }
+        }
+    }
+
+    /**
+     * Save property expenses to separate table for better chronological queries (legacy method)
+     * @param {Object} property - Property object
+     * @param {string} userId - User ID
+     * @param {string} timestamp - Current timestamp
+     */
+    async savePropertyExpenses(property, userId, timestamp) {
+        // Legacy method - delegate to quarterly version
+        await this.savePropertyQuarterlyExpenses(property, userId, timestamp);
+    }
+
+    /**
      * Convert quarter string to date
      * @param {string} quarter - Quarter string (e.g., "Q1_2024")
      * @returns {string} ISO date string
@@ -313,16 +441,18 @@ class Storage {
 
         try {
             // Load all data for the user
-            const [properties, categories, expenses, metadata] = await Promise.all([
+            const [properties, categories, incomeCategories, expenses, metadata] = await Promise.all([
                 this.db.properties.where('user_id').equals(userId).toArray(),
                 this.db.expenseCategories.where('user_id').equals(userId).toArray(),
+                this.db.incomeCategories.where('user_id').equals(userId).toArray(),
                 this.db.expenses.where('user_id').equals(userId).toArray(),
                 this.db.metadata.toArray(),
             ]);
 
             console.log('[STORAGE] Enhanced database query results:', {
                 properties: properties.length,
-                categories: categories.length,
+                expenseCategories: categories.length,
+                incomeCategories: incomeCategories.length,
                 expenses: expenses.length,
                 metadata: metadata.length
             });
@@ -333,7 +463,8 @@ class Storage {
                 return null;
             }
 
-            // Reconstruct quarterly data from expenses table
+            // Reconstruct monthly and quarterly data from expenses table
+            const monthlyData = this.reconstructMonthlyData(expenses);
             const quarterlyData = this.reconstructQuarterlyData(expenses);
 
             const data = {
@@ -341,11 +472,13 @@ class Storage {
                     id: p.id,
                     name: p.name,
                     created_date: p.created_date,
+                    monthlyData: monthlyData[p.id] || {},
                     quarterlyData: quarterlyData[p.id] || {},
                     categoryTrends: p.categoryTrends || {},
-                    expenses: this.calculateExpensesFromQuarterly(quarterlyData[p.id]),
+                    expenses: this.calculateExpensesFromMonthly(monthlyData[p.id]) || this.calculateExpensesFromQuarterly(quarterlyData[p.id]),
                 })),
                 expenseCategories: categories.map(c => c.name),
+                incomeCategories: incomeCategories.map(c => c.name),
             };
 
             // Load metadata
@@ -361,14 +494,80 @@ class Storage {
 
             console.log('[STORAGE] Enhanced data loaded from database successfully:', {
                 properties: data.properties.length,
-                categories: data.expenseCategories.length,
-                totalExpenses: expenses.length
+                expenseCategories: data.expenseCategories.length,
+                incomeCategories: data.incomeCategories?.length || 0,
+                totalExpenses: expenses.length,
+                hasMonthlyData: data.properties.some(p => p.monthlyData && Object.keys(p.monthlyData).length > 0)
             });
             return data;
         } catch (error) {
             console.error('[STORAGE] Failed to load from database:', error);
+
+            // Check if this is a schema mismatch error
+            if (error.name === 'NotFoundError' || error.message.includes('object stores was not found')) {
+                console.warn('[STORAGE] Database schema mismatch detected. Clearing database to recreate with correct schema...');
+
+                try {
+                    // Clear the database and reinitialize
+                    await this.db.delete();
+                    this.db = null;
+
+                    // Reinitialize with correct schema
+                    await this.initDatabase();
+                    console.log('[STORAGE] Database cleared and reinitialized successfully');
+                } catch (clearError) {
+                    console.error('[STORAGE] Failed to clear and reinitialize database:', clearError);
+                    this.db = null;
+                }
+            }
+
             return null;
         }
+    }
+
+    /**
+     * Reconstruct monthly data from expenses table
+     * @param {Array} expenses - Expenses from database
+     * @returns {Object} Reconstructed monthly data
+     */
+    reconstructMonthlyData(expenses) {
+        const monthlyData = {};
+
+        expenses.forEach(expense => {
+            const propertyId = expense.property_id;
+            const month = expense.month;
+
+            if (!month) {return;} // Skip if no month data
+
+            if (!monthlyData[propertyId]) {
+                monthlyData[propertyId] = {};
+            }
+
+            if (!monthlyData[propertyId][month]) {
+                monthlyData[propertyId][month] = {
+                    expenses: {},
+                    total: 0
+                };
+            }
+
+            const monthData = monthlyData[propertyId][month];
+
+            if (expense.subcategory) {
+                // Hierarchical expense
+                if (!monthData.expenses[expense.category]) {
+                    monthData.expenses[expense.category] = {};
+                }
+                monthData.expenses[expense.category][expense.subcategory] = expense.amount;
+            } else {
+                // Flat expense
+                monthData.expenses[expense.category] = expense.amount;
+            }
+
+            // Recalculate total
+            monthData.total = this.calculateMonthTotal(monthData.expenses);
+        });
+
+        return monthlyData;
     }
 
     /**
@@ -382,6 +581,8 @@ class Storage {
         expenses.forEach(expense => {
             const propertyId = expense.property_id;
             const quarter = expense.quarter;
+
+            if (!quarter) {return;} // Skip if no quarter data
 
             if (!quarterlyData[propertyId]) {
                 quarterlyData[propertyId] = {};
@@ -415,6 +616,26 @@ class Storage {
     }
 
     /**
+     * Calculate total for a month
+     * @param {Object} expenses - Month expenses
+     * @returns {number} Total amount
+     */
+    calculateMonthTotal(expenses) {
+        let total = 0;
+
+        for (const [category, value] of Object.entries(expenses)) {
+            if (typeof value === 'object' && value !== null) {
+                // Sum hierarchical values
+                total += Object.values(value).reduce((sum, val) => sum + (val || 0), 0);
+            } else {
+                total += value || 0;
+            }
+        }
+
+        return total;
+    }
+
+    /**
      * Calculate total for a quarter
      * @param {Object} expenses - Quarter expenses
      * @returns {number} Total amount
@@ -432,6 +653,27 @@ class Storage {
         }
 
         return total;
+    }
+
+    /**
+     * Calculate expenses from monthly data
+     * @param {Object} monthlyData - Monthly data object
+     * @returns {Object} Expenses object
+     */
+    calculateExpensesFromMonthly(monthlyData) {
+        const expenses = {};
+
+        if (!monthlyData) {return expenses;}
+
+        // Get the most recent month
+        const months = Object.keys(monthlyData).sort();
+        const latestMonth = months[months.length - 1];
+
+        if (latestMonth && monthlyData[latestMonth]?.expenses) {
+            Object.assign(expenses, monthlyData[latestMonth].expenses);
+        }
+
+        return expenses;
     }
 
     /**

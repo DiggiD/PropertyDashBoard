@@ -822,8 +822,8 @@ class PropertiesManager {
         try {
             const currentData = this.dataManager.getCurrentPeriodData(property);
             const categoryCount = Object.keys(property.expenses || {}).length;
-            const totalValue = currentData && currentData.total !== undefined ? currentData.total : 0;
-            const formattedTotal = this.uiManager.formatter ? this.uiManager.formatter.formatNumber(totalValue) : totalValue;
+                    const totalValue = currentData && currentData.total !== undefined ? currentData.total : 0;
+                    const formattedTotal = this.uiManager.formatter ? this.uiManager.formatter.formatNumber(totalValue) : totalValue;
 
             return `
                 <div class="property-item" data-property-id="${property.id || ''}">
@@ -886,7 +886,7 @@ class PropertiesManager {
                     <div class="property-title">
                         <h3>${property.name}</h3>
                         <div class="property-summary">
-                            <span class="summary-item">Total: ₹${this.uiManager.formatter.formatNumber(currentData.total)}</span>
+                            <span class="summary-item">Total: ₹${this.uiManager.formatter.formatCurrency(currentData.total)}</span>
                             <span class="summary-item">${categories.length} categories</span>
                         </div>
                     </div>
@@ -1261,7 +1261,7 @@ class PropertiesManager {
         input.className = 'expense-input';
         input.value = currentValue;
         input.step = '0.01';
-        input.min = '0';
+        // Allow both positive and negative values (no min constraint)
         input.dataset.category = category;
         if (subcategory) {
             input.dataset.subcategory = subcategory;
@@ -1331,6 +1331,7 @@ class PropertiesManager {
 
     /**
      * Get current expense value
+     * Returns the display value (negative for expenses, positive for income)
      */
     getCurrentExpenseValue(category, subcategory) {
         const property = this.dataManager.getPropertyById(this.currentPropertyId);
@@ -1340,7 +1341,10 @@ class PropertiesManager {
             // For subcategories, get the value from expenses object first
             const categoryValue = property.expenses[category];
             if (typeof categoryValue === 'object' && categoryValue !== null && categoryValue[subcategory] !== undefined) {
-                return categoryValue[subcategory];
+                const rawValue = categoryValue[subcategory];
+                // For display, show negative values as negative (expenses) and positive as positive (income)
+                // The stored value is already in the correct format, so return as-is for display
+                return rawValue;
             }
 
             // Fallback to quarterly data
@@ -1352,7 +1356,9 @@ class PropertiesManager {
                     if (quarterData && quarterData.expenses && quarterData.expenses[category]) {
                         const categoryData = quarterData.expenses[category];
                         if (typeof categoryData === 'object' && categoryData !== null && categoryData[subcategory] !== undefined) {
-                            return categoryData[subcategory];
+                            const rawValue = categoryData[subcategory];
+                            // Return stored value as-is for display
+                            return rawValue;
                         }
                     }
                 }
@@ -1362,18 +1368,41 @@ class PropertiesManager {
         }
 
         const value = property.expenses[category];
-        return typeof value === 'object' ? this.sumObjectValues(value) : (value || 0);
+        const rawValue = typeof value === 'object' ? this.sumObjectValues(value) : (value || 0);
+
+        // Return the stored value as-is for display
+        // Expense categories will show as negative, income categories as positive
+        return rawValue;
     }
 
     /**
      * Save expense value
+     * Note: Expense categories store negative values, income categories store positive values
+     * User input is preserved - positive values stay positive, negative values stay negative
      */
     saveExpenseValue(category, subcategory, value) {
         const property = this.dataManager.getPropertyById(this.currentPropertyId);
         if (!property) return;
 
+        // Determine if this is an expense or income category
+        const isExpenseCategory = this.isExpenseCategory(category);
+        const isIncomeCategory = this.isIncomeCategory(category);
+
         // Create snapshot for undo
-        this.historyManager.createSnapshot(`Updated ${category}${subcategory ? ` - ${subcategory}` : ''} expense`, '', false);
+        const categoryType = isIncomeCategory ? 'income' : 'expense';
+        this.historyManager.createSnapshot(`Updated ${category}${subcategory ? ` - ${subcategory}` : ''} ${categoryType}`, '', false);
+
+        // Preserve user input: positive for income, negative for expenses
+        let finalValue = value;
+
+        if (isExpenseCategory && value > 0) {
+            // Convert positive input to negative for expense categories
+            finalValue = -value;
+        } else if (isIncomeCategory && value < 0) {
+            // Convert negative input to positive for income categories
+            finalValue = Math.abs(value);
+        }
+        // For other cases, preserve the original value
 
         // Update both expenses object and quarterly data
         if (subcategory) {
@@ -1381,16 +1410,16 @@ class PropertiesManager {
             if (typeof property.expenses[category] !== 'object' || property.expenses[category] === null) {
                 property.expenses[category] = {};
             }
-            property.expenses[category][subcategory] = value;
+            property.expenses[category][subcategory] = finalValue;
 
             // Update quarterly data as well
-            this.updateQuarterlyData(property, category, { [subcategory]: value });
+            this.updateQuarterlyData(property, category, { [subcategory]: finalValue });
         } else {
             // Update category value
-            property.expenses[category] = value;
+            property.expenses[category] = finalValue;
 
             // Update quarterly data as well
-            this.updateQuarterlyData(property, category, value);
+            this.updateQuarterlyData(property, category, finalValue);
         }
 
         // Save to storage
@@ -1409,7 +1438,8 @@ class PropertiesManager {
         }
 
         // Show success message
-        this.uiManager.showToast(`Expense updated successfully`, 'success');
+        const categoryTypeLabel = isIncomeCategory ? 'Income' : 'Expense';
+        this.uiManager.showToast(`${categoryTypeLabel} updated successfully`, 'success');
     }
 
     /**
@@ -1991,7 +2021,7 @@ class PropertiesManager {
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="new-subcategory-value-${timestamp}">Initial Value</label>
-                    <input type="number" id="new-subcategory-value-${timestamp}" class="form-control" placeholder="0.00" step="0.01" min="0" value="0">
+                    <input type="number" id="new-subcategory-value-${timestamp}" class="form-control" placeholder="0.00" step="0.01" value="0">
                 </div>
             </div>
             <div class="modal-footer">
@@ -2693,6 +2723,31 @@ class PropertiesManager {
         } catch (error) {
             console.error('[PROPERTIES] Error refreshing charts:', error);
         }
+    }
+
+    /**
+     * Check if a category is an expense category
+     * @param {string} category - Category name to check
+     * @returns {boolean} True if expense category, false otherwise
+     */
+    isExpenseCategory(category) {
+        // For now, all categories are treated as expense categories
+        // In the future, this will check against incomeCategories array
+        const expenseCategories = this.dataManager.getExpenseCategories();
+        return expenseCategories.includes(category);
+    }
+
+    /**
+     * Check if a category is an income category
+     * @param {string} category - Category name to check
+     * @returns {boolean} True if income category, false otherwise
+     */
+    isIncomeCategory(category) {
+        // For now, no categories are income categories
+        // In the future, this will check against incomeCategories array
+        // const incomeCategories = this.dataManager.getIncomeCategories();
+        // return incomeCategories && incomeCategories.includes(category);
+        return false;
     }
 
     /**

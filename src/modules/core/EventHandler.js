@@ -156,9 +156,9 @@ class EventHandler {
 
             this.uiManager.updateChartMetrics(metrics);
 
-            // Trigger chart render (this will be handled by ChartRenderer when implemented)
-            if (window.analyticsDashboard && window.analyticsDashboard.renderAnalyticsChart) {
-                window.analyticsDashboard.renderAnalyticsChart();
+            // Trigger chart render using chart renderer
+            if (window.chartRenderer && typeof window.chartRenderer.renderAnalyticsChart === 'function') {
+                await window.chartRenderer.renderAnalyticsChart();
             }
 
             this.uiManager.hideLoadingState();
@@ -175,9 +175,9 @@ class EventHandler {
         try {
             this.uiManager.showLoadingState('Loading overview...');
 
-            // Trigger overview render (this will be handled by ChartRenderer when implemented)
-            if (window.expenseDashboard && window.expenseDashboard.renderOverviewSankey) {
-                window.expenseDashboard.renderOverviewSankey();
+            // Trigger overview render using chart renderer
+            if (window.chartRenderer && typeof window.chartRenderer.renderOverviewSankey === 'function') {
+                await window.chartRenderer.renderOverviewSankey();
             }
 
             this.uiManager.hideLoadingState();
@@ -288,9 +288,8 @@ class EventHandler {
      * Handle history open
      */
     handleHistoryOpen() {
-        // This will be implemented when we have a history UI component
         console.log('[EVENT] History button clicked');
-        this.uiManager.showToast('History feature coming soon', 'info');
+        this.historyManager.openHistoryManager();
     }
 
     /**

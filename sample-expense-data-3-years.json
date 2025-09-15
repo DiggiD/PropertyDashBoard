@@ -4,1541 +4,2452 @@
       {
         "id": 1,
         "name": "Downtown Office Complex",
-        "quarterlyData": {
-          "Q1 2021": {
-            "total": 45000,
+        "monthlyData": {
+          "Jan 2021": {
+            "total": -15000,
             "expenses": {
-              "Rent": 15000,
+              "Rent": -5000,
               "Utilities": {
-                "Electricity": 2800,
-                "Water": 1200,
-                "Gas": 800
+                "Electricity": -933,
+                "Water": -400,
+                "Gas": -267
               },
               "Maintenance": {
-                "Cleaning": 2400,
-                "Repairs": 3800,
-                "Landscaping": 900
+                "Cleaning": -800,
+                "Repairs": -1333,
+                "Landscaping": -300
               },
-              "Insurance": 2500,
-              "Taxes": 3500,
-              "Security": 1800,
-              "Parking": 2500,
-              "Management": 2000,
-              "Legal": 1500
+              "Insurance": -833,
+              "Taxes": -1167,
+              "Security": -600,
+              "Parking": -833,
+              "Management": -667,
+              "Legal": -500
             }
           },
-          "Q2 2021": {
-            "total": 46500,
+          "Feb 2021": {
+            "total": -15000,
             "expenses": {
-              "Rent": 15000,
+              "Rent": -5000,
               "Utilities": {
-                "Electricity": 3000,
-                "Water": 1300,
-                "Gas": 850
+                "Electricity": -933,
+                "Water": -400,
+                "Gas": -267
               },
               "Maintenance": {
-                "Cleaning": 2500,
-                "Repairs": 4000,
-                "Landscaping": 950
+                "Cleaning": -800,
+                "Repairs": -1333,
+                "Landscaping": -300
               },
-              "Insurance": 2500,
-              "Taxes": 3500,
-              "Security": 1850,
-              "Parking": 2500,
-              "Management": 2100,
-              "Legal": 1550
+              "Insurance": -833,
+              "Taxes": -1167,
+              "Security": -600,
+              "Parking": -833,
+              "Management": -667,
+              "Legal": -500
             }
           },
-          "Q3 2021": {
-            "total": 48000,
+          "Mar 2021": {
+            "total": -15000,
             "expenses": {
-              "Rent": 15000,
+              "Rent": -5000,
               "Utilities": {
-                "Electricity": 3200,
-                "Water": 1400,
-                "Gas": 900
+                "Electricity": -933,
+                "Water": -400,
+                "Gas": -267
               },
               "Maintenance": {
-                "Cleaning": 2600,
-                "Repairs": 4200,
-                "Landscaping": 1000
+                "Cleaning": -800,
+                "Repairs": -1333,
+                "Landscaping": -300
               },
-              "Insurance": 2500,
-              "Taxes": 3500,
-              "Security": 1900,
-              "Parking": 2500,
-              "Management": 2200,
-              "Legal": 1600
+              "Insurance": -833,
+              "Taxes": -1167,
+              "Security": -600,
+              "Parking": -833,
+              "Management": -667,
+              "Legal": -500
             }
           },
-          "Q4 2021": {
-            "total": 49500,
+          "Apr 2021": {
+            "total": -15500,
             "expenses": {
-              "Rent": 15000,
+              "Rent": -5000,
               "Utilities": {
-                "Electricity": 3400,
-                "Water": 1500,
-                "Gas": 950
+                "Electricity": -1000,
+                "Water": -433,
+                "Gas": -283
               },
               "Maintenance": {
-                "Cleaning": 2700,
-                "Repairs": 4400,
-                "Landscaping": 1050
+                "Cleaning": -833,
+                "Repairs": -1333,
+                "Landscaping": -317
               },
-              "Insurance": 2500,
-              "Taxes": 3500,
-              "Security": 1950,
-              "Parking": 2500,
-              "Management": 2300,
-              "Legal": 1650
+              "Insurance": -833,
+              "Taxes": -1167,
+              "Security": -617,
+              "Parking": -833,
+              "Management": -700,
+              "Legal": -517
             }
           },
-          "Q1 2022": {
-            "total": 47200,
+          "May 2021": {
+            "total": -15500,
             "expenses": {
-              "Rent": 15500,
+              "Rent": -5000,
               "Utilities": {
-                "Electricity": 3100,
-                "Water": 1350,
-                "Gas": 850
+                "Electricity": -1000,
+                "Water": -433,
+                "Gas": -283
               },
               "Maintenance": {
-                "Cleaning": 2550,
-                "Repairs": 3950,
-                "Landscaping": 950
+                "Cleaning": -833,
+                "Repairs": -1333,
+                "Landscaping": -317
               },
-              "Insurance": 2600,
-              "Taxes": 3600,
-              "Security": 1880,
-              "Parking": 2600,
-              "Management": 2150,
-              "Legal": 1580
+              "Insurance": -833,
+              "Taxes": -1167,
+              "Security": -617,
+              "Parking": -833,
+              "Management": -700,
+              "Legal": -517
             }
           },
-          "Q2 2022": {
-            "total": 48800,
+          "Jun 2021": {
+            "total": -15500,
             "expenses": {
-              "Rent": 15500,
+              "Rent": -5000,
               "Utilities": {
-                "Electricity": 3300,
-                "Water": 1450,
-                "Gas": 900
+                "Electricity": -1000,
+                "Water": -433,
+                "Gas": -283
               },
               "Maintenance": {
-                "Cleaning": 2650,
-                "Repairs": 4150,
-                "Landscaping": 1000
+                "Cleaning": -833,
+                "Repairs": -1333,
+                "Landscaping": -317
               },
-              "Insurance": 2600,
-              "Taxes": 3600,
-              "Security": 1930,
-              "Parking": 2600,
-              "Management": 2250,
-              "Legal": 1630
+              "Insurance": -833,
+              "Taxes": -1167,
+              "Security": -617,
+              "Parking": -833,
+              "Management": -700,
+              "Legal": -517
             }
           },
-          "Q3 2022": {
-            "total": 50400,
+          "Jul 2021": {
+            "total": -16000,
             "expenses": {
-              "Rent": 15500,
+              "Rent": -5000,
               "Utilities": {
-                "Electricity": 3500,
-                "Water": 1550,
-                "Gas": 950
+                "Electricity": -1067,
+                "Water": -467,
+                "Gas": -300
               },
               "Maintenance": {
-                "Cleaning": 2750,
-                "Repairs": 4350,
-                "Landscaping": 1050
+                "Cleaning": -867,
+                "Repairs": -1333,
+                "Landscaping": -333
               },
-              "Insurance": 2600,
-              "Taxes": 3600,
-              "Security": 1980,
-              "Parking": 2600,
-              "Management": 2350,
-              "Legal": 1680
+              "Insurance": -833,
+              "Taxes": -1167,
+              "Security": -633,
+              "Parking": -833,
+              "Management": -733,
+              "Legal": -533
             }
           },
-          "Q4 2022": {
-            "total": 52000,
+          "Aug 2021": {
+            "total": -16000,
             "expenses": {
-              "Rent": 15500,
+              "Rent": -5000,
               "Utilities": {
-                "Electricity": 3700,
-                "Water": 1650,
-                "Gas": 1000
+                "Electricity": -1067,
+                "Water": -467,
+                "Gas": -300
               },
               "Maintenance": {
-                "Cleaning": 2850,
-                "Repairs": 4550,
-                "Landscaping": 1100
+                "Cleaning": -867,
+                "Repairs": -1333,
+                "Landscaping": -333
               },
-              "Insurance": 2600,
-              "Taxes": 3600,
-              "Security": 2030,
-              "Parking": 2600,
-              "Management": 2450,
-              "Legal": 1730
+              "Insurance": -833,
+              "Taxes": -1167,
+              "Security": -633,
+              "Parking": -833,
+              "Management": -733,
+              "Legal": -533
             }
           },
-          "Q1 2023": {
-            "total": 49800,
+          "Sep 2021": {
+            "total": -16000,
             "expenses": {
-              "Rent": 16000,
+              "Rent": -5000,
               "Utilities": {
-                "Electricity": 3400,
-                "Water": 1500,
-                "Gas": 900
+                "Electricity": -1067,
+                "Water": -467,
+                "Gas": -300
               },
               "Maintenance": {
-                "Cleaning": 2700,
-                "Repairs": 4100,
-                "Landscaping": 1000
+                "Cleaning": -867,
+                "Repairs": -1333,
+                "Landscaping": -333
               },
-              "Insurance": 2700,
-              "Taxes": 3700,
-              "Security": 1960,
-              "Parking": 2700,
-              "Management": 2300,
-              "Legal": 1660
+              "Insurance": -833,
+              "Taxes": -1167,
+              "Security": -633,
+              "Parking": -833,
+              "Management": -733,
+              "Legal": -533
             }
           },
-          "Q2 2023": {
-            "total": 51500,
+          "Oct 2021": {
+            "total": -16500,
             "expenses": {
-              "Rent": 16000,
+              "Rent": -5000,
               "Utilities": {
-                "Electricity": 3600,
-                "Water": 1600,
-                "Gas": 950
+                "Electricity": -1133,
+                "Water": -500,
+                "Gas": -317
               },
               "Maintenance": {
-                "Cleaning": 2800,
-                "Repairs": 4300,
-                "Landscaping": 1050
+                "Cleaning": -900,
+                "Repairs": -1333,
+                "Landscaping": -350
               },
-              "Insurance": 2700,
-              "Taxes": 3700,
-              "Security": 2010,
-              "Parking": 2700,
-              "Management": 2400,
-              "Legal": 1710
+              "Insurance": -833,
+              "Taxes": -1167,
+              "Security": -650,
+              "Parking": -833,
+              "Management": -767,
+              "Legal": -550
             }
           },
-          "Q3 2023": {
-            "total": 53200,
+          "Nov 2021": {
+            "total": -16500,
             "expenses": {
-              "Rent": 16000,
+              "Rent": -5000,
               "Utilities": {
-                "Electricity": 3800,
-                "Water": 1700,
-                "Gas": 1000
+                "Electricity": -1133,
+                "Water": -500,
+                "Gas": -317
               },
               "Maintenance": {
-                "Cleaning": 2900,
-                "Repairs": 4500,
-                "Landscaping": 1100
+                "Cleaning": -900,
+                "Repairs": -1333,
+                "Landscaping": -350
               },
-              "Insurance": 2700,
-              "Taxes": 3700,
-              "Security": 2060,
-              "Parking": 2700,
-              "Management": 2500,
-              "Legal": 1760
+              "Insurance": -833,
+              "Taxes": -1167,
+              "Security": -650,
+              "Parking": -833,
+              "Management": -767,
+              "Legal": -550
             }
           },
-          "Q4 2023": {
-            "total": 54900,
+          "Dec 2021": {
+            "total": -16500,
             "expenses": {
-              "Rent": 16000,
+              "Rent": -5000,
               "Utilities": {
-                "Electricity": 4000,
-                "Water": 1800,
-                "Gas": 1050
+                "Electricity": -1133,
+                "Water": -500,
+                "Gas": -317
               },
               "Maintenance": {
-                "Cleaning": 3000,
-                "Repairs": 4700,
-                "Landscaping": 1150
+                "Cleaning": -900,
+                "Repairs": -1333,
+                "Landscaping": -350
               },
-              "Insurance": 2700,
-              "Taxes": 3700,
-              "Security": 2110,
-              "Parking": 2700,
-              "Management": 2600,
-              "Legal": 1810
+              "Insurance": -833,
+              "Taxes": -1167,
+              "Security": -650,
+              "Parking": -833,
+              "Management": -767,
+              "Legal": -550
+            }
+          },
+          "Jan 2022": {
+            "total": -15733,
+            "expenses": {
+              "Rent": -5167,
+              "Utilities": {
+                "Electricity": -1033,
+                "Water": -450,
+                "Gas": -283
+              },
+              "Maintenance": {
+                "Cleaning": -850,
+                "Repairs": -1317,
+                "Landscaping": -317
+              },
+              "Insurance": -867,
+              "Taxes": -1200,
+              "Security": -613,
+              "Parking": -867,
+              "Management": -717,
+              "Legal": -527
+            }
+          },
+          "Feb 2022": {
+            "total": -15733,
+            "expenses": {
+              "Rent": -5167,
+              "Utilities": {
+                "Electricity": -1033,
+                "Water": -450,
+                "Gas": -283
+              },
+              "Maintenance": {
+                "Cleaning": -850,
+                "Repairs": -1317,
+                "Landscaping": -317
+              },
+              "Insurance": -867,
+              "Taxes": -1200,
+              "Security": -613,
+              "Parking": -867,
+              "Management": -717,
+              "Legal": -527
+            }
+          },
+          "Mar 2022": {
+            "total": -15733,
+            "expenses": {
+              "Rent": -5167,
+              "Utilities": {
+                "Electricity": -1033,
+                "Water": -450,
+                "Gas": -283
+              },
+              "Maintenance": {
+                "Cleaning": -850,
+                "Repairs": -1317,
+                "Landscaping": -317
+              },
+              "Insurance": -867,
+              "Taxes": -1200,
+              "Security": -613,
+              "Parking": -867,
+              "Management": -717,
+              "Legal": -527
+            }
+          },
+          "Apr 2022": {
+            "total": -16267,
+            "expenses": {
+              "Rent": -5167,
+              "Utilities": {
+                "Electricity": -1100,
+                "Water": -483,
+                "Gas": -300
+              },
+              "Maintenance": {
+                "Cleaning": -883,
+                "Repairs": -1367,
+                "Landscaping": -333
+              },
+              "Insurance": -867,
+              "Taxes": -1200,
+              "Security": -633,
+              "Parking": -867,
+              "Management": -750,
+              "Legal": -543
+            }
+          },
+          "May 2022": {
+            "total": -16267,
+            "expenses": {
+              "Rent": -5167,
+              "Utilities": {
+                "Electricity": -1100,
+                "Water": -483,
+                "Gas": -300
+              },
+              "Maintenance": {
+                "Cleaning": -883,
+                "Repairs": -1367,
+                "Landscaping": -333
+              },
+              "Insurance": -867,
+              "Taxes": -1200,
+              "Security": -633,
+              "Parking": -867,
+              "Management": -750,
+              "Legal": -543
+            }
+          },
+          "Jun 2022": {
+            "total": -16267,
+            "expenses": {
+              "Rent": -5167,
+              "Utilities": {
+                "Electricity": -1100,
+                "Water": -483,
+                "Gas": -300
+              },
+              "Maintenance": {
+                "Cleaning": -883,
+                "Repairs": -1367,
+                "Landscaping": -333
+              },
+              "Insurance": -867,
+              "Taxes": -1200,
+              "Security": -633,
+              "Parking": -867,
+              "Management": -750,
+              "Legal": -543
+            }
+          },
+          "Jul 2022": {
+            "total": -16800,
+            "expenses": {
+              "Rent": -5167,
+              "Utilities": {
+                "Electricity": -1167,
+                "Water": -517,
+                "Gas": -317
+              },
+              "Maintenance": {
+                "Cleaning": -917,
+                "Repairs": -1417,
+                "Landscaping": -350
+              },
+              "Insurance": -867,
+              "Taxes": -1200,
+              "Security": -653,
+              "Parking": -867,
+              "Management": -783,
+              "Legal": -560
+            }
+          },
+          "Aug 2022": {
+            "total": -16800,
+            "expenses": {
+              "Rent": -5167,
+              "Utilities": {
+                "Electricity": -1167,
+                "Water": -517,
+                "Gas": -317
+              },
+              "Maintenance": {
+                "Cleaning": -917,
+                "Repairs": -1417,
+                "Landscaping": -350
+              },
+              "Insurance": -867,
+              "Taxes": -1200,
+              "Security": -653,
+              "Parking": -867,
+              "Management": -783,
+              "Legal": -560
+            }
+          },
+          "Sep 2022": {
+            "total": -16800,
+            "expenses": {
+              "Rent": -5167,
+              "Utilities": {
+                "Electricity": -1167,
+                "Water": -517,
+                "Gas": -317
+              },
+              "Maintenance": {
+                "Cleaning": -917,
+                "Repairs": -1417,
+                "Landscaping": -350
+              },
+              "Insurance": -867,
+              "Taxes": -1200,
+              "Security": -653,
+              "Parking": -867,
+              "Management": -783,
+              "Legal": -560
+            }
+          },
+          "Oct 2022": {
+            "total": -17333,
+            "expenses": {
+              "Rent": -5167,
+              "Utilities": {
+                "Electricity": -1233,
+                "Water": -550,
+                "Gas": -333
+              },
+              "Maintenance": {
+                "Cleaning": -950,
+                "Repairs": -1467,
+                "Landscaping": -367
+              },
+              "Insurance": -867,
+              "Taxes": -1200,
+              "Security": -673,
+              "Parking": -867,
+              "Management": -817,
+              "Legal": -577
+            }
+          },
+          "Nov 2022": {
+            "total": -17333,
+            "expenses": {
+              "Rent": -5167,
+              "Utilities": {
+                "Electricity": -1233,
+                "Water": -550,
+                "Gas": -333
+              },
+              "Maintenance": {
+                "Cleaning": -950,
+                "Repairs": -1467,
+                "Landscaping": -367
+              },
+              "Insurance": -867,
+              "Taxes": -1200,
+              "Security": -673,
+              "Parking": -867,
+              "Management": -817,
+              "Legal": -577
+            }
+          },
+          "Dec 2022": {
+            "total": -17333,
+            "expenses": {
+              "Rent": -5167,
+              "Utilities": {
+                "Electricity": -1233,
+                "Water": -550,
+                "Gas": -333
+              },
+              "Maintenance": {
+                "Cleaning": -950,
+                "Repairs": -1467,
+                "Landscaping": -367
+              },
+              "Insurance": -867,
+              "Taxes": -1200,
+              "Security": -673,
+              "Parking": -867,
+              "Management": -817,
+              "Legal": -577
+            }
+          },
+          "Jan 2023": {
+            "total": -16600,
+            "expenses": {
+              "Rent": -5333,
+              "Utilities": {
+                "Electricity": -1133,
+                "Water": -500,
+                "Gas": -300
+              },
+              "Maintenance": {
+                "Cleaning": -900,
+                "Repairs": -1333,
+                "Landscaping": -333
+              },
+              "Insurance": -900,
+              "Taxes": -1233,
+              "Security": -653,
+              "Parking": -900,
+              "Management": -767,
+              "Legal": -553
+            }
+          },
+          "Feb 2023": {
+            "total": -16600,
+            "expenses": {
+              "Rent": -5333,
+              "Utilities": {
+                "Electricity": -1133,
+                "Water": -500,
+                "Gas": -300
+              },
+              "Maintenance": {
+                "Cleaning": -900,
+                "Repairs": -1333,
+                "Landscaping": -333
+              },
+              "Insurance": -900,
+              "Taxes": -1233,
+              "Security": -653,
+              "Parking": -900,
+              "Management": -767,
+              "Legal": -553
+            }
+          },
+          "Mar 2023": {
+            "total": -16600,
+            "expenses": {
+              "Rent": -5333,
+              "Utilities": {
+                "Electricity": -1133,
+                "Water": -500,
+                "Gas": -300
+              },
+              "Maintenance": {
+                "Cleaning": -900,
+                "Repairs": -1333,
+                "Landscaping": -333
+              },
+              "Insurance": -900,
+              "Taxes": -1233,
+              "Security": -653,
+              "Parking": -900,
+              "Management": -767,
+              "Legal": -553
+            }
+          },
+          "Apr 2023": {
+            "total": -17167,
+            "expenses": {
+              "Rent": -5333,
+              "Utilities": {
+                "Electricity": -1200,
+                "Water": -533,
+                "Gas": -317
+              },
+              "Maintenance": {
+                "Cleaning": -933,
+                "Repairs": -1367,
+                "Landscaping": -350
+              },
+              "Insurance": -900,
+              "Taxes": -1233,
+              "Security": -670,
+              "Parking": -900,
+              "Management": -800,
+              "Legal": -570
+            }
+          },
+          "May 2023": {
+            "total": -17167,
+            "expenses": {
+              "Rent": -5333,
+              "Utilities": {
+                "Electricity": -1200,
+                "Water": -533,
+                "Gas": -317
+              },
+              "Maintenance": {
+                "Cleaning": -933,
+                "Repairs": -1367,
+                "Landscaping": -350
+              },
+              "Insurance": -900,
+              "Taxes": -1233,
+              "Security": -670,
+              "Parking": -900,
+              "Management": -800,
+              "Legal": -570
+            }
+          },
+          "Jun 2023": {
+            "total": -17167,
+            "expenses": {
+              "Rent": -5333,
+              "Utilities": {
+                "Electricity": -1200,
+                "Water": -533,
+                "Gas": -317
+              },
+              "Maintenance": {
+                "Cleaning": -933,
+                "Repairs": -1367,
+                "Landscaping": -350
+              },
+              "Insurance": -900,
+              "Taxes": -1233,
+              "Security": -670,
+              "Parking": -900,
+              "Management": -800,
+              "Legal": -570
+            }
+          },
+          "Jul 2023": {
+            "total": -17733,
+            "expenses": {
+              "Rent": -5333,
+              "Utilities": {
+                "Electricity": -1267,
+                "Water": -567,
+                "Gas": -333
+              },
+              "Maintenance": {
+                "Cleaning": -967,
+                "Repairs": -1400,
+                "Landscaping": -367
+              },
+              "Insurance": -900,
+              "Taxes": -1233,
+              "Security": -687,
+              "Parking": -900,
+              "Management": -833,
+              "Legal": -587
+            }
+          },
+          "Aug 2023": {
+            "total": -17733,
+            "expenses": {
+              "Rent": -5333,
+              "Utilities": {
+                "Electricity": -1267,
+                "Water": -567,
+                "Gas": -333
+              },
+              "Maintenance": {
+                "Cleaning": -967,
+                "Repairs": -1400,
+                "Landscaping": -367
+              },
+              "Insurance": -900,
+              "Taxes": -1233,
+              "Security": -687,
+              "Parking": -900,
+              "Management": -833,
+              "Legal": -587
+            }
+          },
+          "Sep 2023": {
+            "total": -17733,
+            "expenses": {
+              "Rent": -5333,
+              "Utilities": {
+                "Electricity": -1267,
+                "Water": -567,
+                "Gas": -333
+              },
+              "Maintenance": {
+                "Cleaning": -967,
+                "Repairs": -1400,
+                "Landscaping": -367
+              },
+              "Insurance": -900,
+              "Taxes": -1233,
+              "Security": -687,
+              "Parking": -900,
+              "Management": -833,
+              "Legal": -587
+            }
+          },
+          "Oct 2023": {
+            "total": -18300,
+            "expenses": {
+              "Rent": -5333,
+              "Utilities": {
+                "Electricity": -1333,
+                "Water": -600,
+                "Gas": -350
+              },
+              "Maintenance": {
+                "Cleaning": -1000,
+                "Repairs": -1433,
+                "Landscaping": -383
+              },
+              "Insurance": -900,
+              "Taxes": -1233,
+              "Security": -703,
+              "Parking": -900,
+              "Management": -867,
+              "Legal": -603
+            }
+          },
+          "Nov 2023": {
+            "total": -18300,
+            "expenses": {
+              "Rent": -5333,
+              "Utilities": {
+                "Electricity": -1333,
+                "Water": -600,
+                "Gas": -350
+              },
+              "Maintenance": {
+                "Cleaning": -1000,
+                "Repairs": -1433,
+                "Landscaping": -383
+              },
+              "Insurance": -900,
+              "Taxes": -1233,
+              "Security": -703,
+              "Parking": -900,
+              "Management": -867,
+              "Legal": -603
+            }
+          },
+          "Dec 2023": {
+            "total": -18300,
+            "expenses": {
+              "Rent": -5333,
+              "Utilities": {
+                "Electricity": -1333,
+                "Water": -600,
+                "Gas": -350
+              },
+              "Maintenance": {
+                "Cleaning": -1000,
+                "Repairs": -1433,
+                "Landscaping": -383
+              },
+              "Insurance": -900,
+              "Taxes": -1233,
+              "Security": -703,
+              "Parking": -900,
+              "Management": -867,
+              "Legal": -603
             }
           }
         },
-        "categoryTrends": {
-          "Rent": {
-            "trend": "increasing",
-            "change": 6.7
-          },
+        "expenses": {
+          "Rent": -5333,
           "Utilities": {
-            "trend": "increasing",
-            "change": 42.9
+            "Electricity": -1333,
+            "Water": -600,
+            "Gas": -350
           },
           "Maintenance": {
-            "trend": "increasing",
-            "change": 27.8
+            "Cleaning": -1000,
+            "Repairs": -1433,
+            "Landscaping": -383
           },
-          "Insurance": {
-            "trend": "increasing",
-            "change": 8.0
-          },
-          "Taxes": {
-            "trend": "increasing",
-            "change": 5.7
-          },
-          "Security": {
-            "trend": "increasing",
-            "change": 17.2
-          },
-          "Parking": {
-            "trend": "increasing",
-            "change": 8.0
-          },
-          "Management": {
-            "trend": "increasing",
-            "change": 30.0
-          },
-          "Legal": {
-            "trend": "increasing",
-            "change": 20.7
-          }
+          "Insurance": -900,
+          "Taxes": -1233,
+          "Security": -703,
+          "Parking": -900,
+          "Management": -867,
+          "Legal": -603
         }
       },
       {
         "id": 2,
-        "name": "Residential Apartment Building",
-        "quarterlyData": {
-          "Q1 2021": {
-            "total": 28500,
+        "name": "Suburban Retail Center",
+        "monthlyData": {
+          "Jan 2021": {
+            "total": -12000,
             "expenses": {
-              "Rent": 12000,
+              "Rent": -4000,
               "Utilities": {
-                "Electricity": 1800,
-                "Water": 900,
-                "Gas": 500
+                "Electricity": -800,
+                "Water": -300,
+                "Gas": -200
               },
               "Maintenance": {
-                "Cleaning": 1500,
-                "Repairs": 2200,
-                "Landscaping": 400
+                "Cleaning": -600,
+                "Repairs": -1000,
+                "Landscaping": -250
               },
-              "Insurance": 1800,
-              "Taxes": 2400,
-              "Security": 800,
-              "Parking": 700,
-              "Management": 1200,
-              "Legal": 800
+              "Insurance": -700,
+              "Taxes": -1000,
+              "Security": -500,
+              "Parking": -700,
+              "Management": -550,
+              "Legal": -400
             }
           },
-          "Q2 2021": {
-            "total": 29200,
+          "Feb 2021": {
+            "total": -12000,
             "expenses": {
-              "Rent": 12000,
+              "Rent": -4000,
               "Utilities": {
-                "Electricity": 1900,
-                "Water": 950,
-                "Gas": 550
+                "Electricity": -800,
+                "Water": -300,
+                "Gas": -200
               },
               "Maintenance": {
-                "Cleaning": 1550,
-                "Repairs": 2300,
-                "Landscaping": 450
+                "Cleaning": -600,
+                "Repairs": -1000,
+                "Landscaping": -250
               },
-              "Insurance": 1800,
-              "Taxes": 2400,
-              "Security": 820,
-              "Parking": 700,
-              "Management": 1250,
-              "Legal": 820
+              "Insurance": -700,
+              "Taxes": -1000,
+              "Security": -500,
+              "Parking": -700,
+              "Management": -550,
+              "Legal": -400
             }
           },
-          "Q3 2021": {
-            "total": 29900,
+          "Mar 2021": {
+            "total": -12000,
             "expenses": {
-              "Rent": 12000,
+              "Rent": -4000,
               "Utilities": {
-                "Electricity": 2000,
-                "Water": 1000,
-                "Gas": 600
+                "Electricity": -800,
+                "Water": -300,
+                "Gas": -200
               },
               "Maintenance": {
-                "Cleaning": 1600,
-                "Repairs": 2400,
-                "Landscaping": 500
+                "Cleaning": -600,
+                "Repairs": -1000,
+                "Landscaping": -250
               },
-              "Insurance": 1800,
-              "Taxes": 2400,
-              "Security": 840,
-              "Parking": 700,
-              "Management": 1300,
-              "Legal": 840
+              "Insurance": -700,
+              "Taxes": -1000,
+              "Security": -500,
+              "Parking": -700,
+              "Management": -550,
+              "Legal": -400
             }
           },
-          "Q4 2021": {
-            "total": 30600,
+          "Apr 2021": {
+            "total": -12300,
             "expenses": {
-              "Rent": 12000,
+              "Rent": -4000,
               "Utilities": {
-                "Electricity": 2100,
-                "Water": 1050,
-                "Gas": 650
+                "Electricity": -850,
+                "Water": -320,
+                "Gas": -210
               },
               "Maintenance": {
-                "Cleaning": 1650,
-                "Repairs": 2500,
-                "Landscaping": 550
+                "Cleaning": -620,
+                "Repairs": -1050,
+                "Landscaping": -260
               },
-              "Insurance": 1800,
-              "Taxes": 2400,
-              "Security": 860,
-              "Parking": 700,
-              "Management": 1350,
-              "Legal": 860
+              "Insurance": -700,
+              "Taxes": -1000,
+              "Security": -520,
+              "Parking": -700,
+              "Management": -570,
+              "Legal": -410
             }
           },
-          "Q1 2022": {
-            "total": 31300,
+          "May 2021": {
+            "total": -12300,
             "expenses": {
-              "Rent": 12500,
+              "Rent": -4000,
               "Utilities": {
-                "Electricity": 1950,
-                "Water": 1000,
-                "Gas": 600
+                "Electricity": -850,
+                "Water": -320,
+                "Gas": -210
               },
               "Maintenance": {
-                "Cleaning": 1600,
-                "Repairs": 2350,
-                "Landscaping": 500
+                "Cleaning": -620,
+                "Repairs": -1050,
+                "Landscaping": -260
               },
-              "Insurance": 1850,
-              "Taxes": 2450,
-              "Security": 880,
-              "Parking": 750,
-              "Management": 1300,
-              "Legal": 880
+              "Insurance": -700,
+              "Taxes": -1000,
+              "Security": -520,
+              "Parking": -700,
+              "Management": -570,
+              "Legal": -410
             }
           },
-          "Q2 2022": {
-            "total": 32000,
+          "Jun 2021": {
+            "total": -12300,
             "expenses": {
-              "Rent": 12500,
+              "Rent": -4000,
               "Utilities": {
-                "Electricity": 2050,
-                "Water": 1050,
-                "Gas": 650
+                "Electricity": -850,
+                "Water": -320,
+                "Gas": -210
               },
               "Maintenance": {
-                "Cleaning": 1650,
-                "Repairs": 2450,
-                "Landscaping": 550
+                "Cleaning": -620,
+                "Repairs": -1050,
+                "Landscaping": -260
               },
-              "Insurance": 1850,
-              "Taxes": 2450,
-              "Security": 900,
-              "Parking": 750,
-              "Management": 1350,
-              "Legal": 900
+              "Insurance": -700,
+              "Taxes": -1000,
+              "Security": -520,
+              "Parking": -700,
+              "Management": -570,
+              "Legal": -410
             }
           },
-          "Q3 2022": {
-            "total": 32700,
+          "Jul 2021": {
+            "total": -12600,
             "expenses": {
-              "Rent": 12500,
+              "Rent": -4000,
               "Utilities": {
-                "Electricity": 2150,
-                "Water": 1100,
-                "Gas": 700
+                "Electricity": -900,
+                "Water": -340,
+                "Gas": -220
               },
               "Maintenance": {
-                "Cleaning": 1700,
-                "Repairs": 2550,
-                "Landscaping": 600
+                "Cleaning": -640,
+                "Repairs": -1100,
+                "Landscaping": -270
               },
-              "Insurance": 1850,
-              "Taxes": 2450,
-              "Security": 920,
-              "Parking": 750,
-              "Management": 1400,
-              "Legal": 920
+              "Insurance": -700,
+              "Taxes": -1000,
+              "Security": -540,
+              "Parking": -700,
+              "Management": -590,
+              "Legal": -420
             }
           },
-          "Q4 2022": {
-            "total": 33400,
+          "Aug 2021": {
+            "total": -12600,
             "expenses": {
-              "Rent": 12500,
+              "Rent": -4000,
               "Utilities": {
-                "Electricity": 2250,
-                "Water": 1150,
-                "Gas": 750
+                "Electricity": -900,
+                "Water": -340,
+                "Gas": -220
               },
               "Maintenance": {
-                "Cleaning": 1750,
-                "Repairs": 2650,
-                "Landscaping": 650
+                "Cleaning": -640,
+                "Repairs": -1100,
+                "Landscaping": -270
               },
-              "Insurance": 1850,
-              "Taxes": 2450,
-              "Security": 940,
-              "Parking": 750,
-              "Management": 1450,
-              "Legal": 940
+              "Insurance": -700,
+              "Taxes": -1000,
+              "Security": -540,
+              "Parking": -700,
+              "Management": -590,
+              "Legal": -420
             }
           },
-          "Q1 2023": {
-            "total": 34100,
+          "Sep 2021": {
+            "total": -12600,
             "expenses": {
-              "Rent": 13000,
+              "Rent": -4000,
               "Utilities": {
-                "Electricity": 2100,
-                "Water": 1100,
-                "Gas": 700
+                "Electricity": -900,
+                "Water": -340,
+                "Gas": -220
               },
               "Maintenance": {
-                "Cleaning": 1700,
-                "Repairs": 2500,
-                "Landscaping": 600
+                "Cleaning": -640,
+                "Repairs": -1100,
+                "Landscaping": -270
               },
-              "Insurance": 1900,
-              "Taxes": 2500,
-              "Security": 960,
-              "Parking": 800,
-              "Management": 1400,
-              "Legal": 960
+              "Insurance": -700,
+              "Taxes": -1000,
+              "Security": -540,
+              "Parking": -700,
+              "Management": -590,
+              "Legal": -420
             }
           },
-          "Q2 2023": {
-            "total": 34800,
+          "Oct 2021": {
+            "total": -12900,
             "expenses": {
-              "Rent": 13000,
+              "Rent": -4000,
               "Utilities": {
-                "Electricity": 2200,
-                "Water": 1150,
-                "Gas": 750
+                "Electricity": -950,
+                "Water": -360,
+                "Gas": -230
               },
               "Maintenance": {
-                "Cleaning": 1750,
-                "Repairs": 2600,
-                "Landscaping": 650
+                "Cleaning": -660,
+                "Repairs": -1150,
+                "Landscaping": -280
               },
-              "Insurance": 1900,
-              "Taxes": 2500,
-              "Security": 980,
-              "Parking": 800,
-              "Management": 1450,
-              "Legal": 980
+              "Insurance": -700,
+              "Taxes": -1000,
+              "Security": -560,
+              "Parking": -700,
+              "Management": -610,
+              "Legal": -430
             }
           },
-          "Q3 2023": {
-            "total": 35500,
+          "Nov 2021": {
+            "total": -12900,
             "expenses": {
-              "Rent": 13000,
+              "Rent": -4000,
               "Utilities": {
-                "Electricity": 2300,
-                "Water": 1200,
-                "Gas": 800
+                "Electricity": -950,
+                "Water": -360,
+                "Gas": -230
               },
               "Maintenance": {
-                "Cleaning": 1800,
-                "Repairs": 2700,
-                "Landscaping": 700
+                "Cleaning": -660,
+                "Repairs": -1150,
+                "Landscaping": -280
               },
-              "Insurance": 1900,
-              "Taxes": 2500,
-              "Security": 1000,
-              "Parking": 800,
-              "Management": 1500,
-              "Legal": 1000
+              "Insurance": -700,
+              "Taxes": -1000,
+              "Security": -560,
+              "Parking": -700,
+              "Management": -610,
+              "Legal": -430
             }
           },
-          "Q4 2023": {
-            "total": 36200,
+          "Dec 2021": {
+            "total": -12900,
             "expenses": {
-              "Rent": 13000,
+              "Rent": -4000,
               "Utilities": {
-                "Electricity": 2400,
-                "Water": 1250,
-                "Gas": 850
+                "Electricity": -950,
+                "Water": -360,
+                "Gas": -230
               },
               "Maintenance": {
-                "Cleaning": 1850,
-                "Repairs": 2800,
-                "Landscaping": 750
+                "Cleaning": -660,
+                "Repairs": -1150,
+                "Landscaping": -280
               },
-              "Insurance": 1900,
-              "Taxes": 2500,
-              "Security": 1020,
-              "Parking": 800,
-              "Management": 1550,
-              "Legal": 1020
+              "Insurance": -700,
+              "Taxes": -1000,
+              "Security": -560,
+              "Parking": -700,
+              "Management": -610,
+              "Legal": -430
+            }
+          },
+          "Jan 2022": {
+            "total": -12400,
+            "expenses": {
+              "Rent": -4100,
+              "Utilities": {
+                "Electricity": -850,
+                "Water": -320,
+                "Gas": -210
+              },
+              "Maintenance": {
+                "Cleaning": -630,
+                "Repairs": -1050,
+                "Landscaping": -260
+              },
+              "Insurance": -720,
+              "Taxes": -1020,
+              "Security": -520,
+              "Parking": -720,
+              "Management": -580,
+              "Legal": -410
+            }
+          },
+          "Feb 2022": {
+            "total": -12400,
+            "expenses": {
+              "Rent": -4100,
+              "Utilities": {
+                "Electricity": -850,
+                "Water": -320,
+                "Gas": -210
+              },
+              "Maintenance": {
+                "Cleaning": -630,
+                "Repairs": -1050,
+                "Landscaping": -260
+              },
+              "Insurance": -720,
+              "Taxes": -1020,
+              "Security": -520,
+              "Parking": -720,
+              "Management": -580,
+              "Legal": -410
+            }
+          },
+          "Mar 2022": {
+            "total": -12400,
+            "expenses": {
+              "Rent": -4100,
+              "Utilities": {
+                "Electricity": -850,
+                "Water": -320,
+                "Gas": -210
+              },
+              "Maintenance": {
+                "Cleaning": -630,
+                "Repairs": -1050,
+                "Landscaping": -260
+              },
+              "Insurance": -720,
+              "Taxes": -1020,
+              "Security": -520,
+              "Parking": -720,
+              "Management": -580,
+              "Legal": -410
+            }
+          },
+          "Apr 2022": {
+            "total": -12700,
+            "expenses": {
+              "Rent": -4100,
+              "Utilities": {
+                "Electricity": -900,
+                "Water": -340,
+                "Gas": -220
+              },
+              "Maintenance": {
+                "Cleaning": -650,
+                "Repairs": -1100,
+                "Landscaping": -270
+              },
+              "Insurance": -720,
+              "Taxes": -1020,
+              "Security": -540,
+              "Parking": -720,
+              "Management": -600,
+              "Legal": -420
+            }
+          },
+          "May 2022": {
+            "total": -12700,
+            "expenses": {
+              "Rent": -4100,
+              "Utilities": {
+                "Electricity": -900,
+                "Water": -340,
+                "Gas": -220
+              },
+              "Maintenance": {
+                "Cleaning": -650,
+                "Repairs": -1100,
+                "Landscaping": -270
+              },
+              "Insurance": -720,
+              "Taxes": -1020,
+              "Security": -540,
+              "Parking": -720,
+              "Management": -600,
+              "Legal": -420
+            }
+          },
+          "Jun 2022": {
+            "total": -12700,
+            "expenses": {
+              "Rent": -4100,
+              "Utilities": {
+                "Electricity": -900,
+                "Water": -340,
+                "Gas": -220
+              },
+              "Maintenance": {
+                "Cleaning": -650,
+                "Repairs": -1100,
+                "Landscaping": -270
+              },
+              "Insurance": -720,
+              "Taxes": -1020,
+              "Security": -540,
+              "Parking": -720,
+              "Management": -600,
+              "Legal": -420
+            }
+          },
+          "Jul 2022": {
+            "total": -13000,
+            "expenses": {
+              "Rent": -4100,
+              "Utilities": {
+                "Electricity": -950,
+                "Water": -360,
+                "Gas": -230
+              },
+              "Maintenance": {
+                "Cleaning": -670,
+                "Repairs": -1150,
+                "Landscaping": -280
+              },
+              "Insurance": -720,
+              "Taxes": -1020,
+              "Security": -560,
+              "Parking": -720,
+              "Management": -620,
+              "Legal": -430
+            }
+          },
+          "Aug 2022": {
+            "total": -13000,
+            "expenses": {
+              "Rent": -4100,
+              "Utilities": {
+                "Electricity": -950,
+                "Water": -360,
+                "Gas": -230
+              },
+              "Maintenance": {
+                "Cleaning": -670,
+                "Repairs": -1150,
+                "Landscaping": -280
+              },
+              "Insurance": -720,
+              "Taxes": -1020,
+              "Security": -560,
+              "Parking": -720,
+              "Management": -620,
+              "Legal": -430
+            }
+          },
+          "Sep 2022": {
+            "total": -13000,
+            "expenses": {
+              "Rent": -4100,
+              "Utilities": {
+                "Electricity": -950,
+                "Water": -360,
+                "Gas": -230
+              },
+              "Maintenance": {
+                "Cleaning": -670,
+                "Repairs": -1150,
+                "Landscaping": -280
+              },
+              "Insurance": -720,
+              "Taxes": -1020,
+              "Security": -560,
+              "Parking": -720,
+              "Management": -620,
+              "Legal": -430
+            }
+          },
+          "Oct 2022": {
+            "total": -13300,
+            "expenses": {
+              "Rent": -4100,
+              "Utilities": {
+                "Electricity": -1000,
+                "Water": -380,
+                "Gas": -240
+              },
+              "Maintenance": {
+                "Cleaning": -690,
+                "Repairs": -1200,
+                "Landscaping": -290
+              },
+              "Insurance": -720,
+              "Taxes": -1020,
+              "Security": -580,
+              "Parking": -720,
+              "Management": -640,
+              "Legal": -440
+            }
+          },
+          "Nov 2022": {
+            "total": -13300,
+            "expenses": {
+              "Rent": -4100,
+              "Utilities": {
+                "Electricity": -1000,
+                "Water": -380,
+                "Gas": -240
+              },
+              "Maintenance": {
+                "Cleaning": -690,
+                "Repairs": -1200,
+                "Landscaping": -290
+              },
+              "Insurance": -720,
+              "Taxes": -1020,
+              "Security": -580,
+              "Parking": -720,
+              "Management": -640,
+              "Legal": -440
+            }
+          },
+          "Dec 2022": {
+            "total": -13300,
+            "expenses": {
+              "Rent": -4100,
+              "Utilities": {
+                "Electricity": -1000,
+                "Water": -380,
+                "Gas": -240
+              },
+              "Maintenance": {
+                "Cleaning": -690,
+                "Repairs": -1200,
+                "Landscaping": -290
+              },
+              "Insurance": -720,
+              "Taxes": -1020,
+              "Security": -580,
+              "Parking": -720,
+              "Management": -640,
+              "Legal": -440
+            }
+          },
+          "Jan 2023": {
+            "total": -12800,
+            "expenses": {
+              "Rent": -4200,
+              "Utilities": {
+                "Electricity": -900,
+                "Water": -340,
+                "Gas": -220
+              },
+              "Maintenance": {
+                "Cleaning": -650,
+                "Repairs": -1100,
+                "Landscaping": -270
+              },
+              "Insurance": -740,
+              "Taxes": -1040,
+              "Security": -540,
+              "Parking": -740,
+              "Management": -600,
+              "Legal": -420
+            }
+          },
+          "Feb 2023": {
+            "total": -12800,
+            "expenses": {
+              "Rent": -4200,
+              "Utilities": {
+                "Electricity": -900,
+                "Water": -340,
+                "Gas": -220
+              },
+              "Maintenance": {
+                "Cleaning": -650,
+                "Repairs": -1100,
+                "Landscaping": -270
+              },
+              "Insurance": -740,
+              "Taxes": -1040,
+              "Security": -540,
+              "Parking": -740,
+              "Management": -600,
+              "Legal": -420
+            }
+          },
+          "Mar 2023": {
+            "total": -12800,
+            "expenses": {
+              "Rent": -4200,
+              "Utilities": {
+                "Electricity": -900,
+                "Water": -340,
+                "Gas": -220
+              },
+              "Maintenance": {
+                "Cleaning": -650,
+                "Repairs": -1100,
+                "Landscaping": -270
+              },
+              "Insurance": -740,
+              "Taxes": -1040,
+              "Security": -540,
+              "Parking": -740,
+              "Management": -600,
+              "Legal": -420
+            }
+          },
+          "Apr 2023": {
+            "total": -13100,
+            "expenses": {
+              "Rent": -4200,
+              "Utilities": {
+                "Electricity": -950,
+                "Water": -360,
+                "Gas": -230
+              },
+              "Maintenance": {
+                "Cleaning": -670,
+                "Repairs": -1150,
+                "Landscaping": -280
+              },
+              "Insurance": -740,
+              "Taxes": -1040,
+              "Security": -560,
+              "Parking": -740,
+              "Management": -620,
+              "Legal": -430
+            }
+          },
+          "May 2023": {
+            "total": -13100,
+            "expenses": {
+              "Rent": -4200,
+              "Utilities": {
+                "Electricity": -950,
+                "Water": -360,
+                "Gas": -230
+              },
+              "Maintenance": {
+                "Cleaning": -670,
+                "Repairs": -1150,
+                "Landscaping": -280
+              },
+              "Insurance": -740,
+              "Taxes": -1040,
+              "Security": -560,
+              "Parking": -740,
+              "Management": -620,
+              "Legal": -430
+            }
+          },
+          "Jun 2023": {
+            "total": -13100,
+            "expenses": {
+              "Rent": -4200,
+              "Utilities": {
+                "Electricity": -950,
+                "Water": -360,
+                "Gas": -230
+              },
+              "Maintenance": {
+                "Cleaning": -670,
+                "Repairs": -1150,
+                "Landscaping": -280
+              },
+              "Insurance": -740,
+              "Taxes": -1040,
+              "Security": -560,
+              "Parking": -740,
+              "Management": -620,
+              "Legal": -430
+            }
+          },
+          "Jul 2023": {
+            "total": -13400,
+            "expenses": {
+              "Rent": -4200,
+              "Utilities": {
+                "Electricity": -1000,
+                "Water": -380,
+                "Gas": -240
+              },
+              "Maintenance": {
+                "Cleaning": -690,
+                "Repairs": -1200,
+                "Landscaping": -290
+              },
+              "Insurance": -740,
+              "Taxes": -1040,
+              "Security": -580,
+              "Parking": -740,
+              "Management": -640,
+              "Legal": -440
+            }
+          },
+          "Aug 2023": {
+            "total": -13400,
+            "expenses": {
+              "Rent": -4200,
+              "Utilities": {
+                "Electricity": -1000,
+                "Water": -380,
+                "Gas": -240
+              },
+              "Maintenance": {
+                "Cleaning": -690,
+                "Repairs": -1200,
+                "Landscaping": -290
+              },
+              "Insurance": -740,
+              "Taxes": -1040,
+              "Security": -580,
+              "Parking": -740,
+              "Management": -640,
+              "Legal": -440
+            }
+          },
+          "Sep 2023": {
+            "total": -13400,
+            "expenses": {
+              "Rent": -4200,
+              "Utilities": {
+                "Electricity": -1000,
+                "Water": -380,
+                "Gas": -240
+              },
+              "Maintenance": {
+                "Cleaning": -690,
+                "Repairs": -1200,
+                "Landscaping": -290
+              },
+              "Insurance": -740,
+              "Taxes": -1040,
+              "Security": -580,
+              "Parking": -740,
+              "Management": -640,
+              "Legal": -440
+            }
+          },
+          "Oct 2023": {
+            "total": -13700,
+            "expenses": {
+              "Rent": -4200,
+              "Utilities": {
+                "Electricity": -1050,
+                "Water": -400,
+                "Gas": -250
+              },
+              "Maintenance": {
+                "Cleaning": -710,
+                "Repairs": -1250,
+                "Landscaping": -300
+              },
+              "Insurance": -740,
+              "Taxes": -1040,
+              "Security": -600,
+              "Parking": -740,
+              "Management": -660,
+              "Legal": -450
+            }
+          },
+          "Nov 2023": {
+            "total": -13700,
+            "expenses": {
+              "Rent": -4200,
+              "Utilities": {
+                "Electricity": -1050,
+                "Water": -400,
+                "Gas": -250
+              },
+              "Maintenance": {
+                "Cleaning": -710,
+                "Repairs": -1250,
+                "Landscaping": -300
+              },
+              "Insurance": -740,
+              "Taxes": -1040,
+              "Security": -600,
+              "Parking": -740,
+              "Management": -660,
+              "Legal": -450
+            }
+          },
+          "Dec 2023": {
+            "total": -13700,
+            "expenses": {
+              "Rent": -4200,
+              "Utilities": {
+                "Electricity": -1050,
+                "Water": -400,
+                "Gas": -250
+              },
+              "Maintenance": {
+                "Cleaning": -710,
+                "Repairs": -1250,
+                "Landscaping": -300
+              },
+              "Insurance": -740,
+              "Taxes": -1040,
+              "Security": -600,
+              "Parking": -740,
+              "Management": -660,
+              "Legal": -450
             }
           }
         },
-        "categoryTrends": {
-          "Rent": {
-            "trend": "increasing",
-            "change": 8.3
-          },
+        "expenses": {
+          "Rent": -4200,
           "Utilities": {
-            "trend": "increasing",
-            "change": 70.0
+            "Electricity": -1050,
+            "Water": -400,
+            "Gas": -250
           },
           "Maintenance": {
-            "trend": "increasing",
-            "change": 87.5
+            "Cleaning": -710,
+            "Repairs": -1250,
+            "Landscaping": -300
           },
-          "Insurance": {
-            "trend": "increasing",
-            "change": 5.6
-          },
-          "Taxes": {
-            "trend": "increasing",
-            "change": 4.2
-          },
-          "Security": {
-            "trend": "increasing",
-            "change": 27.5
-          },
-          "Parking": {
-            "trend": "increasing",
-            "change": 14.3
-          },
-          "Management": {
-            "trend": "increasing",
-            "change": 29.2
-          },
-          "Legal": {
-            "trend": "increasing",
-            "change": 27.5
-          }
+          "Insurance": -740,
+          "Taxes": -1040,
+          "Security": -600,
+          "Parking": -740,
+          "Management": -660,
+          "Legal": -450
         }
       },
       {
         "id": 3,
-        "name": "Retail Shopping Center",
-        "quarterlyData": {
-          "Q1 2021": {
-            "total": 19600,
+        "name": "Industrial Warehouse",
+        "monthlyData": {
+          "Jan 2021": {
+            "total": -18000,
             "expenses": {
-              "Rent": 8000,
+              "Rent": -6000,
               "Utilities": {
-                "Electricity": 1400,
-                "Water": 700,
-                "Gas": 500
+                "Electricity": -1500,
+                "Water": -500,
+                "Gas": -400
               },
               "Maintenance": {
-                "Cleaning": 1000,
-                "Repairs": 1500,
-                "Landscaping": 800
+                "Cleaning": -1200,
+                "Repairs": -2000,
+                "Landscaping": -300
               },
-              "Insurance": 1200,
-              "Taxes": 1600,
-              "Security": 600,
-              "Parking": 1000,
-              "Management": 800,
-              "Legal": 600
+              "Insurance": -1000,
+              "Taxes": -1500,
+              "Security": -800,
+              "Parking": -1000,
+              "Management": -900,
+              "Legal": -600
             }
           },
-          "Q2 2021": {
-            "total": 20200,
+          "Feb 2021": {
+            "total": -18000,
             "expenses": {
-              "Rent": 8000,
+              "Rent": -6000,
               "Utilities": {
-                "Electricity": 1500,
-                "Water": 750,
-                "Gas": 550
+                "Electricity": -1500,
+                "Water": -500,
+                "Gas": -400
               },
               "Maintenance": {
-                "Cleaning": 1050,
-                "Repairs": 1600,
-                "Landscaping": 850
+                "Cleaning": -1200,
+                "Repairs": -2000,
+                "Landscaping": -300
               },
-              "Insurance": 1200,
-              "Taxes": 1600,
-              "Security": 620,
-              "Parking": 1000,
-              "Management": 850,
-              "Legal": 620
+              "Insurance": -1000,
+              "Taxes": -1500,
+              "Security": -800,
+              "Parking": -1000,
+              "Management": -900,
+              "Legal": -600
             }
           },
-          "Q3 2021": {
-            "total": 20800,
+          "Mar 2021": {
+            "total": -18000,
             "expenses": {
-              "Rent": 8000,
+              "Rent": -6000,
               "Utilities": {
-                "Electricity": 1600,
-                "Water": 800,
-                "Gas": 600
+                "Electricity": -1500,
+                "Water": -500,
+                "Gas": -400
               },
               "Maintenance": {
-                "Cleaning": 1100,
-                "Repairs": 1700,
-                "Landscaping": 900
+                "Cleaning": -1200,
+                "Repairs": -2000,
+                "Landscaping": -300
               },
-              "Insurance": 1200,
-              "Taxes": 1600,
-              "Security": 640,
-              "Parking": 1000,
-              "Management": 900,
-              "Legal": 640
+              "Insurance": -1000,
+              "Taxes": -1500,
+              "Security": -800,
+              "Parking": -1000,
+              "Management": -900,
+              "Legal": -600
             }
           },
-          "Q4 2021": {
-            "total": 21400,
+          "Apr 2021": {
+            "total": -18500,
             "expenses": {
-              "Rent": 8000,
+              "Rent": -6000,
               "Utilities": {
-                "Electricity": 1700,
-                "Water": 850,
-                "Gas": 650
+                "Electricity": -1600,
+                "Water": -550,
+                "Gas": -420
               },
               "Maintenance": {
-                "Cleaning": 1150,
-                "Repairs": 1800,
-                "Landscaping": 950
+                "Cleaning": -1250,
+                "Repairs": -2100,
+                "Landscaping": -320
               },
-              "Insurance": 1200,
-              "Taxes": 1600,
-              "Security": 660,
-              "Parking": 1000,
-              "Management": 950,
-              "Legal": 660
+              "Insurance": -1000,
+              "Taxes": -1500,
+              "Security": -850,
+              "Parking": -1000,
+              "Management": -950,
+              "Legal": -630
             }
           },
-          "Q1 2022": {
-            "total": 22000,
+          "May 2021": {
+            "total": -18500,
             "expenses": {
-              "Rent": 8200,
+              "Rent": -6000,
               "Utilities": {
-                "Electricity": 1550,
-                "Water": 800,
-                "Gas": 600
+                "Electricity": -1600,
+                "Water": -550,
+                "Gas": -420
               },
               "Maintenance": {
-                "Cleaning": 1100,
-                "Repairs": 1650,
-                "Landscaping": 900
+                "Cleaning": -1250,
+                "Repairs": -2100,
+                "Landscaping": -320
               },
-              "Insurance": 1250,
-              "Taxes": 1650,
-              "Security": 680,
-              "Parking": 1050,
-              "Management": 900,
-              "Legal": 680
+              "Insurance": -1000,
+              "Taxes": -1500,
+              "Security": -850,
+              "Parking": -1000,
+              "Management": -950,
+              "Legal": -630
             }
           },
-          "Q2 2022": {
-            "total": 22600,
+          "Jun 2021": {
+            "total": -18500,
             "expenses": {
-              "Rent": 8200,
+              "Rent": -6000,
               "Utilities": {
-                "Electricity": 1650,
-                "Water": 850,
-                "Gas": 650
+                "Electricity": -1600,
+                "Water": -550,
+                "Gas": -420
               },
               "Maintenance": {
-                "Cleaning": 1150,
-                "Repairs": 1750,
-                "Landscaping": 950
+                "Cleaning": -1250,
+                "Repairs": -2100,
+                "Landscaping": -320
               },
-              "Insurance": 1250,
-              "Taxes": 1650,
-              "Security": 700,
-              "Parking": 1050,
-              "Management": 950,
-              "Legal": 700
+              "Insurance": -1000,
+              "Taxes": -1500,
+              "Security": -850,
+              "Parking": -1000,
+              "Management": -950,
+              "Legal": -630
             }
           },
-          "Q3 2022": {
-            "total": 23200,
+          "Jul 2021": {
+            "total": -19000,
             "expenses": {
-              "Rent": 8200,
+              "Rent": -6000,
               "Utilities": {
-                "Electricity": 1750,
-                "Water": 900,
-                "Gas": 700
+                "Electricity": -1700,
+                "Water": -600,
+                "Gas": -440
               },
               "Maintenance": {
-                "Cleaning": 1200,
-                "Repairs": 1850,
-                "Landscaping": 1000
+                "Cleaning": -1300,
+                "Repairs": -2200,
+                "Landscaping": -340
               },
-              "Insurance": 1250,
-              "Taxes": 1650,
-              "Security": 720,
-              "Parking": 1050,
-              "Management": 1000,
-              "Legal": 720
+              "Insurance": -1000,
+              "Taxes": -1500,
+              "Security": -900,
+              "Parking": -1000,
+              "Management": -1000,
+              "Legal": -660
             }
           },
-          "Q4 2022": {
-            "total": 23800,
+          "Aug 2021": {
+            "total": -19000,
             "expenses": {
-              "Rent": 8200,
+              "Rent": -6000,
               "Utilities": {
-                "Electricity": 1850,
-                "Water": 950,
-                "Gas": 750
+                "Electricity": -1700,
+                "Water": -600,
+                "Gas": -440
               },
               "Maintenance": {
-                "Cleaning": 1250,
-                "Repairs": 1950,
-                "Landscaping": 1050
+                "Cleaning": -1300,
+                "Repairs": -2200,
+                "Landscaping": -340
               },
-              "Insurance": 1250,
-              "Taxes": 1650,
-              "Security": 740,
-              "Parking": 1050,
-              "Management": 1050,
-              "Legal": 740
+              "Insurance": -1000,
+              "Taxes": -1500,
+              "Security": -900,
+              "Parking": -1000,
+              "Management": -1000,
+              "Legal": -660
             }
           },
-          "Q1 2023": {
-            "total": 24400,
+          "Sep 2021": {
+            "total": -19000,
             "expenses": {
-              "Rent": 8400,
+              "Rent": -6000,
               "Utilities": {
-                "Electricity": 1700,
-                "Water": 900,
-                "Gas": 700
+                "Electricity": -1700,
+                "Water": -600,
+                "Gas": -440
               },
               "Maintenance": {
-                "Cleaning": 1200,
-                "Repairs": 1800,
-                "Landscaping": 1000
+                "Cleaning": -1300,
+                "Repairs": -2200,
+                "Landscaping": -340
               },
-              "Insurance": 1300,
-              "Taxes": 1700,
-              "Security": 760,
-              "Parking": 1100,
-              "Management": 1000,
-              "Legal": 760
+              "Insurance": -1000,
+              "Taxes": -1500,
+              "Security": -900,
+              "Parking": -1000,
+              "Management": -1000,
+              "Legal": -660
             }
           },
-          "Q2 2023": {
-            "total": 25000,
+          "Oct 2021": {
+            "total": -19500,
             "expenses": {
-              "Rent": 8400,
+              "Rent": -6000,
               "Utilities": {
-                "Electricity": 1800,
-                "Water": 950,
-                "Gas": 750
+                "Electricity": -1800,
+                "Water": -650,
+                "Gas": -460
               },
               "Maintenance": {
-                "Cleaning": 1250,
-                "Repairs": 1900,
-                "Landscaping": 1050
+                "Cleaning": -1350,
+                "Repairs": -2300,
+                "Landscaping": -360
               },
-              "Insurance": 1300,
-              "Taxes": 1700,
-              "Security": 780,
-              "Parking": 1100,
-              "Management": 1050,
-              "Legal": 780
+              "Insurance": -1000,
+              "Taxes": -1500,
+              "Security": -950,
+              "Parking": -1000,
+              "Management": -1050,
+              "Legal": -690
             }
           },
-          "Q3 2023": {
-            "total": 25600,
+          "Nov 2021": {
+            "total": -19500,
             "expenses": {
-              "Rent": 8400,
+              "Rent": -6000,
               "Utilities": {
-                "Electricity": 1900,
-                "Water": 1000,
-                "Gas": 800
+                "Electricity": -1800,
+                "Water": -650,
+                "Gas": -460
               },
               "Maintenance": {
-                "Cleaning": 1300,
-                "Repairs": 2000,
-                "Landscaping": 1100
+                "Cleaning": -1350,
+                "Repairs": -2300,
+                "Landscaping": -360
               },
-              "Insurance": 1300,
-              "Taxes": 1700,
-              "Security": 800,
-              "Parking": 1100,
-              "Management": 1100,
-              "Legal": 800
+              "Insurance": -1000,
+              "Taxes": -1500,
+              "Security": -950,
+              "Parking": -1000,
+              "Management": -1050,
+              "Legal": -690
             }
           },
-          "Q4 2023": {
-            "total": 26200,
+          "Dec 2021": {
+            "total": -19500,
             "expenses": {
-              "Rent": 8400,
+              "Rent": -6000,
               "Utilities": {
-                "Electricity": 2000,
-                "Water": 1050,
-                "Gas": 850
+                "Electricity": -1800,
+                "Water": -650,
+                "Gas": -460
               },
               "Maintenance": {
-                "Cleaning": 1350,
-                "Repairs": 2100,
-                "Landscaping": 1150
+                "Cleaning": -1350,
+                "Repairs": -2300,
+                "Landscaping": -360
               },
-              "Insurance": 1300,
-              "Taxes": 1700,
-              "Security": 820,
-              "Parking": 1100,
-              "Management": 1150,
-              "Legal": 820
-            }
-          }
-        },
-        "categoryTrends": {
-          "Rent": {
-            "trend": "increasing",
-            "change": 5.0
-          },
-          "Utilities": {
-            "trend": "increasing",
-            "change": 70.0
-          },
-          "Maintenance": {
-            "trend": "increasing",
-            "change": 43.8
-          },
-          "Insurance": {
-            "trend": "increasing",
-            "change": 8.3
-          },
-          "Taxes": {
-            "trend": "increasing",
-            "change": 6.3
-          },
-          "Security": {
-            "trend": "increasing",
-            "change": 36.7
-          },
-          "Parking": {
-            "trend": "increasing",
-            "change": 10.0
-          },
-          "Management": {
-            "trend": "increasing",
-            "change": 43.8
-          },
-          "Legal": {
-            "trend": "increasing",
-            "change": 36.7
-          }
-        }
-      },
-      {
-        "id": 4,
-        "name": "Industrial Warehouse Complex",
-        "quarterlyData": {
-          "Q1 2021": {
-            "total": 33700,
-            "expenses": {
-              "Rent": 14000,
-              "Utilities": {
-                "Electricity": 3800,
-                "Water": 1200,
-                "Gas": 900
-              },
-              "Maintenance": {
-                "Cleaning": 1200,
-                "Repairs": 5200,
-                "Landscaping": 800
-              },
-              "Insurance": 2200,
-              "Taxes": 2800,
-              "Security": 1200,
-              "Parking": 900,
-              "Management": 1500,
-              "Legal": 900
+              "Insurance": -1000,
+              "Taxes": -1500,
+              "Security": -950,
+              "Parking": -1000,
+              "Management": -1050,
+              "Legal": -690
             }
           },
-          "Q2 2021": {
-            "total": 34400,
+          "Jan 2022": {
+            "total": -18700,
             "expenses": {
-              "Rent": 14000,
+              "Rent": -6200,
               "Utilities": {
-                "Electricity": 4000,
-                "Water": 1250,
-                "Gas": 950
+                "Electricity": -1550,
+                "Water": -550,
+                "Gas": -420
               },
               "Maintenance": {
-                "Cleaning": 1250,
-                "Repairs": 5350,
-                "Landscaping": 850
+                "Cleaning": -1250,
+                "Repairs": -2050,
+                "Landscaping": -320
               },
-              "Insurance": 2200,
-              "Taxes": 2800,
-              "Security": 1220,
-              "Parking": 900,
-              "Management": 1550,
-              "Legal": 920
+              "Insurance": -1050,
+              "Taxes": -1550,
+              "Security": -850,
+              "Parking": -1050,
+              "Management": -950,
+              "Legal": -630
             }
           },
-          "Q3 2021": {
-            "total": 35100,
+          "Feb 2022": {
+            "total": -18700,
             "expenses": {
-              "Rent": 14000,
+              "Rent": -6200,
               "Utilities": {
-                "Electricity": 4200,
-                "Water": 1300,
-                "Gas": 1000
+                "Electricity": -1550,
+                "Water": -550,
+                "Gas": -420
               },
               "Maintenance": {
-                "Cleaning": 1300,
-                "Repairs": 5500,
-                "Landscaping": 900
+                "Cleaning": -1250,
+                "Repairs": -2050,
+                "Landscaping": -320
               },
-              "Insurance": 2200,
-              "Taxes": 2800,
-              "Security": 1240,
-              "Parking": 900,
-              "Management": 1600,
-              "Legal": 940
+              "Insurance": -1050,
+              "Taxes": -1550,
+              "Security": -850,
+              "Parking": -1050,
+              "Management": -950,
+              "Legal": -630
             }
           },
-          "Q4 2021": {
-            "total": 35800,
+          "Mar 2022": {
+            "total": -18700,
             "expenses": {
-              "Rent": 14000,
+              "Rent": -6200,
               "Utilities": {
-                "Electricity": 4400,
-                "Water": 1350,
-                "Gas": 1050
+                "Electricity": -1550,
+                "Water": -550,
+                "Gas": -420
               },
               "Maintenance": {
-                "Cleaning": 1350,
-                "Repairs": 5650,
-                "Landscaping": 950
+                "Cleaning": -1250,
+                "Repairs": -2050,
+                "Landscaping": -320
               },
-              "Insurance": 2200,
-              "Taxes": 2800,
-              "Security": 1260,
-              "Parking": 900,
-              "Management": 1650,
-              "Legal": 960
+              "Insurance": -1050,
+              "Taxes": -1550,
+              "Security": -850,
+              "Parking": -1050,
+              "Management": -950,
+              "Legal": -630
             }
           },
-          "Q1 2022": {
-            "total": 36500,
+          "Apr 2022": {
+            "total": -19200,
             "expenses": {
-              "Rent": 14500,
+              "Rent": -6200,
               "Utilities": {
-                "Electricity": 4100,
-                "Water": 1300,
-                "Gas": 1000
+                "Electricity": -1650,
+                "Water": -600,
+                "Gas": -440
               },
               "Maintenance": {
-                "Cleaning": 1300,
-                "Repairs": 5400,
-                "Landscaping": 900
+                "Cleaning": -1300,
+                "Repairs": -2150,
+                "Landscaping": -340
               },
-              "Insurance": 2250,
-              "Taxes": 2850,
-              "Security": 1280,
-              "Parking": 950,
-              "Management": 1600,
-              "Legal": 980
+              "Insurance": -1050,
+              "Taxes": -1550,
+              "Security": -900,
+              "Parking": -1050,
+              "Management": -1000,
+              "Legal": -660
             }
           },
-          "Q2 2022": {
-            "total": 37200,
+          "May 2022": {
+            "total": -19200,
             "expenses": {
-              "Rent": 14500,
+              "Rent": -6200,
               "Utilities": {
-                "Electricity": 4300,
-                "Water": 1350,
-                "Gas": 1050
+                "Electricity": -1650,
+                "Water": -600,
+                "Gas": -440
               },
               "Maintenance": {
-                "Cleaning": 1350,
-                "Repairs": 5550,
-                "Landscaping": 950
+                "Cleaning": -1300,
+                "Repairs": -2150,
+                "Landscaping": -340
               },
-              "Insurance": 2250,
-              "Taxes": 2850,
-              "Security": 1300,
-              "Parking": 950,
-              "Management": 1650,
-              "Legal": 1000
+              "Insurance": -1050,
+              "Taxes": -1550,
+              "Security": -900,
+              "Parking": -1050,
+              "Management": -1000,
+              "Legal": -660
             }
           },
-          "Q3 2022": {
-            "total": 37900,
+          "Jun 2022": {
+            "total": -19200,
             "expenses": {
-              "Rent": 14500,
+              "Rent": -6200,
               "Utilities": {
-                "Electricity": 4500,
-                "Water": 1400,
-                "Gas": 1100
+                "Electricity": -1650,
+                "Water": -600,
+                "Gas": -440
               },
               "Maintenance": {
-                "Cleaning": 1400,
-                "Repairs": 5700,
-                "Landscaping": 1000
+                "Cleaning": -1300,
+                "Repairs": -2150,
+                "Landscaping": -340
               },
-              "Insurance": 2250,
-              "Taxes": 2850,
-              "Security": 1320,
-              "Parking": 950,
-              "Management": 1700,
-              "Legal": 1020
+              "Insurance": -1050,
+              "Taxes": -1550,
+              "Security": -900,
+              "Parking": -1050,
+              "Management": -1000,
+              "Legal": -660
             }
           },
-          "Q4 2022": {
-            "total": 38600,
+          "Jul 2022": {
+            "total": -19700,
             "expenses": {
-              "Rent": 14500,
+              "Rent": -6200,
               "Utilities": {
-                "Electricity": 4700,
-                "Water": 1450,
-                "Gas": 1150
+                "Electricity": -1750,
+                "Water": -650,
+                "Gas": -460
               },
               "Maintenance": {
-                "Cleaning": 1450,
-                "Repairs": 5850,
-                "Landscaping": 1050
+                "Cleaning": -1350,
+                "Repairs": -2250,
+                "Landscaping": -360
               },
-              "Insurance": 2250,
-              "Taxes": 2850,
-              "Security": 1340,
-              "Parking": 950,
-              "Management": 1750,
-              "Legal": 1040
+              "Insurance": -1050,
+              "Taxes": -1550,
+              "Security": -950,
+              "Parking": -1050,
+              "Management": -1050,
+              "Legal": -690
             }
           },
-          "Q1 2023": {
-            "total": 39300,
+          "Aug 2022": {
+            "total": -19700,
             "expenses": {
-              "Rent": 15000,
+              "Rent": -6200,
               "Utilities": {
-                "Electricity": 4400,
-                "Water": 1400,
-                "Gas": 1100
+                "Electricity": -1750,
+                "Water": -650,
+                "Gas": -460
               },
               "Maintenance": {
-                "Cleaning": 1400,
-                "Repairs": 5600,
-                "Landscaping": 1000
+                "Cleaning": -1350,
+                "Repairs": -2250,
+                "Landscaping": -360
               },
-              "Insurance": 2300,
-              "Taxes": 2900,
-              "Security": 1360,
-              "Parking": 1000,
-              "Management": 1700,
-              "Legal": 1060
+              "Insurance": -1050,
+              "Taxes": -1550,
+              "Security": -950,
+              "Parking": -1050,
+              "Management": -1050,
+              "Legal": -690
             }
           },
-          "Q2 2023": {
-            "total": 40000,
+          "Sep 2022": {
+            "total": -19700,
             "expenses": {
-              "Rent": 15000,
+              "Rent": -6200,
               "Utilities": {
-                "Electricity": 4600,
-                "Water": 1450,
-                "Gas": 1150
+                "Electricity": -1750,
+                "Water": -650,
+                "Gas": -460
               },
               "Maintenance": {
-                "Cleaning": 1450,
-                "Repairs": 5750,
-                "Landscaping": 1050
+                "Cleaning": -1350,
+                "Repairs": -2250,
+                "Landscaping": -360
               },
-              "Insurance": 2300,
-              "Taxes": 2900,
-              "Security": 1380,
-              "Parking": 1000,
-              "Management": 1750,
-              "Legal": 1080
+              "Insurance": -1050,
+              "Taxes": -1550,
+              "Security": -950,
+              "Parking": -1050,
+              "Management": -1050,
+              "Legal": -690
             }
           },
-          "Q3 2023": {
-            "total": 40700,
+          "Oct 2022": {
+            "total": -20200,
             "expenses": {
-              "Rent": 15000,
+              "Rent": -6200,
               "Utilities": {
-                "Electricity": 4800,
-                "Water": 1500,
-                "Gas": 1200
+                "Electricity": -1850,
+                "Water": -700,
+                "Gas": -480
               },
               "Maintenance": {
-                "Cleaning": 1500,
-                "Repairs": 5900,
-                "Landscaping": 1100
+                "Cleaning": -1400,
+                "Repairs": -2350,
+                "Landscaping": -380
               },
-              "Insurance": 2300,
-              "Taxes": 2900,
-              "Security": 1400,
-              "Parking": 1000,
-              "Management": 1800,
-              "Legal": 1100
+              "Insurance": -1050,
+              "Taxes": -1550,
+              "Security": -1000,
+              "Parking": -1050,
+              "Management": -1100,
+              "Legal": -720
             }
           },
-          "Q4 2023": {
-            "total": 41400,
+          "Nov 2022": {
+            "total": -20200,
             "expenses": {
-              "Rent": 15000,
+              "Rent": -6200,
               "Utilities": {
-                "Electricity": 5000,
-                "Water": 1550,
-                "Gas": 1250
+                "Electricity": -1850,
+                "Water": -700,
+                "Gas": -480
               },
               "Maintenance": {
-                "Cleaning": 1550,
-                "Repairs": 6050,
-                "Landscaping": 1150
+                "Cleaning": -1400,
+                "Repairs": -2350,
+                "Landscaping": -380
               },
-              "Insurance": 2300,
-              "Taxes": 2900,
-              "Security": 1420,
-              "Parking": 1000,
-              "Management": 1850,
-              "Legal": 1120
-            }
-          }
-        },
-        "categoryTrends": {
-          "Rent": {
-            "trend": "increasing",
-            "change": 7.1
-          },
-          "Utilities": {
-            "trend": "increasing",
-            "change": 39.5
-          },
-          "Maintenance": {
-            "trend": "increasing",
-            "change": 25.8
-          },
-          "Insurance": {
-            "trend": "increasing",
-            "change": 4.5
-          },
-          "Taxes": {
-            "trend": "increasing",
-            "change": 3.6
-          },
-          "Security": {
-            "trend": "increasing",
-            "change": 18.3
-          },
-          "Parking": {
-            "trend": "increasing",
-            "change": 11.1
-          },
-          "Management": {
-            "trend": "increasing",
-            "change": 23.3
-          },
-          "Legal": {
-            "trend": "increasing",
-            "change": 24.4
-          }
-        }
-      },
-      {
-        "id": 5,
-        "name": "Medical Office Building",
-        "quarterlyData": {
-          "Q1 2021": {
-            "total": 41500,
-            "expenses": {
-              "Rent": 18000,
-              "Utilities": {
-                "Electricity": 4200,
-                "Water": 1300,
-                "Gas": 1000
-              },
-              "Maintenance": {
-                "Cleaning": 1800,
-                "Repairs": 5800,
-                "Landscaping": 1200
-              },
-              "Insurance": 2800,
-              "Taxes": 3200,
-              "Security": 1500,
-              "Parking": 1200,
-              "Management": 1800,
-              "Legal": 1200
+              "Insurance": -1050,
+              "Taxes": -1550,
+              "Security": -1000,
+              "Parking": -1050,
+              "Management": -1100,
+              "Legal": -720
             }
           },
-          "Q2 2021": {
-            "total": 42200,
+          "Dec 2022": {
+            "total": -20200,
             "expenses": {
-              "Rent": 18000,
+              "Rent": -6200,
               "Utilities": {
-                "Electricity": 4400,
-                "Water": 1350,
-                "Gas": 1050
+                "Electricity": -1850,
+                "Water": -700,
+                "Gas": -480
               },
               "Maintenance": {
-                "Cleaning": 1850,
-                "Repairs": 5950,
-                "Landscaping": 1250
+                "Cleaning": -1400,
+                "Repairs": -2350,
+                "Landscaping": -380
               },
-              "Insurance": 2800,
-              "Taxes": 3200,
-              "Security": 1520,
-              "Parking": 1200,
-              "Management": 1850,
-              "Legal": 1220
+              "Insurance": -1050,
+              "Taxes": -1550,
+              "Security": -1000,
+              "Parking": -1050,
+              "Management": -1100,
+              "Legal": -720
             }
           },
-          "Q3 2021": {
-            "total": 42900,
+          "Jan 2023": {
+            "total": -19400,
             "expenses": {
-              "Rent": 18000,
+              "Rent": -6400,
               "Utilities": {
-                "Electricity": 4600,
-                "Water": 1400,
-                "Gas": 1100
+                "Electricity": -1650,
+                "Water": -600,
+                "Gas": -440
               },
               "Maintenance": {
-                "Cleaning": 1900,
-                "Repairs": 6100,
-                "Landscaping": 1300
+                "Cleaning": -1300,
+                "Repairs": -2150,
+                "Landscaping": -340
               },
-              "Insurance": 2800,
-              "Taxes": 3200,
-              "Security": 1540,
-              "Parking": 1200,
-              "Management": 1900,
-              "Legal": 1240
+              "Insurance": -1100,
+              "Taxes": -1600,
+              "Security": -900,
+              "Parking": -1100,
+              "Management": -1000,
+              "Legal": -660
             }
           },
-          "Q4 2021": {
-            "total": 43600,
+          "Feb 2023": {
+            "total": -19400,
             "expenses": {
-              "Rent": 18000,
+              "Rent": -6400,
               "Utilities": {
-                "Electricity": 4800,
-                "Water": 1450,
-                "Gas": 1150
+                "Electricity": -1650,
+                "Water": -600,
+                "Gas": -440
               },
               "Maintenance": {
-                "Cleaning": 1950,
-                "Repairs": 6250,
-                "Landscaping": 1350
+                "Cleaning": -1300,
+                "Repairs": -2150,
+                "Landscaping": -340
               },
-              "Insurance": 2800,
-              "Taxes": 3200,
-              "Security": 1560,
-              "Parking": 1200,
-              "Management": 1950,
-              "Legal": 1260
+              "Insurance": -1100,
+              "Taxes": -1600,
+              "Security": -900,
+              "Parking": -1100,
+              "Management": -1000,
+              "Legal": -660
             }
           },
-          "Q1 2022": {
-            "total": 44300,
+          "Mar 2023": {
+            "total": -19400,
             "expenses": {
-              "Rent": 18500,
+              "Rent": -6400,
               "Utilities": {
-                "Electricity": 4500,
-                "Water": 1400,
-                "Gas": 1100
+                "Electricity": -1650,
+                "Water": -600,
+                "Gas": -440
               },
               "Maintenance": {
-                "Cleaning": 1900,
-                "Repairs": 6000,
-                "Landscaping": 1300
+                "Cleaning": -1300,
+                "Repairs": -2150,
+                "Landscaping": -340
               },
-              "Insurance": 2850,
-              "Taxes": 3250,
-              "Security": 1580,
-              "Parking": 1250,
-              "Management": 1900,
-              "Legal": 1280
+              "Insurance": -1100,
+              "Taxes": -1600,
+              "Security": -900,
+              "Parking": -1100,
+              "Management": -1000,
+              "Legal": -660
             }
           },
-          "Q2 2022": {
-            "total": 45000,
+          "Apr 2023": {
+            "total": -19900,
             "expenses": {
-              "Rent": 18500,
+              "Rent": -6400,
               "Utilities": {
-                "Electricity": 4700,
-                "Water": 1450,
-                "Gas": 1150
+                "Electricity": -1750,
+                "Water": -650,
+                "Gas": -460
               },
               "Maintenance": {
-                "Cleaning": 1950,
-                "Repairs": 6150,
-                "Landscaping": 1350
+                "Cleaning": -1350,
+                "Repairs": -2250,
+                "Landscaping": -360
               },
-              "Insurance": 2850,
-              "Taxes": 3250,
-              "Security": 1600,
-              "Parking": 1250,
-              "Management": 1950,
-              "Legal": 1300
+              "Insurance": -1100,
+              "Taxes": -1600,
+              "Security": -950,
+              "Parking": -1100,
+              "Management": -1050,
+              "Legal": -690
             }
           },
-          "Q3 2022": {
-            "total": 45700,
+          "May 2023": {
+            "total": -19900,
             "expenses": {
-              "Rent": 18500,
+              "Rent": -6400,
               "Utilities": {
-                "Electricity": 4900,
-                "Water": 1500,
-                "Gas": 1200
+                "Electricity": -1750,
+                "Water": -650,
+                "Gas": -460
               },
               "Maintenance": {
-                "Cleaning": 2000,
-                "Repairs": 6300,
-                "Landscaping": 1400
+                "Cleaning": -1350,
+                "Repairs": -2250,
+                "Landscaping": -360
               },
-              "Insurance": 2850,
-              "Taxes": 3250,
-              "Security": 1620,
-              "Parking": 1250,
-              "Management": 2000,
-              "Legal": 1320
+              "Insurance": -1100,
+              "Taxes": -1600,
+              "Security": -950,
+              "Parking": -1100,
+              "Management": -1050,
+              "Legal": -690
             }
           },
-          "Q4 2022": {
-            "total": 46400,
+          "Jun 2023": {
+            "total": -19900,
             "expenses": {
-              "Rent": 18500,
+              "Rent": -6400,
               "Utilities": {
-                "Electricity": 5100,
-                "Water": 1550,
-                "Gas": 1250
+                "Electricity": -1750,
+                "Water": -650,
+                "Gas": -460
               },
               "Maintenance": {
-                "Cleaning": 2050,
-                "Repairs": 6450,
-                "Landscaping": 1450
+                "Cleaning": -1350,
+                "Repairs": -2250,
+                "Landscaping": -360
               },
-              "Insurance": 2850,
-              "Taxes": 3250,
-              "Security": 1640,
-              "Parking": 1250,
-              "Management": 2050,
-              "Legal": 1340
+              "Insurance": -1100,
+              "Taxes": -1600,
+              "Security": -950,
+              "Parking": -1100,
+              "Management": -1050,
+              "Legal": -690
             }
           },
-          "Q1 2023": {
-            "total": 47100,
+          "Jul 2023": {
+            "total": -20400,
             "expenses": {
-              "Rent": 19000,
+              "Rent": -6400,
               "Utilities": {
-                "Electricity": 4800,
-                "Water": 1500,
-                "Gas": 1200
+                "Electricity": -1850,
+                "Water": -700,
+                "Gas": -480
               },
               "Maintenance": {
-                "Cleaning": 2000,
-                "Repairs": 6200,
-                "Landscaping": 1400
+                "Cleaning": -1400,
+                "Repairs": -2350,
+                "Landscaping": -380
               },
-              "Insurance": 2900,
-              "Taxes": 3300,
-              "Security": 1660,
-              "Parking": 1300,
-              "Management": 2000,
-              "Legal": 1360
+              "Insurance": -1100,
+              "Taxes": -1600,
+              "Security": -1000,
+              "Parking": -1100,
+              "Management": -1100,
+              "Legal": -720
             }
           },
-          "Q2 2023": {
-            "total": 47800,
+          "Aug 2023": {
+            "total": -20400,
             "expenses": {
-              "Rent": 19000,
+              "Rent": -6400,
               "Utilities": {
-                "Electricity": 5000,
-                "Water": 1550,
-                "Gas": 1250
+                "Electricity": -1850,
+                "Water": -700,
+                "Gas": -480
               },
               "Maintenance": {
-                "Cleaning": 2050,
-                "Repairs": 6350,
-                "Landscaping": 1450
+                "Cleaning": -1400,
+                "Repairs": -2350,
+                "Landscaping": -380
               },
-              "Insurance": 2900,
-              "Taxes": 3300,
-              "Security": 1680,
-              "Parking": 1300,
-              "Management": 2050,
-              "Legal": 1380
+              "Insurance": -1100,
+              "Taxes": -1600,
+              "Security": -1000,
+              "Parking": -1100,
+              "Management": -1100,
+              "Legal": -720
             }
           },
-          "Q3 2023": {
-            "total": 48500,
+          "Sep 2023": {
+            "total": -20400,
             "expenses": {
-              "Rent": 19000,
+              "Rent": -6400,
               "Utilities": {
-                "Electricity": 5200,
-                "Water": 1600,
-                "Gas": 1300
+                "Electricity": -1850,
+                "Water": -700,
+                "Gas": -480
               },
               "Maintenance": {
-                "Cleaning": 2100,
-                "Repairs": 6500,
-                "Landscaping": 1500
+                "Cleaning": -1400,
+                "Repairs": -2350,
+                "Landscaping": -380
               },
-              "Insurance": 2900,
-              "Taxes": 3300,
-              "Security": 1700,
-              "Parking": 1300,
-              "Management": 2100,
-              "Legal": 1400
+              "Insurance": -1100,
+              "Taxes": -1600,
+              "Security": -1000,
+              "Parking": -1100,
+              "Management": -1100,
+              "Legal": -720
             }
           },
-          "Q4 2023": {
-            "total": 49200,
+          "Oct 2023": {
+            "total": -20900,
             "expenses": {
-              "Rent": 19000,
+              "Rent": -6400,
               "Utilities": {
-                "Electricity": 5400,
-                "Water": 1650,
-                "Gas": 1350
+                "Electricity": -1950,
+                "Water": -750,
+                "Gas": -500
               },
               "Maintenance": {
-                "Cleaning": 2150,
-                "Repairs": 6650,
-                "Landscaping": 1550
+                "Cleaning": -1450,
+                "Repairs": -2450,
+                "Landscaping": -400
               },
-              "Insurance": 2900,
-              "Taxes": 3300,
-              "Security": 1720,
-              "Parking": 1300,
-              "Management": 2150,
-              "Legal": 1420
+              "Insurance": -1100,
+              "Taxes": -1600,
+              "Security": -1050,
+              "Parking": -1100,
+              "Management": -1150,
+              "Legal": -750
+            }
+          },
+          "Nov 2023": {
+            "total": -20900,
+            "expenses": {
+              "Rent": -6400,
+              "Utilities": {
+                "Electricity": -1950,
+                "Water": -750,
+                "Gas": -500
+              },
+              "Maintenance": {
+                "Cleaning": -1450,
+                "Repairs": -2450,
+                "Landscaping": -400
+              },
+              "Insurance": -1100,
+              "Taxes": -1600,
+              "Security": -1050,
+              "Parking": -1100,
+              "Management": -1150,
+              "Legal": -750
+            }
+          },
+          "Dec 2023": {
+            "total": -20900,
+            "expenses": {
+              "Rent": -6400,
+              "Utilities": {
+                "Electricity": -1950,
+                "Water": -750,
+                "Gas": -500
+              },
+              "Maintenance": {
+                "Cleaning": -1450,
+                "Repairs": -2450,
+                "Landscaping": -400
+              },
+              "Insurance": -1100,
+              "Taxes": -1600,
+              "Security": -1050,
+              "Parking": -1100,
+              "Management": -1150,
+              "Legal": -750
             }
           }
         },
-        "categoryTrends": {
-          "Rent": {
-            "trend": "increasing",
-            "change": 5.6
-          },
+        "expenses": {
+          "Rent": -6400,
           "Utilities": {
-            "trend": "increasing",
-            "change": 42.9
+            "Electricity": -1950,
+            "Water": -750,
+            "Gas": -500
           },
           "Maintenance": {
-            "trend": "increasing",
-            "change": 29.2
+            "Cleaning": -1450,
+            "Repairs": -2450,
+            "Landscaping": -400
           },
-          "Insurance": {
-            "trend": "increasing",
-            "change": 3.6
-          },
-          "Taxes": {
-            "trend": "increasing",
-            "change": 3.1
-          },
-          "Security": {
-            "trend": "increasing",
-            "change": 14.7
-          },
-          "Parking": {
-            "trend": "increasing",
-            "change": 8.3
-          },
-          "Management": {
-            "trend": "increasing",
-            "change": 19.4
-          },
-          "Legal": {
-            "trend": "increasing",
-            "change": 18.3
-          }
+          "Insurance": -1100,
+          "Taxes": -1600,
+          "Security": -1050,
+          "Parking": -1100,
+          "Management": -1150,
+          "Legal": -750
         }
       }
     ],

@@ -30,7 +30,7 @@ class Formatter {
 
     /**
      * Format a number as Indian Rupees
-     * @param {number} amount - The amount to format
+     * @param {number} amount - The amount to format (negative for expenses)
      * @param {boolean} compact - Whether to use compact notation
      * @returns {string} Formatted currency string
      */
@@ -42,10 +42,14 @@ class Formatter {
         const options = compact ? this.currencyCompactOptions : this.currencyOptions;
 
         try {
-            return new Intl.NumberFormat('en-IN', options).format(amount);
+            // For expenses (negative values), display as positive with ₹ prefix
+            // This maintains readability while keeping data as negative for calculations
+            const displayAmount = amount < 0 ? Math.abs(amount) : amount;
+            return new Intl.NumberFormat('en-IN', options).format(displayAmount);
         } catch (error) {
             console.warn('Currency formatting failed, using fallback:', error);
-            return `₹${Math.round(amount).toLocaleString('en-IN')}`;
+            const displayAmount = amount < 0 ? Math.abs(amount) : amount;
+            return `₹${Math.round(displayAmount).toLocaleString('en-IN')}`;
         }
     }
 
