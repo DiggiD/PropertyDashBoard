@@ -21,6 +21,10 @@ class UIManager {
         this.isLoading = false;
         this.activeModals = new Set();
 
+        // Year picker state persistence
+        this.selectedYear = null;
+        this.selectedMonth = null;
+
         // Event listeners cache for cleanup
         this.eventListeners = new Map();
 
@@ -74,6 +78,12 @@ class UIManager {
             'colorThemeDropdown': '#colorThemeDropdown',
             'colorThemeBtn': '#colorThemeBtn',
             'colorThemeMenu': '#colorThemeMenu',
+
+            // Year picker
+            'yearPicker': '#yearPicker',
+            'yearPickerHeader': '#yearPickerHeader',
+            'monthPicker': '#monthPicker',
+            'monthPickerHeader': '#monthPickerHeader',
 
             // Summary buttons
             'overviewBtn': '#overviewBtn',
@@ -231,8 +241,8 @@ class UIManager {
     setCurrentView(view) {
         this.currentView = view;
 
-        // Update summary button states
-        this.updateSummaryButtons(view);
+        // Update sidebar selection state
+        this.updateSidebarSelection(view);
 
         // Hide all dashboards
         this.hideAllDashboards();
@@ -243,27 +253,7 @@ class UIManager {
         console.log(`[UI] Switched to view: ${view}`);
     }
 
-    /**
-     * Update summary button states
-     * @param {string} activeView - Active view name
-     */
-    updateSummaryButtons(activeView) {
-        const buttons = ['overviewBtn', 'analyticsBtn', 'incomeBtn', 'propertiesBtn'];
 
-        buttons.forEach(buttonKey => {
-            const button = this.getElement(buttonKey);
-            if (button) {
-                const viewName = buttonKey.replace('Btn', '');
-                if (viewName === activeView) {
-                    button.classList.add('selected');
-                    button.setAttribute('aria-pressed', 'true');
-                } else {
-                    button.classList.remove('selected');
-                    button.setAttribute('aria-pressed', 'false');
-                }
-            }
-        });
-    }
 
     /**
      * Hide all dashboards
@@ -349,11 +339,40 @@ class UIManager {
     }
 
     /**
+     * Update sidebar selection state
+     * @param {string} activeView - Active view name
+     */
+    updateSidebarSelection(activeView) {
+        // Clear all data-active attributes first
+        const allNavItems = document.querySelectorAll('.nav-item');
+        allNavItems.forEach(item => {
+            item.removeAttribute('data-active');
+        });
+
+        // Set data-active for the selected view
+        const viewMap = {
+            'overview': 'overviewBtn',
+            'analytics': 'analyticsBtn',
+            'income': 'incomeBtn',
+            'properties': 'propertiesBtn'
+        };
+
+        const buttonId = viewMap[activeView];
+        if (buttonId) {
+            const button = document.getElementById(buttonId);
+            if (button) {
+                button.setAttribute('data-active', 'true');
+            }
+        }
+
+        console.log(`[UI] Sidebar selection updated: ${activeView}`);
+    }
+
+    /**
      * Update navigation state
      * @param {string} activeView - Active view name
      */
     updateNavigationState(activeView) {
-        this.updateSummaryButtons(activeView);
         console.log(`[UI] Navigation state updated: ${activeView}`);
     }
 
@@ -392,36 +411,358 @@ class UIManager {
     /**
      * Populate year picker with available years
      * @param {Array} availableYears - Array of available years
+     * @param {boolean} includeAll - Whether to include "ALL" option
+     * @param {string} selectedYear - Currently selected year (for compact mode)
      */
-    populateYearPicker(availableYears) {
-        const yearSelect = this.getElement('overviewYearSelect');
-        if (!yearSelect) {
-            console.warn('[UI] Year picker not found');
+    populateYearPicker(availableYears, includeAll = true, selectedYear = null) {
+        const yearPickerHeader = this.getElement('yearPickerHeader');
+        if (!yearPickerHeader) {
+            console.warn('[UI] Year picker header not found');
             return;
         }
 
-        // Clear existing options except "All Years"
-        const allYearsOption = yearSelect.querySelector('option[value="all"]');
-        yearSelect.innerHTML = '';
-        if (allYearsOption) {
-            yearSelect.appendChild(allYearsOption);
-        } else {
-            // Add "All Years" option if it doesn't exist
-            const allOption = document.createElement('option');
-            allOption.value = 'all';
-            allOption.textContent = 'All Years';
-            yearSelect.appendChild(allOption);
+        // Clear existing year picker items
+        yearPickerHeader.innerHTML = '';
+
+        // Use stored selected year if available and valid, otherwise use last available year from database
+        if (selectedYear === null) {
+            if (this.selectedYear && availableYears && availableYears.includes(this.selectedYear)) {
+                // Use previously selected year if it's still available
+                selectedYear = this.selectedYear;
+            } else if (availableYears && availableYears.length > 0) {
+                // Sort years in descending order and pick the most recent (last) year
+                const sortedYears = [...availableYears].sort((a, b) => parseInt(b) - parseInt(a));
+                selectedYear = sortedYears[0].toString();
+                // Update stored year to the new default
+                this.selectedYear = selectedYear;
+            } else {
+                // Fallback to current year if no available years
+                selectedYear = new Date().getFullYear().toString();
+                this.selectedYear = selectedYear;
+            }
         }
 
-        // Add available years
-        availableYears.forEach(year => {
-            const option = document.createElement('option');
-            option.value = year;
-            option.textContent = year;
-            yearSelect.appendChild(option);
+        // Show ALL option only for overview dashboard (sankey)
+        const showAllOption = this.currentView === 'overview';
+
+        if (showAllOption) {
+            // Create combined year picker with ALL option and compact navigation
+            this.createCombinedYearPicker(yearPickerHeader, availableYears, selectedYear);
+        } else {
+            // Create compact year picker without ALL option
+            this.createCompactYearPicker(yearPickerHeader, availableYears, selectedYear);
+        }
+
+        // Ensure the selected year is properly highlighted
+        if (this.selectedYear) {
+            this.handleYearSelection(this.selectedYear);
+        }
+
+        console.log(`[UI] Populated year picker with selected year: ${selectedYear}, stored: ${this.selectedYear}, showAll: ${showAllOption}, availableYears:`, availableYears);
+    }
+
+    /**
+     * Create combined year picker with ALL option and compact navigation
+     * @param {HTMLElement} container - Container element
+     * @param {Array} availableYears - Array of available years
+     * @param {string} selectedYear - Currently selected year
+     */
+    createCombinedYearPicker(container, availableYears, selectedYear) {
+        // Create ALL button
+        const allButton = document.createElement('button');
+        allButton.className = 'year-picker-item';
+        allButton.setAttribute('data-year', 'all');
+        allButton.textContent = 'ALL';
+        allButton.addEventListener('click', () => this.handleYearSelection('all'));
+        container.appendChild(allButton);
+
+        // Create compact navigation section
+        this.createCompactYearPicker(container, availableYears, selectedYear);
+    }
+
+    /**
+     * Create compact year picker with single year and navigation arrows
+     * @param {HTMLElement} container - Container element
+     * @param {Array} availableYears - Array of available years
+     * @param {string} selectedYear - Currently selected year
+     */
+    createCompactYearPicker(container, availableYears, selectedYear) {
+        // Find current year index in available years
+        const currentIndex = availableYears.indexOf(selectedYear);
+        const hasPrevious = currentIndex > 0;
+        const hasNext = currentIndex < availableYears.length - 1;
+
+        // Create left arrow
+        const leftArrow = document.createElement('button');
+        leftArrow.className = 'year-nav-arrow year-nav-left';
+        leftArrow.innerHTML = '‹';
+        leftArrow.setAttribute('aria-label', 'Previous year');
+        if (hasPrevious) {
+            leftArrow.addEventListener('click', () => {
+                const prevYear = availableYears[currentIndex - 1];
+                this.populateYearPicker(availableYears, true, prevYear);
+                // Automatically select the year when navigating with arrows
+                this.handleYearSelection(prevYear);
+            });
+        } else {
+            leftArrow.disabled = true;
+            leftArrow.style.opacity = '0.3';
+        }
+        container.appendChild(leftArrow);
+
+        // Create year button
+        const yearButton = document.createElement('button');
+        yearButton.className = 'year-picker-item selected';
+        yearButton.setAttribute('data-year', selectedYear);
+        yearButton.textContent = selectedYear;
+        yearButton.addEventListener('click', () => this.handleYearSelection(selectedYear));
+        container.appendChild(yearButton);
+
+        // Create right arrow
+        const rightArrow = document.createElement('button');
+        rightArrow.className = 'year-nav-arrow year-nav-right';
+        rightArrow.innerHTML = '›';
+        rightArrow.setAttribute('aria-label', 'Next year');
+        if (hasNext) {
+            rightArrow.addEventListener('click', () => {
+                const nextYear = availableYears[currentIndex + 1];
+                this.populateYearPicker(availableYears, true, nextYear);
+                // Automatically select the year when navigating with arrows
+                this.handleYearSelection(nextYear);
+            });
+        } else {
+            rightArrow.disabled = true;
+            rightArrow.style.opacity = '0.3';
+        }
+        container.appendChild(rightArrow);
+    }
+
+    /**
+     * Populate month picker with available months
+     * @param {boolean} includeAll - Whether to include "ALL" option
+     * @param {number} centerMonth - Month to center on (1-12, defaults to current month)
+     * @param {Array} availableMonths - Array of available months for the current year
+     */
+    populateMonthPicker(includeAll = true, centerMonth = null, availableMonths = null) {
+        const monthPickerHeader = this.getElement('monthPickerHeader');
+        if (!monthPickerHeader) {
+            console.warn('[UI] Month picker header not found');
+            return;
+        }
+
+        // Clear existing month picker items
+        monthPickerHeader.innerHTML = '';
+
+        // Prioritize stored selected month, only use defaults if no stored selection
+        if (centerMonth === null) {
+            if (this.selectedMonth && availableMonths && availableMonths.includes(this.selectedMonth)) {
+                // Use previously selected month if it's still available
+                centerMonth = parseInt(this.selectedMonth);
+            } else if (this.selectedMonth && (!availableMonths || !availableMonths.includes(this.selectedMonth))) {
+                // Stored month is not available in current data, but keep it for when data becomes available
+                centerMonth = parseInt(this.selectedMonth);
+            } else if (availableMonths && availableMonths.length > 0) {
+                // No stored selection, use last available month as default
+                const sortedMonths = [...availableMonths].sort((a, b) => parseInt(b) - parseInt(a));
+                centerMonth = parseInt(sortedMonths[0]);
+                // Only update stored month if we don't have a stored selection
+                if (!this.selectedMonth) {
+                    this.selectedMonth = String(centerMonth).padStart(2, '0');
+                }
+            } else {
+                // Fallback to current month if no available months
+                centerMonth = new Date().getMonth() + 1; // 1-12
+                if (!this.selectedMonth) {
+                    this.selectedMonth = String(centerMonth).padStart(2, '0');
+                }
+            }
+        }
+
+        // Add "ALL" option first if requested
+        if (includeAll) {
+            const allButton = document.createElement('button');
+            allButton.className = 'month-picker-item selected';
+            allButton.setAttribute('data-month', 'all');
+            allButton.textContent = 'ALL';
+            allButton.addEventListener('click', () => this.handleMonthSelection('all'));
+            monthPickerHeader.appendChild(allButton);
+        } else {
+            // Create compact month picker with navigation
+            this.createCompactMonthPicker(monthPickerHeader, centerMonth);
+        }
+
+        console.log('[UI] Populated month picker with center month:', centerMonth, 'stored:', this.selectedMonth, 'availableMonths:', availableMonths);
+    }
+
+    /**
+     * Create compact month picker with 3 months and navigation arrows
+     * @param {HTMLElement} container - Container element
+     * @param {number} centerMonth - Month to center on (1-12)
+     */
+    createCompactMonthPicker(container, centerMonth) {
+        // Month names array
+        const monthNames = [
+            'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+            'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+        ];
+
+        // Calculate the 3 months to show (previous, current, next)
+        const prevMonth = centerMonth - 1 === 0 ? 12 : centerMonth - 1;
+        const nextMonth = centerMonth + 1 === 13 ? 1 : centerMonth + 1;
+
+        // Create left arrow
+        const leftArrow = document.createElement('button');
+        leftArrow.className = 'month-nav-arrow month-nav-left';
+        leftArrow.innerHTML = '‹';
+        leftArrow.setAttribute('aria-label', 'Previous month');
+        leftArrow.addEventListener('click', () => {
+            const newCenter = centerMonth - 1 === 0 ? 12 : centerMonth - 1;
+            this.populateMonthPicker(false, newCenter);
+        });
+        container.appendChild(leftArrow);
+
+        // Create month buttons
+        const monthsToShow = [prevMonth, centerMonth, nextMonth];
+
+        monthsToShow.forEach((monthNum, index) => {
+            const monthButton = document.createElement('button');
+            monthButton.className = 'month-picker-item';
+            if (index === 1) { // Center month
+                monthButton.classList.add('selected');
+            }
+            monthButton.setAttribute('data-month', String(monthNum).padStart(2, '0'));
+            monthButton.textContent = monthNames[monthNum - 1];
+            monthButton.addEventListener('click', () => this.handleMonthSelection(String(monthNum).padStart(2, '0')));
+            container.appendChild(monthButton);
         });
 
-        console.log(`[UI] Populated year picker with ${availableYears.length} years:`, availableYears);
+        // Create right arrow
+        const rightArrow = document.createElement('button');
+        rightArrow.className = 'month-nav-arrow month-nav-right';
+        rightArrow.innerHTML = '›';
+        rightArrow.setAttribute('aria-label', 'Next month');
+        rightArrow.addEventListener('click', () => {
+            const newCenter = centerMonth + 1 === 13 ? 1 : centerMonth + 1;
+            this.populateMonthPicker(false, newCenter);
+        });
+        container.appendChild(rightArrow);
+    }
+
+    /**
+     * Handle month selection from month picker buttons
+     * @param {string} selectedMonth - Selected month or 'all'
+     */
+    handleMonthSelection(selectedMonth) {
+        // Store the selected month for persistence across dashboard switches
+        this.selectedMonth = selectedMonth;
+
+        // Update button states
+        const monthPickerItems = document.querySelectorAll('.month-picker-item');
+        monthPickerItems.forEach(item => {
+            if (item.getAttribute('data-month') === selectedMonth) {
+                item.classList.add('selected');
+            } else {
+                item.classList.remove('selected');
+            }
+        });
+
+        // Trigger month change event
+        const event = new CustomEvent('monthChange', {
+            detail: { selectedMonth }
+        });
+        document.dispatchEvent(event);
+
+        console.log(`[UI] Month selected: ${selectedMonth}, stored for persistence`);
+    }
+
+    /**
+     * Handle year selection from year picker buttons
+     * @param {string} selectedYear - Selected year or 'all'
+     */
+    handleYearSelection(selectedYear) {
+        // Store the selected year for persistence across dashboard switches
+        this.selectedYear = selectedYear;
+
+        // Update button states - ensure ALL button is also handled
+        const yearPickerItems = document.querySelectorAll('.year-picker-item');
+        yearPickerItems.forEach(item => {
+            const itemYear = item.getAttribute('data-year');
+            if (itemYear === selectedYear) {
+                item.classList.add('selected');
+            } else {
+                item.classList.remove('selected');
+            }
+        });
+
+        // Trigger year change event
+        const event = new CustomEvent('yearChange', {
+            detail: { selectedYear }
+        });
+        document.dispatchEvent(event);
+
+        console.log(`[UI] Year selected: ${selectedYear}, stored for persistence`);
+    }
+
+    /**
+     * Show year picker (only for overview dashboard)
+     */
+    showYearPicker() {
+        const yearPicker = this.getElement('yearPicker');
+        if (yearPicker) {
+            yearPicker.style.display = 'flex';
+            console.log('[UI] Year picker shown');
+        }
+    }
+
+    /**
+     * Hide year picker
+     */
+    hideYearPicker() {
+        const yearPicker = this.getElement('yearPicker');
+        if (yearPicker) {
+            yearPicker.style.display = 'none';
+            console.log('[UI] Year picker hidden');
+        }
+    }
+
+    /**
+     * Show month picker
+     */
+    showMonthPicker() {
+        const monthPicker = this.getElement('monthPicker');
+        if (monthPicker) {
+            monthPicker.style.display = 'flex';
+            console.log('[UI] Month picker shown');
+        }
+    }
+
+    /**
+     * Hide month picker
+     */
+    hideMonthPicker() {
+        const monthPicker = this.getElement('monthPicker');
+        if (monthPicker) {
+            monthPicker.style.display = 'none';
+            console.log('[UI] Month picker hidden');
+        }
+    }
+
+    /**
+     * Update year picker visibility based on current view
+     * @param {string} view - Current view name
+     */
+    updateYearPickerVisibility(view) {
+        if (view === 'overview' || view === 'properties') {
+            this.showYearPicker();
+            if (view === 'properties') {
+                this.showMonthPicker();
+            } else {
+                this.hideMonthPicker();
+            }
+        } else {
+            this.hideYearPicker();
+            this.hideMonthPicker();
+        }
     }
 
     /**

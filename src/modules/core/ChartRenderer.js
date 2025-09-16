@@ -1461,7 +1461,7 @@ class ChartRenderer {
                     return a.originalIndex - b.originalIndex;
                 })
                 .linkSort(null)
-                .extent([[25, 25], [width - 25, height - 25]]);
+                .extent([[25, 0], [width - 25, height - 25]]);
 
             // Process data - nodes are already in correct order from prepareSankeyData
             const sankeyData = sankey({

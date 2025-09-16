@@ -284,6 +284,29 @@ class App {
                 this.chartRenderer.renderOverviewSankey();
             });
         }
+
+        // Year and month selectors for properties dashboard (header picker)
+        document.addEventListener('yearChange', (e) => {
+            const selectedYear = e.detail.selectedYear;
+            this.dataManager.setSelectedYear(selectedYear);
+            // If properties dashboard is active, update it
+            if (this.currentView === 'properties' && this.propertiesManager) {
+                this.propertiesManager.renderPropertiesDashboard();
+            }
+            // Also update overview if it's active
+            if (this.currentView === 'overview') {
+                this.chartRenderer.renderOverviewSankey();
+            }
+        });
+
+        document.addEventListener('monthChange', (e) => {
+            const selectedMonth = e.detail.selectedMonth;
+            this.dataManager.setSelectedMonth(selectedMonth);
+            // If properties dashboard is active, update it
+            if (this.currentView === 'properties' && this.propertiesManager) {
+                this.propertiesManager.renderPropertiesDashboard();
+            }
+        });
     }
 
     /**
@@ -295,21 +318,16 @@ class App {
         this.uiManager.hideAllDashboards();
         this.uiManager.showDashboard('overview');
         this.uiManager.updateNavigationState('overview');
+        this.uiManager.updateYearPickerVisibility('overview');
 
-        // Populate year picker with available years from loaded data
+        // Populate time period header with available years from loaded data
         const availableYears = this.dataManager.getAvailableYears();
         if (availableYears.length > 0) {
-            this.uiManager.populateYearPicker(availableYears);
+            this.populateTimePeriodHeader(availableYears);
 
             // Automatically select the most recent year
             const mostRecentYear = availableYears[availableYears.length - 1];
             this.dataManager.setSelectedYear(mostRecentYear);
-
-            // Update the year picker UI to reflect the selected year
-            const yearSelect = this.uiManager.getElement('overviewYearSelect');
-            if (yearSelect) {
-                yearSelect.value = mostRecentYear;
-            }
 
             console.log('[APP] Auto-selected most recent year:', mostRecentYear);
         }
@@ -327,6 +345,7 @@ class App {
         this.uiManager.hideAllDashboards();
         this.uiManager.showDashboard('analytics');
         this.uiManager.updateNavigationState('analytics');
+        this.uiManager.updateYearPickerVisibility('analytics');
 
         // Update controls
         this.updateAnalyticsControls();
@@ -344,6 +363,7 @@ class App {
         this.uiManager.hideAllDashboards();
         this.uiManager.showDashboard('income');
         this.uiManager.updateNavigationState('income');
+        this.uiManager.updateYearPickerVisibility('income');
     }
 
     /**
@@ -355,6 +375,7 @@ class App {
         this.uiManager.hideAllDashboards();
         this.uiManager.showDashboard('properties');
         this.uiManager.updateNavigationState('properties');
+        this.uiManager.updateYearPickerVisibility('properties');
 
         // Initialize properties manager if not already done
         if (this.propertiesManager && typeof this.propertiesManager.initialize === 'function') {
@@ -394,6 +415,44 @@ class App {
         this.dataManager.setCurrentView(this.currentView);
         this.chartRenderer.renderAnalyticsChart();
         this.updateChartCalculations();
+    }
+
+    /**
+     * Populate year picker with available years
+     * @param {Array} availableYears - Array of available years
+     */
+    populateTimePeriodHeader(availableYears) {
+        // Use UIManager to populate the year picker in the header
+        this.uiManager.populateYearPicker(availableYears);
+
+        // Update selection state
+        this.updateTimePeriodSelection();
+
+        console.log(`[APP] Populated year picker with ${availableYears.length + 1} options`);
+    }
+
+
+
+    /**
+     * Update time period selection UI
+     */
+    updateTimePeriodSelection() {
+        const yearPickerHeader = this.uiManager.getElement('yearPickerHeader');
+        const selectedYear = this.dataManager.getSelectedYear();
+
+        if (yearPickerHeader) {
+            // Remove selected class from all items
+            const allItems = yearPickerHeader.querySelectorAll('.year-picker-item');
+            allItems.forEach(item => {
+                item.classList.remove('selected');
+            });
+
+            // Add selected class to the current selection
+            const selectedItem = yearPickerHeader.querySelector(`[data-year="${selectedYear}"]`);
+            if (selectedItem) {
+                selectedItem.classList.add('selected');
+            }
+        }
     }
 
     /**
@@ -470,6 +529,13 @@ class App {
             case 'overview':
                 this.uiManager.hideAllDashboards();
                 this.uiManager.showDashboard('overview');
+
+                // Populate time period header with available years from loaded data
+                const availableYears = this.dataManager.getAvailableYears();
+                if (availableYears.length > 0) {
+                    this.populateTimePeriodHeader(availableYears);
+                }
+
                 this.chartRenderer.renderOverviewSankey();
                 break;
             case 'analytics':
@@ -530,11 +596,21 @@ class App {
     refreshUI() {
         console.log('[APP] Refreshing UI...');
 
+        // Update year picker visibility
+        this.uiManager.updateYearPickerVisibility(this.currentView);
+
         // Re-render current view
         switch (this.currentView) {
             case 'overview':
                 this.uiManager.hideAllDashboards();
                 this.uiManager.showDashboard('overview');
+
+                // Populate time period header with available years from loaded data
+                const availableYears = this.dataManager.getAvailableYears();
+                if (availableYears.length > 0) {
+                    this.populateTimePeriodHeader(availableYears);
+                }
+
                 this.chartRenderer.renderOverviewSankey();
                 break;
             case 'analytics':

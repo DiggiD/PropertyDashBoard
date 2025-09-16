@@ -792,7 +792,7 @@ select.form-control {
 /* Header */
 .header {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
   padding: var(--space-20) var(--space-24);
   /* Remove border and shadow for seamless integration */
@@ -801,13 +801,20 @@ select.form-control {
   z-index: 10;
 }
 
+.header .year-picker {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+}
+
 .header-left h1 {
-  font-family: var(--font-family-base);
-  font-size: var(--font-size-sm);
+  font-family: 'Courier New', monospace;
+  font-size: var(--font-size-2xl);
   margin: 0;
   color: var(--color-text);
-  font-weight: var(--font-weight-semibold);
-  text-align: center;
+  font-weight: bold;
+  text-align: left;
   text-transform: uppercase;
 }
 
@@ -833,15 +840,17 @@ select.form-control {
   overflow: visible;
   position: relative;
   /* Remove margins and padding for proper flex layout */
+  align-items: flex-start; /* Align all children to top */
 }
 
-.expense-container {
+.sankey-container {
   width: 100%;
-  height: calc(100vh - 120px);
+  height: 100%;
   position: relative;
   background: var(--color-surface);
   overflow: visible; /* Changed from hidden to visible to prevent cropping */
   padding: 0; /* Ensure no padding that could cause cropping */
+  align-self: flex-start; /* Align to top of parent container */
 }
 
 /* Expense Chart Styles */
@@ -1250,10 +1259,10 @@ select.form-control {
     right: -100%;
   }
 
-.node-label {
+  .node-label {
     font-family: var(--font-family-base);
     font-size: var(--font-size-xs);
-}
+  }
 
   .modal-content {
     margin: var(--space-16);
@@ -1447,6 +1456,233 @@ select.form-control {
     border-top: 2px solid var(--color-primary);
     border-radius: 50%;
     animation: spin 1s linear infinite;
+}
+
+/* Year/Month Picker - Main Header */
+.year-picker {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: var(--font-family-base);
+    gap: var(--space-16);
+}
+
+/* Combined Year Picker Layout */
+.year-picker-header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: var(--font-family-base);
+    gap: var(--space-16);
+}
+
+.year-picker-header .year-picker-item:first-child {
+    margin-right: var(--space-8);
+}
+
+.year-picker-header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: var(--font-family-base);
+}
+
+.month-picker {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: var(--font-family-base);
+}
+
+.month-picker-header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: var(--font-family-base);
+}
+
+.month-picker-item {
+    background: transparent;
+    border: 2px solid transparent;
+    border-radius: 0;
+    padding: var(--space-8) var(--space-12);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: visible;
+    min-width: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-family-base);
+    text-transform: uppercase;
+    font-size: calc(var(--font-size-xs) - 1px);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text);
+    opacity: 0.6;
+}
+
+.month-picker-item:hover,
+.month-picker-item.hovered {
+    background: rgba(var(--color-teal-500-rgb), 0.12);
+    opacity: 1;
+}
+
+.month-picker-item.selected {
+    background: rgba(var(--color-teal-500-rgb), 0.12);
+    opacity: 1;
+}
+
+/* Month Navigation Arrows */
+.month-nav-arrow {
+    background: transparent;
+    border: 2px solid transparent;
+    border-radius: 0;
+    padding: var(--space-8) var(--space-12);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: visible;
+    min-width: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-family-base);
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text);
+    opacity: 0.6;
+    user-select: none;
+}
+
+.month-nav-arrow:hover,
+.month-nav-arrow.hovered {
+    background: rgba(var(--color-teal-500-rgb), 0.12);
+    opacity: 1;
+}
+
+.month-nav-arrow:active {
+    transform: scale(0.95);
+}
+
+/* Year Navigation Arrows */
+.year-nav-arrow {
+    background: transparent;
+    border: 2px solid transparent;
+    border-radius: 0;
+    padding: var(--space-8) var(--space-12);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: visible;
+    min-width: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-family-base);
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text);
+    opacity: 0.6;
+    user-select: none;
+}
+
+.year-nav-arrow:hover,
+.year-nav-arrow.hovered {
+    background: rgba(var(--color-teal-500-rgb), 0.12);
+    opacity: 1;
+}
+
+.year-nav-arrow:active {
+    transform: scale(0.95);
+}
+
+.year-nav-left {
+    margin-right: var(--space-8);
+}
+
+.year-nav-right {
+    margin-left: var(--space-8);
+}
+
+.month-nav-left {
+    margin-right: var(--space-8);
+}
+
+.month-nav-right {
+    margin-left: var(--space-8);
+}
+
+.year-picker-item {
+    background: transparent;
+    border: 2px solid transparent;
+    border-radius: 0;
+    padding: var(--space-8) var(--space-12);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: visible;
+    min-width: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-family-base);
+    text-transform: uppercase;
+    font-size: calc(var(--font-size-xs) - 1px);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text);
+    opacity: 0.6;
+}
+
+.year-picker-item:hover,
+.year-picker-item.hovered {
+    background: rgba(var(--color-teal-500-rgb), 0.12);
+    opacity: 1;
+}
+
+.year-picker-item.selected {
+    background: rgba(var(--color-teal-500-rgb), 0.12);
+    opacity: 1;
+}
+
+/* Time Period Header - Overview Dashboard (Legacy) */
+.time-period-header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: var(--font-family-base);
+}
+
+.time-period-item {
+    background: transparent;
+    border: 2px solid transparent;
+    border-radius: 0;
+    padding: var(--space-8) var(--space-12);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: visible;
+    min-width: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-family-base);
+    text-transform: uppercase;
+    font-size: calc(var(--font-size-xs) - 1px);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text);
+    opacity: 0.6;
+}
+
+.time-period-item:hover,
+.time-period-item.hovered {
+    background: rgba(var(--color-teal-500-rgb), 0.12);
+    opacity: 1;
+}
+
+.time-period-item.selected {
+    background: rgba(var(--color-teal-500-rgb), 0.12);
+    opacity: 1;
 }
 
 /* Properties Dashboard Styles */
@@ -2193,11 +2429,37 @@ input[type="number"].expense-input[type="number"],
   overflow: visible; /* Allow labels to extend outside */
   flex-shrink: 0;
   z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-self: flex-start; /* Align to top within main-content */
+}
+
+/* Keyframes for slide animation */
+@keyframes slideOut {
+  0% {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+}
+
+@keyframes slideIn {
+  0% {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .nav-item {
-  width: 100%;
-  min-height: 60px;
+  width: 32px; /* Constrain hover area to icon size */
+  flex: 0 0 60px;
   position: relative;
   cursor: pointer;
   display: flex;
@@ -2219,22 +2481,24 @@ input[type="number"].expense-input[type="number"],
 }
 
 .nav-item:hover::before,
-.nav-item.selected::before {
+.nav-item[data-active="true"]::before {
   opacity: 1;
-  width: 180px; /* Extend to cover the label area (80px sidebar + 100px label) */
+  width: 120px; /* Extend to cover the label area (40px icon width + 80px label width) */
 }
 
-.nav-item.selected::before {
+.nav-item[data-active="true"]::before {
   background: rgba(var(--color-teal-500-rgb), 0.06);
 }
 
 .nav-icon {
-  width: 80px;
+  width: 35px;
   height: 60px;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
+  padding-left: var(--space-8);
   font-size: 1.5rem;
+  font-family: 'Courier New', monospace;
   color: var(--color-text-secondary);
   flex-shrink: 0;
   position: relative;
@@ -2243,30 +2507,65 @@ input[type="number"].expense-input[type="number"],
 
 .nav-text {
   position: absolute;
-  left: 80px; /* Position just outside the fixed sidebar */
+  left: 40px; /* Position 10px after icon ends (~30px) for 10px gap */
   top: 0;
   height: 100%;
   display: flex;
   align-items: center;
-  padding: 0 var(--space-6) 0 var(--space-6);
+  padding: 0 var(--space-4) 0 0; /* Minimal padding to fit within boundary */
   white-space: nowrap;
   opacity: 0;
-  transform: translateX(-20px);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateX(-30px); /* Strong left-to-right slide */
   pointer-events: none;
-  background: var(--color-background);
+  background: transparent; /* Remove background to avoid blocking highlight */
   border-radius: 0 var(--radius-base) var(--radius-base) 0;
-  box-shadow: none; /* Remove the faint outline */
-  min-width: 80px;
-  max-width: 100px;
+  min-width: 0;
+  max-width: 100px; /* Reasonable width for text */
+  overflow: hidden;
+  z-index: 3; /* Above nav-item highlight */
+  box-shadow: none; /* Explicitly remove any shadows */
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* Smooth easing transition */
 }
 
 /* Show text for the specific nav-item being hovered or selected */
 .nav-item:hover .nav-text,
 .nav-item.selected .nav-text {
-  opacity: 1;
-  transform: translateX(0);
-  pointer-events: auto;
+  opacity: 1 !important;
+  transform: translateX(0) !important;
+  pointer-events: auto !important;
+  animation: slideInLabel 0.3s ease-out forwards !important;
+}
+
+/* Use data attributes instead of classes to avoid JavaScript interference */
+.nav-item[data-active="true"] .nav-text {
+  opacity: 1 !important;
+  transform: translateX(0) !important;
+  pointer-events: auto !important;
+  animation: slideInLabel 0.3s ease-out forwards !important;
+}
+
+/* Define the slide in animation */
+@keyframes slideInLabel {
+  0% {
+    opacity: 0 !important;
+    transform: translateX(-30px) !important;
+  }
+  100% {
+    opacity: 1 !important;
+    transform: translateX(0) !important;
+  }
+}
+
+/* Define the slide out animation */
+@keyframes slideOutLabel {
+  0% {
+    opacity: 1 !important;
+    transform: translateX(0) !important;
+  }
+  100% {
+    opacity: 0 !important;
+    transform: translateX(-30px) !important;
+  }
 }
 
 .nav-label {
@@ -2277,35 +2576,7 @@ input[type="number"].expense-input[type="number"],
   letter-spacing: 0.5px;
 }
 
-/* Smooth sliding animation using width expansion */
-.summary-cards:not(:hover) .button-content {
-  opacity: 0;
-  transform: translateX(-15px);
-  pointer-events: none;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.summary-cards:not(:hover) .button-label {
-  opacity: 0;
-  transform: translateX(-10px);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.summary-cards:not(:hover) .button-value {
-  opacity: 0;
-  transform: translateX(-10px);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Always show content for selected buttons */
-.summary-button.selected .button-content,
-.summary-button.selected .button-label,
-.summary-button.selected .button-value {
-  opacity: 1;
-  transform: translateX(0);
-  pointer-events: auto;
-}
-
+/* Sidebar button styles */
 .button__body {
   display: flex;
   flex-direction: row;
@@ -2316,23 +2587,6 @@ input[type="number"].expense-input[type="number"],
   position: relative;
   z-index: 2; /* Above the ::before pseudo-element */
   padding-left: var(--space-8); /* Add consistent left padding for text alignment */
-}
-
-/* Remove the rule that changes gap in collapsed state */
-.summary-cards:not(:hover) .button__body {
-  flex-direction: row; /* Keep horizontal layout */
-  gap: var(--space-12); /* Keep consistent gap */
-  justify-content: flex-start;
-}
-
-/* Ensure selected buttons maintain proper spacing */
-.summary-button.selected .button__body {
-  gap: var(--space-12); /* Explicitly set gap for selected state */
-}
-
-/* Ensure hovered buttons maintain proper spacing */
-.summary-button:hover .button__body {
-  gap: var(--space-12); /* Explicitly set gap for hover state */
 }
 
 .button-icon {
@@ -2357,12 +2611,6 @@ input[type="number"].expense-input[type="number"],
   color: var(--color-gray-200); /* More visible in dark mode */
 }
 
-.summary-cards:not(:hover) .button-icon {
-  font-size: 1.5rem;
-  margin-bottom: 0;
-  margin-right: 0;
-}
-
 .button-content {
   display: flex;
   flex-direction: column;
@@ -2379,33 +2627,12 @@ input[type="number"].expense-input[type="number"],
   transform: translateX(-20px);
   transition: all 0.3s ease;
   display: block;
-}
-
-/* Show content on hover with smooth slide */
-.summary-button:hover .button-content {
-  opacity: 1;
-  transform: translateX(0);
-  pointer-events: auto;
-}
-
-.summary-button:hover .button-label {
-  opacity: 1;
-  transform: translateX(0);
-}
-
-.summary-button:hover .button-value {
-  opacity: 1;
-  transform: translateX(0);
-}
-
-.button-label {
   font-size: var(--font-size-xs);
   color: var(--color-text-secondary);
   font-weight: var(--font-weight-medium);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   white-space: nowrap;
-  transition: all 0.3s ease;
 }
 
 .button-value {
@@ -2422,9 +2649,12 @@ input[type="number"].expense-input[type="number"],
   flex-direction: column;
   position: relative;
   margin-left: 80px; /* Fixed margin matching sidebar width */
+  margin-top: 0; /* Ensure no top margin */
+  padding-top: 0; /* Ensure no top padding */
   min-width: 0; /* Allow flex item to shrink */
   width: calc(100% - 80px); /* Fixed width calculation */
   overflow: visible; /* Ensure content doesn't get clipped */
+  align-self: flex-start; /* Align to top to match sidebar */
 }
 
 /* Ensure all dashboard containers respect the parent margin */
@@ -2440,6 +2670,8 @@ input[type="number"].expense-input[type="number"],
   left: 0;
   width: 100%;
   margin-left: 0;
+  margin-top: 0; /* Remove any top margin */
+  padding-top: 0; /* Remove any top padding */
   padding-left: var(--space-24);
   padding-right: var(--space-24);
 }
@@ -2480,44 +2712,18 @@ input[type="number"].expense-input[type="number"],
 
 /* Responsive adjustments */
 @media (max-width: 1024px) {
-  .summary-cards {
+  .sidebar-nav {
     width: 50px;
-    padding: var(--space-12) var(--space-6);
   }
-  
-.summary-button {
-  width: 125px; /* Full expanded width */
-}
-  
-  .summary-button::before {
-    width: 125px; /* Keep full expanded width for hover area */
-  }
-  
-  .summary-button:hover,
-  .summary-button.selected {
-    width: 125px; /* Keep same width as desktop */
-  }
-  
-  .summary-button {
-    padding: var(--space-10) var(--space-6);
-    min-height: 50px;
-  }
-  
-  .button-icon {
-    font-size: 1.2rem;
-  }
-  
-  .summary-cards:not(:hover) .button-icon {
-    font-size: 1.5rem;
-  }
-  
+
   .dashboard-containers {
-    margin-left: 125px; /* Keep consistent with expanded width */
+    margin-left: 50px;
+    width: calc(100% - 50px);
   }
 }
 
 @media (max-width: 768px) {
-  .summary-cards {
+  .sidebar-nav {
     position: static;
     height: auto;
     width: 100%;
@@ -2525,48 +2731,22 @@ input[type="number"].expense-input[type="number"],
     flex-wrap: wrap;
     margin-bottom: var(--space-24);
     padding: var(--space-16);
-    box-shadow: none;
-    border-right: none;
-    border-bottom: 1px solid var(--color-card-border);
   }
-  
+
   .main-content {
     margin-left: 0;
     flex-direction: column;
   }
-  
-  .summary-button:hover,
-  .summary-button.selected {
-    width: 100%; /* Full width on mobile */
-  }
-  
-  .summary-button {
+
+  .nav-item {
     flex: 1;
     min-width: 120px;
     padding: var(--space-16);
   }
-  
-  .button__body {
-    flex-direction: column !important;
-    gap: var(--space-8) !important;
-  }
-  
-  .button-content {
-    opacity: 1 !important;
-    transform: none !important;
-  }
-  
-  .button-label {
-    display: block !important;
-    font-size: var(--font-size-sm);
-  }
-  
-  .button-icon {
-    font-size: 2rem !important;
-  }
-  
+
   .dashboard-containers {
-    margin-left: 0; /* No margin on mobile */
+    margin-left: 0;
+    width: 100%;
   }
 }
 
@@ -2809,7 +2989,7 @@ input[type="number"].expense-input[type="number"],
 /* Dashboard Content */
 .dashboard-content {
   flex: 1;
-  padding: var(--space-24);
+  padding: 0 var(--space-24) var(--space-24);
 }
 
 

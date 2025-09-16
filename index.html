@@ -15,8 +15,21 @@
         <!-- Enhanced header with better accessibility -->
         <header class="header" role="banner">
             <div class="header-left">
-                <h1>Real Estate Dashboard</h1>
+                <h1>RE.dash</h1>
             </div>
+
+            <!-- Year/Month Picker - Visible on overview and properties dashboards -->
+            <div class="year-picker" id="yearPicker" style="display: none;">
+                <div class="year-picker-header" id="yearPickerHeader">
+                    <!-- Year options will be populated dynamically -->
+                </div>
+                <div class="month-picker" id="monthPicker" style="display: none;">
+                    <div class="month-picker-header" id="monthPickerHeader">
+                        <!-- Month options will be populated dynamically -->
+                    </div>
+                </div>
+            </div>
+
             <nav class="header-actions" role="navigation" aria-label="Main actions">
                 <div class="dropdown" id="colorThemeDropdown">
                     <button class="btn btn--outline btn--sm dropdown-btn" id="colorThemeBtn"
@@ -168,19 +181,6 @@
 
                 <!-- Overview Dashboard Container -->
                 <div id="overviewDashboard" class="dashboard-container dashboard-overview hidden">
-                    <!-- Overview Controls -->
-                    <div class="dashboard-header">
-                        <div class="chart-controls">
-                            <div class="control-item">
-                                <label class="control-label" for="overviewYearSelect">Year</label>
-                                <select class="control-select" id="overviewYearSelect">
-                                    <option value="all">All Years</option>
-                                    <!-- Years will be populated dynamically -->
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
                     <!-- Overview Chart Container - Ready for beautiful sankey diagram -->
                     <div id="overviewChart" class="overview-container" role="img"
                             aria-label="Overview sankey visualization chart">

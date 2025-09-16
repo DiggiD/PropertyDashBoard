@@ -218,8 +218,8 @@ class PropertiesManager {
             this.setupEventListeners();
             this.renderPropertiesDashboard();
 
-            // Initialize year/month pickers after rendering
-            this.initializeYearMonthPickers();
+            // Initialize header year/month pickers
+            this.initializeHeaderPickers();
 
             console.log('[PROPERTIES] PropertiesManager initialized successfully');
         } catch (error) {
@@ -517,34 +517,6 @@ class PropertiesManager {
 
         return `
             <div class="properties-multi-panel">
-                <!-- Properties Panel Header with Year/Month Pickers -->
-                <div class="properties-controls">
-                    <div class="control-item">
-                        <label class="control-label" for="propertiesYearSelect">Year</label>
-                        <select class="control-select" id="propertiesYearSelect">
-                            <option value="all">All Years</option>
-                            <!-- Years will be populated dynamically -->
-                        </select>
-                    </div>
-                    <div class="control-item">
-                        <label class="control-label" for="propertiesMonthSelect">Month</label>
-                        <select class="control-select" id="propertiesMonthSelect">
-                            <option value="all">All Months</option>
-                            <option value="01">January</option>
-                            <option value="02">February</option>
-                            <option value="03">March</option>
-                            <option value="04">April</option>
-                            <option value="05">May</option>
-                            <option value="06">June</option>
-                            <option value="07">July</option>
-                            <option value="08">August</option>
-                            <option value="09">September</option>
-                            <option value="10">October</option>
-                            <option value="11">November</option>
-                            <option value="12">December</option>
-                        </select>
-                    </div>
-                </div>
 
                 <!-- Panel 1: Properties -->
                 <div class="panel properties-panel">
@@ -2789,6 +2761,40 @@ class PropertiesManager {
         // const incomeCategories = this.dataManager.getIncomeCategories();
         // return incomeCategories && incomeCategories.includes(category);
         return false;
+    }
+
+    /**
+     * Initialize header year/month pickers
+     */
+    initializeHeaderPickers() {
+        console.log('[PROPERTIES] Initializing header year/month pickers...');
+
+        // Populate year picker in header (without ALL option for properties dashboard)
+        this.uiManager.populateYearPicker(this.dataManager.getAvailableYears(), false);
+
+        // Populate month picker in header (without ALL option for properties dashboard)
+        this.uiManager.populateMonthPicker(false);
+
+        // Set current selections
+        this.setCurrentHeaderSelections();
+
+        console.log('[PROPERTIES] Header year/month pickers initialized');
+    }
+
+    /**
+     * Set current selections for header pickers
+     */
+    setCurrentHeaderSelections() {
+        // Get current date info
+        const now = new Date();
+        const currentYear = now.getFullYear().toString();
+        const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
+
+        // Set default selections
+        this.dataManager.setSelectedYear(currentYear);
+        this.dataManager.setSelectedMonth(currentMonth);
+
+        console.log(`[PROPERTIES] Set header picker defaults to: ${currentMonth}/${currentYear}`);
     }
 
     /**
