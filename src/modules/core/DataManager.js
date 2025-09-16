@@ -1140,7 +1140,7 @@ class DataManager {
                                 subTotal += monthExpenseData[subCategory] || 0;
                             }
                         });
-                        if (subTotal > 0) {
+                        if (subTotal !== 0) { // Include both positive and negative values
                             aggregatedHierarchical[subCategory] = subTotal;
                         }
                     });
@@ -1189,17 +1189,49 @@ class DataManager {
 
         // Filter months based on time period
         if (period === 'year') {
-            // Find the latest year available in the data
-            const years = [...new Set(allMonths.map(m => m.split(' ')[1]))].sort();
-            const latestYear = years[years.length - 1];
-            monthsToInclude = allMonths.filter(month => month.includes(latestYear));
+            // Use selected year if available, otherwise use latest year
+            const selectedYear = this.data.selectedYear !== 'all' ? this.data.selectedYear : null;
+            if (selectedYear) {
+                monthsToInclude = allMonths.filter(month => month.includes(selectedYear));
+            } else {
+                // Find the latest year available in the data
+                const years = [...new Set(allMonths.map(m => m.split(' ')[1]))].sort();
+                const latestYear = years[years.length - 1];
+                monthsToInclude = allMonths.filter(month => month.includes(latestYear));
+            }
         } else if (period === 'quarter') {
             // Get the latest 3 months for quarter view
             const sortedMonths = allMonths.sort();
             monthsToInclude = sortedMonths.slice(-3);
         } else if (period === 'month') {
-            // Include only the latest month
-            monthsToInclude = [allMonths[allMonths.length - 1]];
+            // Use selected month/year if available, otherwise use latest month
+            const selectedYear = this.data.selectedYear !== 'all' ? this.data.selectedYear : null;
+            const selectedMonth = this.data.selectedMonth !== 'all' ? this.data.selectedMonth : null;
+
+            if (selectedYear && selectedMonth) {
+                // Convert month number to month name
+                const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                                   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                const monthIndex = parseInt(selectedMonth) - 1;
+                const monthName = monthNames[monthIndex];
+
+                if (monthName) {
+                    const targetMonthKey = `${monthName} ${selectedYear}`;
+                    const foundMonth = allMonths.find(month => month === targetMonthKey);
+                    if (foundMonth) {
+                        monthsToInclude = [foundMonth];
+                    } else {
+                        // If selected month/year combination doesn't exist, fall back to latest month
+                        monthsToInclude = [allMonths[allMonths.length - 1]];
+                    }
+                } else {
+                    // Invalid month, fall back to latest month
+                    monthsToInclude = [allMonths[allMonths.length - 1]];
+                }
+            } else {
+                // Include only the latest month
+                monthsToInclude = [allMonths[allMonths.length - 1]];
+            }
         }
 
         // Fallback: if no months match the filter, use latest month

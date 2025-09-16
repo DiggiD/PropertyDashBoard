@@ -280,32 +280,70 @@ class App {
             yearSelect.addEventListener('change', (e) => {
                 const selectedYear = e.target.value;
                 this.dataManager.setSelectedYear(selectedYear);
+
+                // If a specific year is selected, set time period to 'year' for filtering
+                if (selectedYear !== 'all') {
+                    this.dataManager.setCurrentTimePeriod('year');
+                } else {
+                    this.dataManager.setCurrentTimePeriod('all');
+                }
+
                 // Re-render the overview sankey chart with the new year filter
                 this.chartRenderer.renderOverviewSankey();
             });
         }
 
         // Year and month selectors for properties dashboard (header picker)
+        // Properties dashboard always shows month-specific data, never full year
         document.addEventListener('yearChange', (e) => {
             const selectedYear = e.detail.selectedYear;
             this.dataManager.setSelectedYear(selectedYear);
-            // If properties dashboard is active, update it
-            if (this.currentView === 'properties' && this.propertiesManager) {
-                this.propertiesManager.renderPropertiesDashboard();
+
+            if (this.currentView === 'properties') {
+                // Properties dashboard always filters by month
+                // Ensure a month is selected when year changes
+                let selectedMonth = this.dataManager.getSelectedMonth();
+                if (!selectedMonth || selectedMonth === 'all') {
+                    // Auto-select current month or latest month with data
+                    const now = new Date();
+                    const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
+
+                    // Check if current month has data, otherwise find latest month with data
+                    if (this.hasDataForMonthYear(selectedYear, currentMonth)) {
+                        selectedMonth = currentMonth;
+                    } else {
+                        selectedMonth = this.getLastAvailableMonthForYear(selectedYear);
+                    }
+
+                    if (selectedMonth) {
+                        this.dataManager.setSelectedMonth(selectedMonth);
+                    }
+                }
+
+                // Always set to month filtering for properties dashboard
+                this.dataManager.setCurrentTimePeriod('month');
+            } else if (this.currentView === 'overview') {
+                // For overview (sankey), set time period based on selection
+                if (selectedYear !== 'all') {
+                    this.dataManager.setCurrentTimePeriod('year');
+                } else {
+                    this.dataManager.setCurrentTimePeriod('all');
+                }
             }
-            // Also update overview if it's active
-            if (this.currentView === 'overview') {
-                this.chartRenderer.renderOverviewSankey();
-            }
+
+            // Update all views that depend on time period
+            this.updateTimePeriodDependentViews();
         });
 
         document.addEventListener('monthChange', (e) => {
             const selectedMonth = e.detail.selectedMonth;
             this.dataManager.setSelectedMonth(selectedMonth);
-            // If properties dashboard is active, update it
-            if (this.currentView === 'properties' && this.propertiesManager) {
-                this.propertiesManager.renderPropertiesDashboard();
-            }
+
+            // Properties dashboard always filters by month
+            this.dataManager.setCurrentTimePeriod('month');
+
+            // Update all views that depend on time period
+            this.updateTimePeriodDependentViews();
         });
     }
 
@@ -328,6 +366,9 @@ class App {
             // Automatically select the most recent year
             const mostRecentYear = availableYears[availableYears.length - 1];
             this.dataManager.setSelectedYear(mostRecentYear);
+
+            // Set time period to 'year' for filtering since we're selecting a specific year
+            this.dataManager.setCurrentTimePeriod('year');
 
             console.log('[APP] Auto-selected most recent year:', mostRecentYear);
         }
@@ -404,7 +445,18 @@ class App {
      */
     updateTimePeriod() {
         this.dataManager.setCurrentTimePeriod(this.currentTimePeriod);
+
+        // Update analytics chart
         this.chartRenderer.renderAnalyticsChart();
+
+        // Update overview sankey diagram
+        this.chartRenderer.renderOverviewSankey();
+
+        // Update properties dashboard if it's currently active
+        if (this.currentView === 'properties' && this.propertiesManager) {
+            this.propertiesManager.renderPropertiesDashboard();
+        }
+
         this.updateChartCalculations();
     }
 
@@ -453,6 +505,100 @@ class App {
                 selectedItem.classList.add('selected');
             }
         }
+    }
+
+    /**
+     * Update time period dependent views
+     */
+    updateTimePeriodDependentViews() {
+        console.log('[APP] Updating time period dependent views...');
+
+        // Update overview sankey diagram if it's active
+        if (this.currentView === 'overview') {
+            this.chartRenderer.renderOverviewSankey();
+        }
+
+        // Update analytics chart if it's active
+        if (this.currentView === 'analytics') {
+            this.chartRenderer.renderAnalyticsChart();
+        }
+
+        // Update properties dashboard if it's active
+        if (this.currentView === 'properties' && this.propertiesManager) {
+            this.propertiesManager.renderPropertiesDashboard();
+        }
+
+        // Update chart calculations
+        this.updateChartCalculations();
+
+        console.log('[APP] Time period dependent views updated');
+    }
+
+    /**
+     * Check if there's data for a specific month and year
+     * @param {string} year - Year to check
+     * @param {string} month - Month to check (MM format)
+     * @returns {boolean} True if data exists for the month/year
+     */
+    hasDataForMonthYear(year, month) {
+        const properties = this.dataManager.getProperties();
+
+        // Check if any property has data for this month/year
+        for (const property of properties) {
+            if (property.monthlyData) {
+                // Look for month key in format "MMM YYYY"
+                const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                                   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                const monthIndex = parseInt(month) - 1;
+                const monthName = monthNames[monthIndex];
+
+                if (monthName) {
+                    const monthKey = `${monthName} ${year}`;
+                    if (property.monthlyData[monthKey]) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Get the last available month for a specific year
+     * @param {string} year - Year to check
+     * @returns {string|null} Last month with data (MM format) or null if no data
+     */
+    getLastAvailableMonthForYear(year) {
+        const properties = this.dataManager.getProperties();
+        let latestMonth = null;
+
+        // Find the most recent month with data for this year
+        for (const property of properties) {
+            if (property.monthlyData) {
+                const monthKeys = Object.keys(property.monthlyData);
+                for (const monthKey of monthKeys) {
+                    if (monthKey.endsWith(` ${year}`)) {
+                        // Extract month from "MMM YYYY" format
+                        const parts = monthKey.split(' ');
+                        if (parts.length === 2) {
+                            const monthName = parts[0];
+                            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                                               'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                            const monthIndex = monthNames.indexOf(monthName);
+                            if (monthIndex !== -1) {
+                                const monthNum = String(monthIndex + 1).padStart(2, '0');
+                                if (!latestMonth || monthNum > latestMonth) {
+                                    latestMonth = monthNum;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return latestMonth;
     }
 
     /**

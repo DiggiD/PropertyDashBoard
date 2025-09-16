@@ -454,9 +454,7 @@ class UIManager {
         }
 
         // Ensure the selected year is properly highlighted
-        if (this.selectedYear) {
-            this.handleYearSelection(this.selectedYear);
-        }
+        this.handleYearSelection(selectedYear);
 
         console.log(`[UI] Populated year picker with selected year: ${selectedYear}, stored: ${this.selectedYear}, showAll: ${showAllOption}, availableYears:`, availableYears);
     }
@@ -501,8 +499,7 @@ class UIManager {
             leftArrow.addEventListener('click', () => {
                 const prevYear = availableYears[currentIndex - 1];
                 this.populateYearPicker(availableYears, true, prevYear);
-                // Automatically select the year when navigating with arrows
-                this.handleYearSelection(prevYear);
+                // Year is automatically selected in populateYearPicker
             });
         } else {
             leftArrow.disabled = true;
@@ -527,8 +524,7 @@ class UIManager {
             rightArrow.addEventListener('click', () => {
                 const nextYear = availableYears[currentIndex + 1];
                 this.populateYearPicker(availableYears, true, nextYear);
-                // Automatically select the year when navigating with arrows
-                this.handleYearSelection(nextYear);
+                // Year is automatically selected in populateYearPicker
             });
         } else {
             rightArrow.disabled = true;
@@ -629,6 +625,9 @@ class UIManager {
             monthButton.className = 'month-picker-item';
             if (index === 1) { // Center month
                 monthButton.classList.add('selected');
+                // Auto-select the center month
+                const monthStr = String(monthNum).padStart(2, '0');
+                this.handleMonthSelection(monthStr);
             }
             monthButton.setAttribute('data-month', String(monthNum).padStart(2, '0'));
             monthButton.textContent = monthNames[monthNum - 1];
@@ -657,14 +656,17 @@ class UIManager {
         this.selectedMonth = selectedMonth;
 
         // Update button states
-        const monthPickerItems = document.querySelectorAll('.month-picker-item');
-        monthPickerItems.forEach(item => {
-            if (item.getAttribute('data-month') === selectedMonth) {
-                item.classList.add('selected');
-            } else {
-                item.classList.remove('selected');
-            }
-        });
+        const monthPickerHeader = this.getElement('monthPickerHeader');
+        if (monthPickerHeader) {
+            const monthPickerItems = monthPickerHeader.querySelectorAll('.month-picker-item');
+            monthPickerItems.forEach(item => {
+                if (item.getAttribute('data-month') === selectedMonth) {
+                    item.classList.add('selected');
+                } else {
+                    item.classList.remove('selected');
+                }
+            });
+        }
 
         // Trigger month change event
         const event = new CustomEvent('monthChange', {
@@ -684,15 +686,18 @@ class UIManager {
         this.selectedYear = selectedYear;
 
         // Update button states - ensure ALL button is also handled
-        const yearPickerItems = document.querySelectorAll('.year-picker-item');
-        yearPickerItems.forEach(item => {
-            const itemYear = item.getAttribute('data-year');
-            if (itemYear === selectedYear) {
-                item.classList.add('selected');
-            } else {
-                item.classList.remove('selected');
-            }
-        });
+        const yearPickerHeader = this.getElement('yearPickerHeader');
+        if (yearPickerHeader) {
+            const yearPickerItems = yearPickerHeader.querySelectorAll('.year-picker-item');
+            yearPickerItems.forEach(item => {
+                const itemYear = item.getAttribute('data-year');
+                if (itemYear === selectedYear) {
+                    item.classList.add('selected');
+                } else {
+                    item.classList.remove('selected');
+                }
+            });
+        }
 
         // Trigger year change event
         const event = new CustomEvent('yearChange', {
@@ -701,6 +706,60 @@ class UIManager {
         document.dispatchEvent(event);
 
         console.log(`[UI] Year selected: ${selectedYear}, stored for persistence`);
+    }
+
+    /**
+     * Update year picker selection programmatically
+     * @param {string} selectedYear - Year to select
+     */
+    updateYearPickerSelection(selectedYear) {
+        if (!selectedYear) return;
+
+        // Store the selected year
+        this.selectedYear = selectedYear;
+
+        // Update button states
+        const yearPickerHeader = this.getElement('yearPickerHeader');
+        if (yearPickerHeader) {
+            const yearPickerItems = yearPickerHeader.querySelectorAll('.year-picker-item');
+            yearPickerItems.forEach(item => {
+                const itemYear = item.getAttribute('data-year');
+                if (itemYear === selectedYear) {
+                    item.classList.add('selected');
+                } else {
+                    item.classList.remove('selected');
+                }
+            });
+        }
+
+        console.log(`[UI] Year picker selection updated to: ${selectedYear}`);
+    }
+
+    /**
+     * Update month picker selection programmatically
+     * @param {string} selectedMonth - Month to select
+     */
+    updateMonthPickerSelection(selectedMonth) {
+        if (!selectedMonth) return;
+
+        // Store the selected month
+        this.selectedMonth = selectedMonth;
+
+        // Update button states
+        const monthPickerHeader = this.getElement('monthPickerHeader');
+        if (monthPickerHeader) {
+            const monthPickerItems = monthPickerHeader.querySelectorAll('.month-picker-item');
+            monthPickerItems.forEach(item => {
+                const itemMonth = item.getAttribute('data-month');
+                if (itemMonth === selectedMonth) {
+                    item.classList.add('selected');
+                } else {
+                    item.classList.remove('selected');
+                }
+            });
+        }
+
+        console.log(`[UI] Month picker selection updated to: ${selectedMonth}`);
     }
 
     /**

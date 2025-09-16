@@ -990,11 +990,12 @@ class ChartRenderer {
         try {
             this.uiManager.showLoadingState('Loading overview...');
 
-            // Get selected year from data manager
+            // Get current time period and selected year from data manager
+            const currentTimePeriod = this.dataManager.getCurrentTimePeriod();
             const selectedYear = this.dataManager.getSelectedYear();
 
-            // Use yearly data for the overview Sankey chart, filtered by selected year
-            const sankeyData = this.prepareSankeyData('year', selectedYear);
+            // Use current time period for the overview Sankey chart, with year filtering if applicable
+            const sankeyData = this.prepareSankeyData(currentTimePeriod, selectedYear);
 
             if (!sankeyData || sankeyData.nodes.length === 0) {
                 this.showOverviewPlaceholder(container);
@@ -1289,53 +1290,82 @@ class ChartRenderer {
             categories.forEach((category, categoryIndex) => {
                 const expenseData = propertyData.expenses[category];
 
-                if (hierarchicalCategories[category]) {
-                    // Hierarchical category - flows to subcategories through category node
-                    if (typeof expenseData === 'object' && expenseData !== null) {
-                        let categoryTotal = 0;
-                        Object.entries(expenseData).forEach(([subCategory, value]) => {
-                            if (value < 0) { // Expenses are negative values
-                                categoryTotal += value;
-                            }
+                // Check if this category has hierarchical data in the current period
+                const isHierarchicalInPeriod = typeof expenseData === 'object' && expenseData !== null;
+                const isHierarchicalInProperty = hierarchicalCategories[category] !== undefined;
+
+                if (isHierarchicalInPeriod) {
+                    // Current period has hierarchical data - create hierarchical flows
+                    let categoryTotal = 0;
+                    Object.entries(expenseData).forEach(([subCategory, value]) => {
+                        if (value !== 0) { // Include both positive and negative values
+                            categoryTotal += value;
+                        }
+                    });
+
+                    // Link property -> category (intermediate node)
+                    if (categoryTotal !== 0) {
+                        links.push({
+                            source: nodeMap.get(`property-${property.id}`),
+                            target: nodeMap.get(`category-${categorySortedIndex.get(category)}`),
+                            value: Math.abs(categoryTotal), // Convert to positive for sankey
+                            property: property.name,
+                            category,
+                            flowType: 'property-to-category',
+                            propertyIndex: sortedPropertyIndex
                         });
 
-                        // Link property -> category (intermediate node)
-                        if (categoryTotal < 0) { // categoryTotal will be negative for expenses
-                            links.push({
-                                source: nodeMap.get(`property-${property.id}`),
-                                target: nodeMap.get(`category-${categorySortedIndex.get(category)}`),
-                                value: Math.abs(categoryTotal), // Convert negative to positive for sankey
-                                property: property.name,
-                                category,
-                                flowType: 'property-to-category',
-                                propertyIndex: sortedPropertyIndex
-                            });
-
-                            // Link category -> subcategories
-                            Object.entries(expenseData).forEach(([subCategory, value]) => {
-                                if (value < 0) { // Expenses are negative values
-                                    const subNodeId = `sub-${category}-${subCategory}`;
+                        // Link category -> subcategories
+                        Object.entries(expenseData).forEach(([subCategory, value]) => {
+                            if (value !== 0) {
+                                const subNodeId = `sub-${category}-${subCategory}`;
+                                if (nodeMap.has(subNodeId)) { // Only create link if subcategory node exists
                                     links.push({
                                         source: nodeMap.get(`category-${categorySortedIndex.get(category)}`),
                                         target: nodeMap.get(subNodeId),
-                                        value: Math.abs(value), // Convert negative to positive for sankey
+                                        value: Math.abs(value), // Convert to positive for sankey
                                         property: property.name,
                                         category: subCategory,
                                         flowType: 'category-to-subcategory',
                                         propertyIndex: sortedPropertyIndex
                                     });
                                 }
-                            });
-                        }
+                            }
+                        });
+                    }
+                } else if (isHierarchicalInProperty && !isHierarchicalInPeriod) {
+                    // Category is hierarchical in property but flat in current period
+                    // This can happen when time period filtering results in flat data
+                    const value = expenseData || 0;
+                    if (value !== 0) {
+                        // Create direct link to category node (flat flow)
+                        links.push({
+                            source: nodeMap.get(`property-${property.id}`),
+                            target: nodeMap.get(`category-${categorySortedIndex.get(category)}`),
+                            value: Math.abs(value), // Convert to positive for sankey
+                            property: property.name,
+                            category,
+                            flowType: 'property-to-category-flat'
+                        });
+
+                        // Add dummy link from flat category to dummy sink to ensure it's on level 2
+                        links.push({
+                            source: nodeMap.get(`category-${categorySortedIndex.get(category)}`),
+                            target: nodeMap.get(dummySinkId),
+                            value: 0.001, // Very small value
+                            property: '',
+                            category: '',
+                            flowType: 'dummy'
+                        });
                     }
                 } else {
                     // Flat category - direct flow to category node
                     const value = expenseData || 0;
-                    if (value < 0) { // Expenses are negative values
+                    if (value !== 0) {
                         links.push({
                             source: nodeMap.get(`property-${property.id}`),
                             target: nodeMap.get(`category-${categorySortedIndex.get(category)}`),
-                            value: Math.abs(value), // Convert negative to positive for sankey
+                            value: Math.abs(value), // Convert to positive for sankey
                             property: property.name,
                             category,
                             flowType: 'property-to-category-flat'
@@ -1609,10 +1639,10 @@ class ChartRenderer {
                 .attr('class', d => this.getNodeClass(d));
 
             nodeElements.append('rect')
-                .attr('x', d => d.x0)
-                .attr('y', d => d.y0)
-                .attr('height', d => d.y1 - d.y0)
-                .attr('width', d => d.x1 - d.x0)
+                .attr('x', d => Math.min(d.x0, d.x1))
+                .attr('y', d => Math.min(d.y0, d.y1))
+                .attr('height', d => Math.abs(d.y1 - d.y0))
+                .attr('width', d => Math.abs(d.x1 - d.x0))
                 .attr('fill', d => d.color)
                 .attr('stroke', '#fff')
                 .attr('stroke-width', 1)

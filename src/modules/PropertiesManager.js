@@ -472,6 +472,17 @@ class PropertiesManager {
             });
         }
 
+        // Listen to time period change events from the header pickers
+        document.addEventListener('yearChange', (e) => {
+            console.log('[PROPERTIES] Year changed to:', e.detail.selectedYear);
+            this.handleTimePeriodChange();
+        });
+
+        document.addEventListener('monthChange', (e) => {
+            console.log('[PROPERTIES] Month changed to:', e.detail.selectedMonth);
+            this.handleTimePeriodChange();
+        });
+
         console.log('[PROPERTIES] Event listeners setup');
     }
 
@@ -486,6 +497,9 @@ class PropertiesManager {
             console.error('[PROPERTIES] Properties dashboard container not found');
             return;
         }
+
+        // Update header pickers to reflect current selections
+        this.updateHeaderPickerSelections();
 
         // Always render the multi-panel layout
         const html = this.renderMultiPanelLayout(properties);
@@ -597,7 +611,7 @@ class PropertiesManager {
                     const currentData = this.dataManager.getCurrentPeriodData(property);
                     const categoryCount = Object.keys(property.expenses || {}).length;
                     const totalValue = currentData && currentData.total !== undefined ? currentData.total : 0;
-                    const formattedTotal = this.uiManager.formatter ? this.uiManager.formatter.formatNumber(totalValue) : totalValue;
+                    const formattedTotal = this.uiManager.formatter ? this.uiManager.formatter.formatCurrency(totalValue) : totalValue;
 
                     return `
                         <div class="property-item ${isSelected ? 'selected' : ''}" data-property-id="${property.id || ''}">
@@ -663,8 +677,8 @@ class PropertiesManager {
                     const expenseValue = this.getCategoryExpenseValue(property, category);
                     const isHierarchical = typeof expenseValue === 'object' && expenseValue !== null;
                     const displayValue = isHierarchical ?
-                        `₹${this.uiManager.formatter ? this.uiManager.formatter.formatNumber(this.sumObjectValues(expenseValue)) : this.sumObjectValues(expenseValue)}` :
-                        `₹${this.uiManager.formatter ? this.uiManager.formatter.formatNumber(expenseValue || 0) : (expenseValue || 0)}`;
+                        `₹${this.uiManager.formatter ? this.uiManager.formatter.formatCurrency(this.sumObjectValues(expenseValue)) : this.sumObjectValues(expenseValue)}` :
+                        `₹${this.uiManager.formatter ? this.uiManager.formatter.formatCurrency(expenseValue || 0) : (expenseValue || 0)}`;
 
                     if (isHierarchical) {
                         // Hierarchical category - original layout with navigation
@@ -717,7 +731,7 @@ class PropertiesManager {
 
         if (!isHierarchical) {
             // Flat category - show the single value for editing with inline name and value
-            const displayValue = `₹${this.uiManager.formatter ? this.uiManager.formatter.formatNumber(expenseValue || 0) : (expenseValue || 0)}`;
+            const displayValue = `₹${this.uiManager.formatter ? this.uiManager.formatter.formatCurrency(expenseValue || 0) : (expenseValue || 0)}`;
             return `
                 <div class="properties-list">
                     <div class="property-item" data-category="${category}">
@@ -752,7 +766,7 @@ class PropertiesManager {
                 <div class="properties-list ${hasSelected ? 'has-selected' : ''}">
                     ${sortedSubcategories.map(([subcat, value]) => {
                         const isSelected = subcat === subcategory;
-                        const displayValue = `₹${this.uiManager.formatter ? this.uiManager.formatter.formatNumber(value || 0) : (value || 0)}`;
+                        const displayValue = `₹${this.uiManager.formatter ? this.uiManager.formatter.formatCurrency(value || 0) : (value || 0)}`;
 
                 return `
                     <div class="property-item ${isSelected ? 'selected' : ''}" data-category="${category}" data-subcategory="${subcat}">
@@ -828,7 +842,7 @@ class PropertiesManager {
             const currentData = this.dataManager.getCurrentPeriodData(property);
             const categoryCount = Object.keys(property.expenses || {}).length;
                     const totalValue = currentData && currentData.total !== undefined ? currentData.total : 0;
-                    const formattedTotal = this.uiManager.formatter ? this.uiManager.formatter.formatNumber(totalValue) : totalValue;
+                    const formattedTotal = this.uiManager.formatter ? this.uiManager.formatter.formatCurrency(totalValue) : totalValue;
 
             return `
                 <div class="property-item" data-property-id="${property.id || ''}">
@@ -891,7 +905,7 @@ class PropertiesManager {
                     <div class="property-title">
                         <h3>${property.name}</h3>
                         <div class="property-summary">
-                            <span class="summary-item">Total: ₹${this.uiManager.formatter.formatCurrency(currentData.total)}</span>
+                            <span class="summary-item">Total: ₹${this.uiManager.formatter ? this.uiManager.formatter.formatCurrency(currentData.total) : currentData.total}</span>
                             <span class="summary-item">${categories.length} categories</span>
                         </div>
                     </div>
@@ -986,7 +1000,7 @@ class PropertiesManager {
                     `<div class="subcategory-item">
                         <span class="subcategory-name">${subcategory}</span>
                         <div class="subcategory-value expense-value" data-category="${category}" data-subcategory="${subcategory}">
-                            ₹${this.uiManager.formatter.formatNumber(value || 0)}
+                            ₹${this.uiManager.formatter ? this.uiManager.formatter.formatCurrency(value || 0) : (value || 0)}
                         </div>
                     </div>`
                 ).join('')}
@@ -1008,7 +1022,13 @@ class PropertiesManager {
     getCategoryExpenseValue(property, category) {
         if (!property) return 0;
 
-        // Check expenses object first (this is the source of truth)
+        // Use getCurrentPeriodData to respect time period filtering
+        const currentData = this.dataManager.getCurrentPeriodData(property, null, true);
+        if (currentData && currentData.expenses && currentData.expenses.hasOwnProperty(category)) {
+            return currentData.expenses[category];
+        }
+
+        // Fallback: Check expenses object directly if no current period data
         if (property.expenses && property.expenses.hasOwnProperty(category)) {
             return property.expenses[category];
         }
@@ -1493,7 +1513,7 @@ class PropertiesManager {
         const currentValue = this.getCurrentExpenseValue(category, subcategory);
 
         const valueElement = input.closest('.expense-value');
-        valueElement.innerHTML = `₹${this.uiManager.formatter.formatNumber(currentValue)}`;
+        valueElement.innerHTML = `₹${this.uiManager.formatter ? this.uiManager.formatter.formatCurrency(currentValue) : currentValue}`;
 
         this.isEditMode = false;
     }
@@ -2769,14 +2789,17 @@ class PropertiesManager {
     initializeHeaderPickers() {
         console.log('[PROPERTIES] Initializing header year/month pickers...');
 
+        // Set current selections first
+        this.setCurrentHeaderSelections();
+
         // Populate year picker in header (without ALL option for properties dashboard)
         this.uiManager.populateYearPicker(this.dataManager.getAvailableYears(), false);
 
         // Populate month picker in header (without ALL option for properties dashboard)
         this.uiManager.populateMonthPicker(false);
 
-        // Set current selections
-        this.setCurrentHeaderSelections();
+        // Update picker selections to reflect current data selections
+        this.updateHeaderPickerSelections();
 
         console.log('[PROPERTIES] Header year/month pickers initialized');
     }
@@ -3076,6 +3099,134 @@ class PropertiesManager {
 
         // Return a very old date if parsing fails
         return new Date(1900, 0, 1);
+    }
+
+    /**
+     * Get the last available month for a specific year with data
+     * @param {string} year - Year to check
+     * @returns {string|null} Month in MM format, or null if no data
+     */
+    getLastAvailableMonthForYear(year) {
+        const properties = this.dataManager.getProperties();
+        let latestMonth = null;
+
+        // Find the most recent month for the given year across all properties
+        for (const property of properties) {
+            if (property.monthlyData) {
+                const monthKeys = Object.keys(property.monthlyData);
+                if (monthKeys.length > 0) {
+                    // Filter keys for the given year and find the latest month
+                    const yearMonthKeys = monthKeys.filter(key => key.endsWith(` ${year}`));
+                    if (yearMonthKeys.length > 0) {
+                        // Sort by month to find the latest
+                        const sortedKeys = yearMonthKeys.sort((a, b) => {
+                            const monthA = this.parseMonthKey(a);
+                            const monthB = this.parseMonthKey(b);
+                            return monthB - monthA;
+                        });
+
+                        const latestKey = sortedKeys[0];
+                        if (!latestMonth || this.parseMonthKey(latestKey) > this.parseMonthKey(latestMonth)) {
+                            latestMonth = latestKey;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (!latestMonth) {
+            return null;
+        }
+
+        // Parse the month key to extract month
+        const parts = latestMonth.split(' ');
+        if (parts.length === 2) {
+            const monthName = parts[0];
+
+            // Convert month name to MM format
+            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                               'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const monthIndex = monthNames.indexOf(monthName);
+            if (monthIndex !== -1) {
+                return String(monthIndex + 1).padStart(2, '0');
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Update header picker selections to reflect current data selections
+     */
+    updateHeaderPickerSelections() {
+        const selectedYear = this.dataManager.getSelectedYear();
+        const selectedMonth = this.dataManager.getSelectedMonth();
+
+        // Update year picker selection state
+        if (this.uiManager.updateYearPickerSelection) {
+            this.uiManager.updateYearPickerSelection(selectedYear);
+        }
+
+        // Update month picker selection state
+        if (this.uiManager.updateMonthPickerSelection) {
+            this.uiManager.updateMonthPickerSelection(selectedMonth);
+        }
+
+        // Force update the picker UI elements to reflect the current selections
+        this.forceUpdatePickerUI(selectedYear, selectedMonth);
+
+        console.log(`[PROPERTIES] Updated header pickers to: ${selectedMonth}/${selectedYear}`);
+    }
+
+    /**
+     * Force update picker UI elements to match current selections
+     * @param {string} selectedYear - Currently selected year
+     * @param {string} selectedMonth - Currently selected month
+     */
+    forceUpdatePickerUI(selectedYear, selectedMonth) {
+        // Update year picker UI
+        const yearPickerItems = document.querySelectorAll('.year-picker-item');
+        yearPickerItems.forEach(item => {
+            const itemYear = item.getAttribute('data-year');
+            if (itemYear === selectedYear) {
+                item.classList.add('selected');
+            } else {
+                item.classList.remove('selected');
+            }
+        });
+
+        // Update month picker UI
+        const monthPickerItems = document.querySelectorAll('.month-picker-item');
+        monthPickerItems.forEach(item => {
+            const itemMonth = item.getAttribute('data-month');
+            if (itemMonth === selectedMonth) {
+                item.classList.add('selected');
+            } else {
+                item.classList.remove('selected');
+            }
+        });
+
+        console.log(`[PROPERTIES] Forced UI update for pickers: ${selectedMonth}/${selectedYear}`);
+    }
+
+    /**
+     * Handle time period change events from header pickers
+     */
+    handleTimePeriodChange() {
+        console.log('[PROPERTIES] Time period changed, re-rendering dashboard');
+
+        // Re-render the properties dashboard to show filtered data
+        this.renderPropertiesDashboard();
+
+        // Update chart calculations if needed
+        this.updateChartCalculations();
+
+        // Show feedback about the current time period
+        const selectedYear = this.dataManager.getSelectedYear();
+        const selectedMonth = this.dataManager.getSelectedMonth();
+        const yearText = selectedYear === 'all' ? 'all years' : selectedYear;
+        const monthText = selectedMonth === 'all' ? 'all months' : this.getMonthName(selectedMonth);
+        this.uiManager.showToast(`Properties dashboard updated for ${monthText} ${yearText}`, 'info');
     }
 
     /**
