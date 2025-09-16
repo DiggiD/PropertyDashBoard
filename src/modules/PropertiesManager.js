@@ -618,7 +618,7 @@ class PropertiesManager {
                             <div class="property-info">
                                 <h5 class="property-name editable" data-property-id="${property.id || ''}">${property.name || 'Unnamed Property'}</h5>
                                 <div class="property-meta">
-                                    <span class="property-total">₹${formattedTotal}</span>
+                                    <span class="property-total">${formattedTotal}</span>
                                 </div>
                             </div>
                             <div class="property-actions">
@@ -677,8 +677,8 @@ class PropertiesManager {
                     const expenseValue = this.getCategoryExpenseValue(property, category);
                     const isHierarchical = typeof expenseValue === 'object' && expenseValue !== null;
                     const displayValue = isHierarchical ?
-                        `₹${this.uiManager.formatter ? this.uiManager.formatter.formatCurrency(this.sumObjectValues(expenseValue)) : this.sumObjectValues(expenseValue)}` :
-                        `₹${this.uiManager.formatter ? this.uiManager.formatter.formatCurrency(expenseValue || 0) : (expenseValue || 0)}`;
+                        `${this.uiManager.formatter ? this.uiManager.formatter.formatCurrency(this.sumObjectValues(expenseValue)) : this.sumObjectValues(expenseValue)}` :
+                        `${this.uiManager.formatter ? this.uiManager.formatter.formatCurrency(expenseValue || 0) : (expenseValue || 0)}`;
 
                     if (isHierarchical) {
                         // Hierarchical category - original layout with navigation
@@ -731,7 +731,7 @@ class PropertiesManager {
 
         if (!isHierarchical) {
             // Flat category - show the single value for editing with inline name and value
-            const displayValue = `₹${this.uiManager.formatter ? this.uiManager.formatter.formatCurrency(expenseValue || 0) : (expenseValue || 0)}`;
+            const displayValue = `${this.uiManager.formatter ? this.uiManager.formatter.formatCurrency(expenseValue || 0) : (expenseValue || 0)}`;
             return `
                 <div class="properties-list">
                     <div class="property-item" data-category="${category}">
@@ -766,7 +766,7 @@ class PropertiesManager {
                 <div class="properties-list ${hasSelected ? 'has-selected' : ''}">
                     ${sortedSubcategories.map(([subcat, value]) => {
                         const isSelected = subcat === subcategory;
-                        const displayValue = `₹${this.uiManager.formatter ? this.uiManager.formatter.formatCurrency(value || 0) : (value || 0)}`;
+                        const displayValue = `${this.uiManager.formatter ? this.uiManager.formatter.formatCurrency(value || 0) : (value || 0)}`;
 
                 return `
                     <div class="property-item ${isSelected ? 'selected' : ''}" data-category="${category}" data-subcategory="${subcat}">
@@ -851,7 +851,7 @@ class PropertiesManager {
                             <h4 class="property-name">${property.name || 'Unnamed Property'}</h4>
                             <div class="property-meta">
                                 <span class="property-categories">${categoryCount} categories</span>
-                                <span class="property-total">₹${formattedTotal}</span>
+                                <span class="property-total">${formattedTotal}</span>
                             </div>
                         </div>
                         <div class="property-actions">
@@ -905,7 +905,7 @@ class PropertiesManager {
                     <div class="property-title">
                         <h3>${property.name}</h3>
                         <div class="property-summary">
-                            <span class="summary-item">Total: ₹${this.uiManager.formatter ? this.uiManager.formatter.formatCurrency(currentData.total) : currentData.total}</span>
+                            <span class="summary-item">Total: ${this.uiManager.formatter ? this.uiManager.formatter.formatCurrency(currentData.total) : currentData.total}</span>
                             <span class="summary-item">${categories.length} categories</span>
                         </div>
                     </div>
@@ -1000,7 +1000,7 @@ class PropertiesManager {
                     `<div class="subcategory-item">
                         <span class="subcategory-name">${subcategory}</span>
                         <div class="subcategory-value expense-value" data-category="${category}" data-subcategory="${subcategory}">
-                            ₹${this.uiManager.formatter ? this.uiManager.formatter.formatCurrency(value || 0) : (value || 0)}
+                            ${this.uiManager.formatter ? this.uiManager.formatter.formatCurrency(value || 0) : (value || 0)}
                         </div>
                     </div>`
                 ).join('')}
@@ -1513,7 +1513,7 @@ class PropertiesManager {
         const currentValue = this.getCurrentExpenseValue(category, subcategory);
 
         const valueElement = input.closest('.expense-value');
-        valueElement.innerHTML = `₹${this.uiManager.formatter ? this.uiManager.formatter.formatCurrency(currentValue) : currentValue}`;
+        valueElement.innerHTML = `${this.uiManager.formatter ? this.uiManager.formatter.formatCurrency(currentValue) : currentValue}`;
 
         this.isEditMode = false;
     }

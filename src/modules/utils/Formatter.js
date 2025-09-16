@@ -42,14 +42,11 @@ class Formatter {
         const options = compact ? this.currencyCompactOptions : this.currencyOptions;
 
         try {
-            // For expenses (negative values), display as positive with ₹ prefix
-            // This maintains readability while keeping data as negative for calculations
-            const displayAmount = amount < 0 ? Math.abs(amount) : amount;
-            return new Intl.NumberFormat('en-IN', options).format(displayAmount);
+            // Preserve negative sign for display to maintain negative values
+            return new Intl.NumberFormat('en-IN', options).format(amount);
         } catch (error) {
             console.warn('Currency formatting failed, using fallback:', error);
-            const displayAmount = amount < 0 ? Math.abs(amount) : amount;
-            return `₹${Math.round(displayAmount).toLocaleString('en-IN')}`;
+            return `₹${Math.round(amount).toLocaleString('en-IN')}`;
         }
     }
 
