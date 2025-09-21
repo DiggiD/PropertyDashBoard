@@ -210,12 +210,6 @@ class App {
             analyticsBtn.addEventListener('click', () => this.showAnalyticsView());
         }
 
-        // Income view
-        const incomeBtn = this.uiManager.getElement('incomeBtn');
-        if (incomeBtn) {
-            incomeBtn.addEventListener('click', () => this.showIncomeView());
-        }
-
         // Properties view
         const propertiesBtn = this.uiManager.getElement('propertiesBtn');
         if (propertiesBtn) {
@@ -256,24 +250,6 @@ class App {
             darkModeToggle.addEventListener('click', () => this.toggleDarkMode());
         }
 
-        // Time period selector
-        const timePeriodSelect = this.uiManager.getElement('analyticsTimePeriodSelect');
-        if (timePeriodSelect) {
-            timePeriodSelect.addEventListener('change', (e) => {
-                this.currentTimePeriod = e.target.value;
-                this.updateTimePeriod();
-            });
-        }
-
-        // View selector
-        const viewSelect = this.uiManager.getElement('analyticsViewSelect');
-        if (viewSelect) {
-            viewSelect.addEventListener('change', (e) => {
-                this.currentView = e.target.value;
-                this.updateView();
-            });
-        }
-
         // Year selector for overview
         const yearSelect = this.uiManager.getElement('overviewYearSelect');
         if (yearSelect) {
@@ -311,9 +287,9 @@ class App {
                     // Check if current month has data, otherwise find latest month with data
                     if (this.hasDataForMonthYear(selectedYear, currentMonth)) {
                         selectedMonth = currentMonth;
-                    } else {
+                      } else {
                         selectedMonth = this.getLastAvailableMonthForYear(selectedYear);
-                    }
+                      }
 
                     if (selectedMonth) {
                         this.dataManager.setSelectedMonth(selectedMonth);
@@ -387,24 +363,6 @@ class App {
         this.uiManager.showDashboard('analytics');
         this.uiManager.updateNavigationState('analytics');
         this.uiManager.updateYearPickerVisibility('analytics');
-
-        // Update controls
-        this.updateAnalyticsControls();
-
-        // Render analytics chart
-        this.chartRenderer.renderAnalyticsChart();
-    }
-
-    /**
-     * Show income view
-     */
-    showIncomeView() {
-        console.log('[APP] Showing income view');
-
-        this.uiManager.hideAllDashboards();
-        this.uiManager.showDashboard('income');
-        this.uiManager.updateNavigationState('income');
-        this.uiManager.updateYearPickerVisibility('income');
     }
 
     /**
@@ -425,29 +383,10 @@ class App {
     }
 
     /**
-     * Update analytics controls
-     */
-    updateAnalyticsControls() {
-        const timePeriodSelect = this.uiManager.getElement('analyticsTimePeriodSelect');
-        const viewSelect = this.uiManager.getElement('analyticsViewSelect');
-
-        if (timePeriodSelect) {
-            timePeriodSelect.value = this.currentTimePeriod;
-        }
-
-        if (viewSelect) {
-            viewSelect.value = this.currentView;
-        }
-    }
-
-    /**
      * Update time period
      */
     updateTimePeriod() {
         this.dataManager.setCurrentTimePeriod(this.currentTimePeriod);
-
-        // Update analytics chart
-        this.chartRenderer.renderAnalyticsChart();
 
         // Update overview sankey diagram
         this.chartRenderer.renderOverviewSankey();
@@ -461,12 +400,25 @@ class App {
     }
 
     /**
-     * Update view
+     * Update time period dependent views
      */
-    updateView() {
-        this.dataManager.setCurrentView(this.currentView);
-        this.chartRenderer.renderAnalyticsChart();
+    updateTimePeriodDependentViews() {
+        console.log('[APP] Updating time period dependent views...');
+
+        // Update overview sankey diagram if it's active
+        if (this.currentView === 'overview') {
+            this.chartRenderer.renderOverviewSankey();
+        }
+
+        // Update properties dashboard if it's active
+        if (this.currentView === 'properties' && this.propertiesManager) {
+            this.propertiesManager.renderPropertiesDashboard();
+        }
+
+        // Update chart calculations
         this.updateChartCalculations();
+
+        console.log('[APP] Time period dependent views updated');
     }
 
     /**
@@ -505,33 +457,6 @@ class App {
                 selectedItem.classList.add('selected');
             }
         }
-    }
-
-    /**
-     * Update time period dependent views
-     */
-    updateTimePeriodDependentViews() {
-        console.log('[APP] Updating time period dependent views...');
-
-        // Update overview sankey diagram if it's active
-        if (this.currentView === 'overview') {
-            this.chartRenderer.renderOverviewSankey();
-        }
-
-        // Update analytics chart if it's active
-        if (this.currentView === 'analytics') {
-            this.chartRenderer.renderAnalyticsChart();
-        }
-
-        // Update properties dashboard if it's active
-        if (this.currentView === 'properties' && this.propertiesManager) {
-            this.propertiesManager.renderPropertiesDashboard();
-        }
-
-        // Update chart calculations
-        this.updateChartCalculations();
-
-        console.log('[APP] Time period dependent views updated');
     }
 
     /**
@@ -687,12 +612,6 @@ class App {
             case 'analytics':
                 this.uiManager.hideAllDashboards();
                 this.uiManager.showDashboard('analytics');
-                this.updateAnalyticsControls();
-                this.chartRenderer.renderAnalyticsChart();
-                break;
-            case 'income':
-                this.uiManager.hideAllDashboards();
-                this.uiManager.showDashboard('income');
                 break;
             case 'properties':
                 this.uiManager.hideAllDashboards();
@@ -713,14 +632,14 @@ class App {
         }
 
         // Populate year picker with available years from loaded data
-        const availableYears = this.dataManager.getAvailableYears();
-        if (availableYears.length > 0 && this.uiManager && typeof this.uiManager.populateYearPicker === 'function') {
-            this.uiManager.populateYearPicker(availableYears);
+        const availableYears2 = this.dataManager.getAvailableYears();
+        if (availableYears2.length > 0 && this.uiManager && typeof this.uiManager.populateYearPicker === 'function') {
+            this.uiManager.populateYearPicker(availableYears2);
 
             // If no year is currently selected, auto-select the most recent year
             const currentSelectedYear = this.dataManager.getSelectedYear();
             if (!currentSelectedYear || currentSelectedYear === 'all') {
-                const mostRecentYear = availableYears[availableYears.length - 1];
+                const mostRecentYear = availableYears2[availableYears2.length - 1];
                 this.dataManager.setSelectedYear(mostRecentYear);
 
                 // Update the year picker UI to reflect the selected year
@@ -762,12 +681,6 @@ class App {
             case 'analytics':
                 this.uiManager.hideAllDashboards();
                 this.uiManager.showDashboard('analytics');
-                this.updateAnalyticsControls();
-                this.chartRenderer.renderAnalyticsChart();
-                break;
-            case 'income':
-                this.uiManager.hideAllDashboards();
-                this.uiManager.showDashboard('income');
                 break;
             case 'properties':
                 this.uiManager.hideAllDashboards();

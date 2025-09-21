@@ -81,14 +81,6 @@
                     </div>
                 </div>
 
-                <!-- Income Item -->
-                <div class="nav-item" id="incomeBtn" data-metric="income">
-                    <div class="nav-icon">I</div>
-                    <div class="nav-text">
-                        <span class="nav-label">Income</span>
-                    </div>
-                </div>
-
                 <!-- Analytics Item -->
                 <div class="nav-item" id="analyticsBtn" data-metric="analytics">
                     <div class="nav-icon">A</div>
@@ -102,72 +94,11 @@
             <div class="dashboard-containers">
                 <!-- Analytics Dashboard Container -->
                 <div id="analyticsDashboard" class="dashboard-container dashboard-analytics hidden">
-                    <!-- Analytics Header -->
-                    <div class="dashboard-header">
-                        <!-- Remove the entire dashboard-controls div with export button -->
-                    </div>
-                    <!-- Analytics Chart Container -->
-                    <div id="analyticsChart" class="analytics-container" role="img"
-                            aria-label="Analytics visualization chart">
-                        <div class="loading-state" id="analyticsLoadingState">
-                            <div class="loading-spinner"></div>
-                            <p>Loading analytics chart...</p>
-                        </div>
-                        <div id="analyticsChartContent" class="chart-content"></div>
-                        <div class="chart-calculations">
-                            <!-- Chart Controls -->
-                            <div class="chart-controls">
-                                <div class="control-item">
-                                    <label class="control-label" for="analyticsViewSelect">View</label>
-                                    <select class="control-select" id="analyticsViewSelect">
-                                        <option value="overview">Overview</option>
-                                        <option value="trends">Trends</option>
-                                        <option value="comparison">Compare</option>
-                                        <option value="categories">Categories</option>
-                                    </select>
-                                </div>
-                                <div class="control-item">
-                                    <label class="control-label" for="analyticsTimePeriodSelect">Time Period</label>
-                                    <select class="control-select" id="analyticsTimePeriodSelect">
-                                        <option value="all">All Time</option>
-                                        <option value="year">This Year</option>
-                                        <option value="quarter">This Quarter</option>
-                                        <option value="month">This Month</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="chart-metrics">
-                                <div class="chart-metric">
-                                    <span class="chart-label">Total:</span>
-                                    <span class="chart-value" id="analyticsTotal">₹0</span>
-                                    <span class="chart-trend" id="analyticsTotalTrend">+0%</span>
-                                </div>
-                                <div class="chart-metric">
-                                    <span class="chart-label">Avg/Property:</span>
-                                    <span class="chart-value" id="analyticsAvgPerProperty">₹0</span>
-                                    <span class="chart-trend" id="analyticsAvgTrend">+0%</span>
-                                </div>
-                                <div class="chart-metric">
-                                    <span class="chart-label">Top Category:</span>
-                                    <span class="chart-value" id="analyticsTopCategory">None</span>
-                                    <span class="chart-secondary" id="analyticsCategoryValue">₹0</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Income Dashboard Container -->
-                <div id="incomeDashboard" class="dashboard-container dashboard-income hidden">
-                    <div id="incomeChart" class="income-container" role="img" aria-label="Income visualization chart">
-                        <div class="loading-state" id="incomeLoadingState">
-                            <div class="loading-spinner"></div>
-                            <p>Loading income chart...</p>
-                        </div>
+                    <div id="analyticsChart" class="analytics-container" role="img" aria-label="Analytics visualization chart">
                         <div class="coming-soon">
                             <div class="coming-soon-icon">Soon</div>
-                            <h3>Income Dashboard Coming Soon</h3>
-                            <p>This feature is under development. Check back later for comprehensive income tracking and analysis.</p>
+                            <h3>Analytics Dashboard Coming Soon</h3>
+                            <p>This feature is under development. Check back later for comprehensive analytics and insights.</p>
                         </div>
                     </div>
                 </div>
