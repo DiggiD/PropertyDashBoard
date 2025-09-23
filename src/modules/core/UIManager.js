@@ -54,19 +54,11 @@ class UIManager {
 
             // Dashboard views
             'overviewDashboard': '#overviewDashboard',
-            'analyticsDashboard': '#analyticsDashboard',
-            'incomeDashboard': '#incomeDashboard',
             'propertiesDashboard': '#propertiesDashboard',
 
             // Chart containers
-            'analyticsChart': '#analyticsChart',
-            'analyticsChartContent': '#analyticsChartContent',
             'overviewChart': '#overviewChart',
             'overviewChartContent': '#overviewChartContent',
-
-            // Controls
-            'analyticsViewSelect': '#analyticsViewSelect',
-            'analyticsTimePeriodSelect': '#analyticsTimePeriodSelect',
 
             // Buttons
             'undoBtn': '#undoBtn',
@@ -87,8 +79,6 @@ class UIManager {
 
             // Summary buttons
             'overviewBtn': '#overviewBtn',
-            'analyticsBtn': '#analyticsBtn',
-            'incomeBtn': '#incomeBtn',
             'propertiesBtn': '#propertiesBtn',
 
             // Modals
@@ -108,16 +98,7 @@ class UIManager {
             'toastMessage': '#toastMessage',
 
             // Loading states
-            'analyticsLoadingState': '#analyticsLoadingState',
             'overviewLoadingState': '#overviewLoadingState',
-
-            // Chart metrics
-            'analyticsTotal': '#analyticsTotal',
-            'analyticsAvgPerProperty': '#analyticsAvgPerProperty',
-            'analyticsTopCategory': '#analyticsTopCategory',
-            'analyticsCategoryValue': '#analyticsCategoryValue',
-            'analyticsTotalTrend': '#analyticsTotalTrend',
-            'analyticsAvgTrend': '#analyticsAvgTrend',
         };
 
         // Store selectors for fallback
@@ -131,9 +112,8 @@ class UIManager {
             const element = document.querySelector(selector);
             if (element) {
                 this.elements.set(key, element);
-            } else {
-                console.warn(`[UI] Element not found: ${selector}`);
             }
+            // Removed console.warn to eliminate element not found warnings
         });
     }
 
@@ -259,7 +239,7 @@ class UIManager {
      * Hide all dashboards
      */
     hideAllDashboards() {
-        const dashboards = ['overviewDashboard', 'analyticsDashboard', 'incomeDashboard', 'propertiesDashboard'];
+        const dashboards = ['overviewDashboard', 'propertiesDashboard'];
 
         dashboards.forEach(dashboardKey => {
             const dashboard = this.getElement(dashboardKey);
@@ -290,8 +270,6 @@ class UIManager {
     showDashboard(view) {
         const dashboardMap = {
             'overview': 'overviewDashboard',
-            'analytics': 'analyticsDashboard',
-            'income': 'incomeDashboard',
             'properties': 'propertiesDashboard',
         };
 
@@ -352,8 +330,6 @@ class UIManager {
         // Set data-active for the selected view
         const viewMap = {
             'overview': 'overviewBtn',
-            'analytics': 'analyticsBtn',
-            'income': 'incomeBtn',
             'properties': 'propertiesBtn'
         };
 
@@ -377,35 +353,23 @@ class UIManager {
     }
 
     /**
-     * Update chart controls
-     * @param {Object} options - Control options
+     * Update data display after data loading
+     * @param {Object} stats - Data statistics
      */
-    updateChartControls(options = {}) {
-        const { view, timePeriod, selectedYear } = options;
+    updateDataDisplay(stats = {}) {
+        console.log('[UI] Updating data display with stats:', stats);
 
-        // Update view select
-        if (view !== undefined) {
-            const viewSelect = this.getElement('analyticsViewSelect');
-            if (viewSelect) {
-                viewSelect.value = view;
-            }
+        // Show success message if data loaded
+        if (stats.totalProperties > 0) {
+            this.showToast(`Loaded ${stats.totalProperties} properties with ${stats.totalCategories} categories`, 'success', 3000);
+        } else {
+            this.showToast('No data loaded', 'warning', 3000);
         }
 
-        // Update time period select
-        if (timePeriod !== undefined) {
-            const timePeriodSelect = this.getElement('analyticsTimePeriodSelect');
-            if (timePeriodSelect) {
-                timePeriodSelect.value = timePeriod;
-            }
-        }
+        // Force UI refresh
+        this.hideLoadingState();
 
-        // Update year select
-        if (selectedYear !== undefined) {
-            const yearSelect = this.getElement('overviewYearSelect');
-            if (yearSelect) {
-                yearSelect.value = selectedYear;
-            }
-        }
+        console.log('[UI] Data display updated');
     }
 
     /**
@@ -825,118 +789,6 @@ class UIManager {
     }
 
     /**
-     * Update chart metrics display
-     * @param {Object} metrics - Metrics data
-     */
-    updateChartMetrics(metrics = {}) {
-        const {
-            totalExpenses,
-            averageExpensePerProperty,
-            topCategory,
-            totalTrend,
-            averageTrend,
-        } = metrics;
-
-        // Update total expenses
-        const totalElement = this.getElement('analyticsTotal');
-        if (totalElement && totalExpenses !== undefined) {
-            totalElement.textContent = this.formatter.formatCurrency(totalExpenses);
-        }
-
-        // Update average per property
-        const avgElement = this.getElement('analyticsAvgPerProperty');
-        if (avgElement && averageExpensePerProperty !== undefined) {
-            avgElement.textContent = this.formatter.formatCurrency(averageExpensePerProperty);
-        }
-
-        // Update top category
-        const categoryElement = this.getElement('analyticsTopCategory');
-        const categoryValueElement = this.getElement('analyticsCategoryValue');
-        if (categoryElement && topCategory) {
-            categoryElement.textContent = topCategory.name || 'None';
-            if (categoryValueElement) {
-                categoryValueElement.textContent = this.formatter.formatCurrency(topCategory.amount || 0);
-            }
-        }
-
-        // Update trends
-        const totalTrendElement = this.getElement('analyticsTotalTrend');
-        const avgTrendElement = this.getElement('analyticsAvgTrend');
-
-        if (totalTrendElement && totalTrend !== undefined) {
-            totalTrendElement.textContent = this.formatter.formatChange(totalTrend);
-            totalTrendElement.className = `chart-trend ${totalTrend >= 0 ? 'trend-positive' : 'trend-negative'}`;
-        }
-
-        if (avgTrendElement && averageTrend !== undefined) {
-            avgTrendElement.textContent = this.formatter.formatChange(averageTrend);
-            avgTrendElement.className = `chart-trend ${averageTrend >= 0 ? 'trend-positive' : 'trend-negative'}`;
-        }
-    }
-
-    /**
-     * Update data display after data loading
-     * @param {Object} stats - Data statistics
-     */
-    updateDataDisplay(stats = {}) {
-        console.log('[UI] Updating data display with stats:', stats);
-
-        // Update chart metrics if we have data
-        if (stats.totalProperties > 0) {
-            this.updateChartMetrics({
-                totalExpenses: stats.totalExpenses,
-                averageExpensePerProperty: stats.averageExpensePerProperty,
-                topCategory: stats.topExpenseCategory,
-            });
-
-            // Show success message
-            this.showToast(`Loaded ${stats.totalProperties} properties with ${stats.totalCategories} categories`, 'success', 3000);
-        } else {
-            // Show empty state message
-            this.showToast('No data loaded', 'warning', 3000);
-        }
-
-        // Force UI refresh
-        this.hideLoadingState();
-
-        console.log('[UI] Data display updated');
-    }
-
-    /**
-     * Update undo/redo button states
-     * @param {boolean} canUndo - Whether undo is available
-     * @param {boolean} canRedo - Whether redo is available
-     */
-    updateUndoRedoButtons(canUndo = false, canRedo = false) {
-        const undoBtn = this.getElement('undoBtn');
-        const redoBtn = this.getElement('redoBtn');
-
-        if (undoBtn) {
-            undoBtn.disabled = !canUndo;
-            undoBtn.style.opacity = canUndo ? '1' : '0.5';
-            undoBtn.setAttribute('aria-label', canUndo ? 'Undo last action' : 'Nothing to undo');
-        }
-
-        if (redoBtn) {
-            redoBtn.disabled = !canRedo;
-            redoBtn.style.opacity = canRedo ? '1' : '0.5';
-            redoBtn.setAttribute('aria-label', canRedo ? 'Redo last undone action' : 'Nothing to redo');
-        }
-    }
-
-    /**
-     * Update theme toggle button
-     */
-    updateThemeToggle() {
-        const toggleBtn = this.getElement('darkModeToggle');
-        if (toggleBtn) {
-            const isDark = this.themeManager.isDarkModeActive();
-            toggleBtn.innerHTML = isDark ? 'Light' : 'Dark';
-            toggleBtn.setAttribute('aria-label', `Switch to ${isDark ? 'light' : 'dark'} mode`);
-        }
-    }
-
-    /**
      * Show loading state
      * @param {string} message - Loading message
      */
@@ -945,8 +797,8 @@ class UIManager {
 
         // Show appropriate loading state based on current view
         const loadingStates = {
-            'analytics': 'analyticsLoadingState',
             'overview': 'overviewLoadingState',
+            'properties': 'overviewLoadingState',  // Reuse overview loading for properties
         };
 
         const loadingKey = loadingStates[this.currentView];
@@ -974,7 +826,7 @@ class UIManager {
         this.isLoading = false;
 
         // Hide all loading states
-        const loadingStates = ['analyticsLoadingState', 'overviewLoadingState'];
+        const loadingStates = ['overviewLoadingState'];
 
         loadingStates.forEach(key => {
             const loadingElement = this.getElement(key);
@@ -1356,9 +1208,7 @@ class UIManager {
             this.updateResponsiveLayout();
 
             // Trigger chart resize if needed
-            if (window.analyticsDashboard && window.analyticsDashboard.renderAnalyticsChart) {
-                window.analyticsDashboard.renderAnalyticsChart();
-            }
+            // No specific chart resize needed for current views
         }, 300);
     }
 
@@ -1675,6 +1525,40 @@ class UIManager {
             element.setAttribute('aria-disabled', 'true');
             element.style.opacity = '0.6';
             element.style.pointerEvents = 'none';
+        }
+    }
+
+    /**
+     * Update undo/redo button states
+     * @param {boolean} canUndo - Whether undo is available
+     * @param {boolean} canRedo - Whether redo is available
+     */
+    updateUndoRedoButtons(canUndo = false, canRedo = false) {
+        const undoBtn = this.getElement('undoBtn');
+        const redoBtn = this.getElement('redoBtn');
+
+        if (undoBtn) {
+            undoBtn.disabled = !canUndo;
+            undoBtn.style.opacity = canUndo ? '1' : '0.5';
+            undoBtn.setAttribute('aria-label', canUndo ? 'Undo last action' : 'Nothing to undo');
+        }
+
+        if (redoBtn) {
+            redoBtn.disabled = !canRedo;
+            redoBtn.style.opacity = canRedo ? '1' : '0.5';
+            redoBtn.setAttribute('aria-label', canRedo ? 'Redo last undone action' : 'Nothing to redo');
+        }
+    }
+
+    /**
+     * Update theme toggle button
+     */
+    updateThemeToggle() {
+        const toggleBtn = this.getElement('darkModeToggle');
+        if (toggleBtn) {
+            const isDark = this.themeManager.isDarkModeActive();
+            toggleBtn.innerHTML = isDark ? 'Light' : 'Dark';
+            toggleBtn.setAttribute('aria-label', `Switch to ${isDark ? 'light' : 'dark'} mode`);
         }
     }
 

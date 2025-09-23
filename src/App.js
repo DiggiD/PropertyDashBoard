@@ -204,12 +204,6 @@ class App {
             overviewBtn.addEventListener('click', () => this.showOverviewView());
         }
 
-        // Analytics view
-        const analyticsBtn = this.uiManager.getElement('analyticsBtn');
-        if (analyticsBtn) {
-            analyticsBtn.addEventListener('click', () => this.showAnalyticsView());
-        }
-
         // Properties view
         const propertiesBtn = this.uiManager.getElement('propertiesBtn');
         if (propertiesBtn) {
@@ -250,27 +244,7 @@ class App {
             darkModeToggle.addEventListener('click', () => this.toggleDarkMode());
         }
 
-        // Year selector for overview
-        const yearSelect = this.uiManager.getElement('overviewYearSelect');
-        if (yearSelect) {
-            yearSelect.addEventListener('change', (e) => {
-                const selectedYear = e.target.value;
-                this.dataManager.setSelectedYear(selectedYear);
-
-                // If a specific year is selected, set time period to 'year' for filtering
-                if (selectedYear !== 'all') {
-                    this.dataManager.setCurrentTimePeriod('year');
-                } else {
-                    this.dataManager.setCurrentTimePeriod('all');
-                }
-
-                // Re-render the overview sankey chart with the new year filter
-                this.chartRenderer.renderOverviewSankey();
-            });
-        }
-
-        // Year and month selectors for properties dashboard (header picker)
-        // Properties dashboard always shows month-specific data, never full year
+        // Year and month selectors handled via custom events (no direct select element)
         document.addEventListener('yearChange', (e) => {
             const selectedYear = e.detail.selectedYear;
             this.dataManager.setSelectedYear(selectedYear);
@@ -351,18 +325,6 @@ class App {
 
         // Render overview sankey diagram
         this.chartRenderer.renderOverviewSankey();
-    }
-
-    /**
-     * Show analytics view
-     */
-    showAnalyticsView() {
-        console.log('[APP] Showing analytics view');
-
-        this.uiManager.hideAllDashboards();
-        this.uiManager.showDashboard('analytics');
-        this.uiManager.updateNavigationState('analytics');
-        this.uiManager.updateYearPickerVisibility('analytics');
     }
 
     /**
@@ -528,27 +490,11 @@ class App {
 
     /**
      * Update chart calculations
+     * Currently no metrics to update after analytics removal
      */
     updateChartCalculations() {
-        const properties = this.dataManager.getProperties();
-        const categories = this.dataManager.getExpenseCategories();
-
-        let totalExpenses = 0;
-        const propertyCount = properties.length;
-
-        properties.forEach(property => {
-            const data = this.dataManager.getCurrentPeriodData(property);
-            totalExpenses += data.total;
-        });
-
-        const avgPerProperty = propertyCount > 0 ? totalExpenses / propertyCount : 0;
-
-        // Update UI elements
-        this.uiManager.updateChartMetrics({
-            totalExpenses,
-            avgPerProperty,
-            propertyCount,
-        });
+        // No chart metrics to update for current views (overview and properties)
+        console.log('[APP] Chart calculations updated (no metrics display)');
     }
 
 
@@ -598,27 +544,10 @@ class App {
         // Force re-render of current view
         switch (this.currentView) {
             case 'overview':
-                this.uiManager.hideAllDashboards();
-                this.uiManager.showDashboard('overview');
-
-                // Populate time period header with available years from loaded data
-                const availableYears = this.dataManager.getAvailableYears();
-                if (availableYears.length > 0) {
-                    this.populateTimePeriodHeader(availableYears);
-                }
-
-                this.chartRenderer.renderOverviewSankey();
-                break;
-            case 'analytics':
-                this.uiManager.hideAllDashboards();
-                this.uiManager.showDashboard('analytics');
+                this.showOverviewView();
                 break;
             case 'properties':
-                this.uiManager.hideAllDashboards();
-                this.uiManager.showDashboard('properties');
-                if (this.propertiesManager && typeof this.propertiesManager.initialize === 'function') {
-                    this.propertiesManager.initialize();
-                }
+                this.showPropertiesView();
                 break;
         }
 
@@ -643,10 +572,7 @@ class App {
                 this.dataManager.setSelectedYear(mostRecentYear);
 
                 // Update the year picker UI to reflect the selected year
-                const yearSelect = this.uiManager.getElement('overviewYearSelect');
-                if (yearSelect) {
-                    yearSelect.value = mostRecentYear;
-                }
+                this.uiManager.updateYearPickerSelection(mostRecentYear);
 
                 console.log('[APP] Auto-selected most recent year in forceUIRefresh:', mostRecentYear);
             }
@@ -667,27 +593,10 @@ class App {
         // Re-render current view
         switch (this.currentView) {
             case 'overview':
-                this.uiManager.hideAllDashboards();
-                this.uiManager.showDashboard('overview');
-
-                // Populate time period header with available years from loaded data
-                const availableYears = this.dataManager.getAvailableYears();
-                if (availableYears.length > 0) {
-                    this.populateTimePeriodHeader(availableYears);
-                }
-
-                this.chartRenderer.renderOverviewSankey();
-                break;
-            case 'analytics':
-                this.uiManager.hideAllDashboards();
-                this.uiManager.showDashboard('analytics');
+                this.showOverviewView();
                 break;
             case 'properties':
-                this.uiManager.hideAllDashboards();
-                this.uiManager.showDashboard('properties');
-                if (this.propertiesManager && typeof this.propertiesManager.initialize === 'function') {
-                    this.propertiesManager.initialize();
-                }
+                this.showPropertiesView();
                 break;
         }
 

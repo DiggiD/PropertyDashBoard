@@ -41,8 +41,6 @@ class EventHandler {
     bindSummaryButtons() {
         const buttonMappings = {
             'overviewBtn': () => this.handleViewChange('overview'),
-            'analyticsBtn': () => this.handleViewChange('analytics'),
-            'incomeBtn': () => this.handleViewChange('income'),
             'propertiesBtn': () => this.handleViewChange('properties'),
         };
 
@@ -97,13 +95,10 @@ class EventHandler {
 
     /**
      * Bind chart interaction events
+     * Currently empty as analytics features removed
      */
     bindChartInteractions() {
-        // Chart controls
-        this.bindChangeEvent('analyticsViewSelect', (e) => this.handleChartViewChange(e.target.value));
-        this.bindChangeEvent('analyticsTimePeriodSelect', (e) => this.handleTimePeriodChange(e.target.value));
-
-        console.log('[EVENT] Chart interactions bound');
+        console.log('[EVENT] Chart interactions bound (no analytics)');
     }
 
     /**
@@ -118,53 +113,16 @@ class EventHandler {
             this.dataManager.setCurrentView(view);
 
             // Render appropriate content
-            if (view === 'analytics') {
-                await this.handleAnalyticsView();
-            } else if (view === 'overview') {
+            if (view === 'overview') {
                 await this.handleOverviewView();
+            } else if (view === 'properties') {
+                await this.handlePropertiesView();
             }
 
             console.log(`[EVENT] View changed to: ${view}`);
         } catch (error) {
             console.error('[EVENT] Error changing view:', error);
             this.uiManager.showError('Failed to change view', 'View Change Error');
-        }
-    }
-
-    /**
-     * Handle analytics view
-     */
-    async handleAnalyticsView() {
-        try {
-            this.uiManager.showLoadingState('Loading analytics...');
-
-            // Update chart controls
-            const currentView = this.dataManager.getCurrentView();
-            const currentTimePeriod = this.dataManager.getCurrentTimePeriod();
-
-            this.uiManager.updateChartControls({
-                view: currentView,
-                timePeriod: currentTimePeriod,
-            });
-
-            // Update chart metrics
-            const metrics = {
-                totalExpenses: this.dataManager.calculateTotalExpenses(),
-                averageExpensePerProperty: this.dataManager.calculateAverageExpensePerProperty(),
-                topCategory: this.dataManager.getTopExpenseCategory(),
-            };
-
-            this.uiManager.updateChartMetrics(metrics);
-
-            // Trigger chart render using chart renderer
-            if (window.chartRenderer && typeof window.chartRenderer.renderAnalyticsChart === 'function') {
-                await window.chartRenderer.renderAnalyticsChart();
-            }
-
-            this.uiManager.hideLoadingState();
-        } catch (error) {
-            console.error('[EVENT] Error handling analytics view:', error);
-            this.uiManager.showError('Failed to load analytics view', 'Analytics View Error');
         }
     }
 
@@ -188,34 +146,21 @@ class EventHandler {
     }
 
     /**
-     * Handle chart view change
-     * @param {string} view - Chart view
+     * Handle properties view
      */
-    async handleChartViewChange(view) {
+    async handlePropertiesView() {
         try {
-            this.dataManager.setCurrentView(view);
-            await this.handleAnalyticsView();
+            this.uiManager.showLoadingState('Loading properties...');
 
-            console.log(`[EVENT] Chart view changed to: ${view}`);
+            // Trigger properties render using chart renderer if available
+            if (window.chartRenderer && typeof window.chartRenderer.renderPropertiesChart === 'function') {
+                await window.chartRenderer.renderPropertiesChart();
+            }
+
+            this.uiManager.hideLoadingState();
         } catch (error) {
-            console.error('[EVENT] Error changing chart view:', error);
-            this.uiManager.showError('Failed to change chart view', 'Chart View Error');
-        }
-    }
-
-    /**
-     * Handle time period change
-     * @param {string} timePeriod - Time period
-     */
-    async handleTimePeriodChange(timePeriod) {
-        try {
-            this.dataManager.setCurrentTimePeriod(timePeriod);
-            await this.handleAnalyticsView();
-
-            console.log(`[EVENT] Time period changed to: ${timePeriod}`);
-        } catch (error) {
-            console.error('[EVENT] Error changing time period:', error);
-            this.uiManager.showError('Failed to change time period', 'Time Period Error');
+            console.error('[EVENT] Error handling properties view:', error);
+            this.uiManager.showError('Failed to load properties', 'Properties Error');
         }
     }
 
