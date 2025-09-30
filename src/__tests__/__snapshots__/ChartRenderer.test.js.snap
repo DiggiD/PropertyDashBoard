@@ -1,0 +1,3 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ChartRenderer with High Coverage Rendering - createSankey should create sankey SVG structure 1`] = `"<svg></svg>"`;

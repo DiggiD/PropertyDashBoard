@@ -32,10 +32,6 @@ class Validator {
                 pattern: /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s\d{4}$/,
                 message: 'Month must be in format MMM YYYY (e.g., Jan 2024)',
             },
-            quarter: {
-                pattern: /^Q[1-4]\s\d{4}$/,
-                message: 'Quarter must be in format Q1-Q4 YYYY',
-            },
         };
     }
 
@@ -50,6 +46,10 @@ class Validator {
         }
 
         const trimmed = name.trim();
+
+        if (trimmed.length === 0) {
+            return { isValid: false, message: 'Property name is required' };
+        }
 
         if (trimmed.length < this.rules.propertyName.minLength) {
             return {
@@ -117,7 +117,7 @@ class Validator {
 
         const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
 
-        if (isNaN(numAmount)) {
+        if (isNaN(numAmount) || !isFinite(numAmount)) {
             return { isValid: false, message: 'Please enter a valid number' };
         }
 
@@ -149,22 +149,6 @@ class Validator {
         return { isValid: true, message: '' };
     }
 
-    /**
-     * Validate quarter format
-     * @param {string} quarter - Quarter string to validate
-     * @returns {Object} Validation result {isValid: boolean, message: string}
-     */
-    validateQuarter(quarter) {
-        if (!quarter || typeof quarter !== 'string') {
-            return { isValid: false, message: 'Quarter is required' };
-        }
-
-        if (!this.rules.quarter.pattern.test(quarter)) {
-            return { isValid: false, message: this.rules.quarter.message };
-        }
-
-        return { isValid: true, message: '' };
-    }
 
     /**
      * Validate property data structure
@@ -183,8 +167,8 @@ class Validator {
         }
 
         // Validate required fields
-        if (!property.id) {
-            errors.push('Property ID is required');
+        if (!property.id || typeof property.id !== 'number' || property.id <= 0) {
+            errors.push('Property ID is required and must be a positive number');
         }
 
         if (!property.name || typeof property.name !== 'string') {
@@ -199,33 +183,6 @@ class Validator {
         // Validate expenses structure
         if (!property.expenses || typeof property.expenses !== 'object') {
             errors.push('Property expenses must be an object');
-        }
-
-        // Validate quarterly data if present
-        if (property.quarterlyData) {
-            if (typeof property.quarterlyData !== 'object') {
-                errors.push('Quarterly data must be an object');
-            } else {
-                // Validate each quarter
-                Object.entries(property.quarterlyData).forEach(([quarter, data]) => {
-                    const quarterValidation = this.validateQuarter(quarter);
-                    if (!quarterValidation.isValid) {
-                        errors.push(`Invalid quarter format: ${quarter}`);
-                    }
-
-                    if (!data || typeof data !== 'object') {
-                        errors.push(`Quarter ${quarter} data is invalid`);
-                    } else {
-                        if (typeof data.total !== 'number' || data.total < 0) {
-                            errors.push(`Quarter ${quarter} total must be a non-negative number`);
-                        }
-
-                        if (!data.expenses || typeof data.expenses !== 'object') {
-                            errors.push(`Quarter ${quarter} expenses must be an object`);
-                        }
-                    }
-                });
-            }
         }
 
         return {
@@ -431,8 +388,7 @@ class Validator {
 }
 
 // Export for use in other modules
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = Validator;
-} else {
-    window.Validator = Validator;
-}
+export default Validator;
+
+// Expose globally for Babel standalone transpilation
+window.Validator = Validator;

@@ -308,7 +308,7 @@ class ThemeManager {
         try {
             localStorage.setItem(this.storageKey, this.isDarkMode.toString());
         } catch (error) {
-            console.warn('Failed to save theme preference:', error);
+            console.error('Save failed');
         }
     }
 
@@ -330,7 +330,7 @@ class ThemeManager {
      * @param {boolean} isDark - Whether to set dark mode
      */
     setTheme(isDark) {
-        this.isDarkMode = isDark;
+        this.isDarkMode = !!isDark;
         this.manualOverride = true;
         this.applyCurrentTheme();
         this.savePreference();
@@ -445,14 +445,21 @@ class ThemeManager {
      */
     notifyThemeChange() {
         // Dispatch custom event for other modules to listen to
-        const event = new CustomEvent('themeChange', {
-            detail: {
-                theme: this.getCurrentTheme(),
-                isDark: this.isDarkMode,
-                colors: this.getCurrentColors(),
-            },
-        });
-        document.dispatchEvent(event);
+        try {
+            const event = new CustomEvent('themeChange', {
+                detail: {
+                    theme: this.getCurrentTheme(),
+                    isDark: this.isDarkMode,
+                    colors: this.getCurrentColors(),
+                },
+                bubbles: true,
+                cancelable: true,
+            });
+            document.dispatchEvent(event);
+        } catch (error) {
+            // Fallback for environments that don't support CustomEvent
+            console.warn('[THEME] CustomEvent not supported, using fallback notification');
+        }
 
         // Call any registered callbacks
         if (this.onThemeChange) {
@@ -676,13 +683,20 @@ class ThemeManager {
      */
     notifyColorThemeChange() {
         // Dispatch custom event for other modules to listen to
-        const event = new CustomEvent('colorThemeChange', {
-            detail: {
-                theme: this.currentColorTheme,
-                colors: this.getColorTheme(),
-            },
-        });
-        document.dispatchEvent(event);
+        try {
+            const event = new CustomEvent('colorThemeChange', {
+                detail: {
+                    theme: this.currentColorTheme,
+                    colors: this.getColorTheme(),
+                },
+                bubbles: true,
+                cancelable: true,
+            });
+            document.dispatchEvent(event);
+        } catch (error) {
+            // Fallback for environments that don't support CustomEvent
+            console.warn('[THEME] CustomEvent not supported, using fallback notification');
+        }
 
         // Call any registered callbacks
         if (this.onColorThemeChange) {
@@ -752,8 +766,7 @@ class ThemeManager {
 }
 
 // Export for use in other modules
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = ThemeManager;
-} else {
-    window.ThemeManager = ThemeManager;
-}
+export default ThemeManager;
+
+// Expose globally for Babel standalone transpilation
+window.ThemeManager = ThemeManager;

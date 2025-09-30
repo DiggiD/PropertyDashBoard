@@ -1,0 +1,35 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "type": "npm",
+            "script": "dev",
+            "group": "build",
+            "presentation": {
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "label": "npm: dev"
+        },
+        {
+            "type": "npm",
+            "script": "build",
+            "group": "build",
+            "presentation": {
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "label": "npm: build"
+        },
+        {
+            "type": "shell",
+            "command": "live-server",
+            "args": ["dist", "--port=5500"],
+            "group": "build",
+            "presentation": {
+                "panel": "shared"
+            },
+            "label": "live-server"
+        }
+    ]
+}

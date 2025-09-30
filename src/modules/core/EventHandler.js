@@ -339,9 +339,13 @@ class EventHandler {
     bindClickEvent(elementKey, handler) {
         const element = this.uiManager.getElement(elementKey);
         if (element) {
-            const wrappedHandler = (e) => {
+            const wrappedHandler = async (e) => {
                 e.preventDefault();
-                handler(e);
+                try {
+                    await handler(e);
+                } catch (error) {
+                    console.error('[EVENT] Error in click event handler:', error);
+                }
             };
 
             this.uiManager.addEventListener(element, 'click', wrappedHandler);
@@ -496,8 +500,7 @@ class EventHandler {
 }
 
 // Export for use in other modules
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = EventHandler;
-} else {
-    window.EventHandler = EventHandler;
-}
+export default EventHandler;
+
+// Expose globally for Babel standalone transpilation
+window.EventHandler = EventHandler;

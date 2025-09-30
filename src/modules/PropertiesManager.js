@@ -115,6 +115,7 @@ class PropertiesManager {
      * Show tooltip for delete button
      */
     showDeleteButtonTooltip(button, event) {
+        if (!button) return;
         // Remove any existing tooltip
         this.hideAddButtonTooltip();
 
@@ -924,6 +925,56 @@ class PropertiesManager {
     }
 
     /**
+     * Render category item
+     */
+    renderCategoryItem(category, property) {
+        const isSelected = category === this.currentCategoryPath?.category;
+        const expenseValue = this.getCategoryExpenseValue(property, category);
+        const isHierarchical = typeof expenseValue === 'object' && expenseValue !== null;
+        const displayValue = isHierarchical ?
+            `${this.uiManager.formatter ? this.uiManager.formatter.formatCurrency(this.sumObjectValues(expenseValue)) : this.sumObjectValues(expenseValue)}` :
+            `${this.uiManager.formatter ? this.uiManager.formatter.formatCurrency(expenseValue || 0) : (expenseValue || 0)}`;
+
+        if (isHierarchical) {
+            // Hierarchical category - original layout with navigation
+            return `
+                <div class="property-item ${isSelected ? 'selected' : ''}" data-category="${category || ''}">
+                    <div class="property-info">
+                        <h5 class="category-name editable" data-category="${category || ''}" title="Click to edit category name">${category || 'Unnamed Category'}</h5>
+                        <div class="property-meta">
+                            <span class="property-total">${displayValue}</span>
+                        </div>
+                    </div>
+                    <div class="category-actions">
+                        <button class="category-action delete-hidden btn btn--outline btn--sm" data-action="delete" data-category="${category || ''}" title="Delete category">
+                            ×
+                        </button>
+                    </div>
+                </div>
+            `;
+        } else {
+            // Non-hierarchical category - inline name and value
+            return `
+                <div class="property-item ${isSelected ? 'selected' : ''}" data-category="${category || ''}">
+                    <div class="property-info">
+                        <div class="subcategory-inline">
+                            <span class="category-name editable" data-category="${category || ''}" title="Click to edit category name">${category || 'Unnamed Category'}</span>
+                            <div class="expense-value editable" data-category="${category || ''}" title="Click to edit value">
+                                ${displayValue}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="category-actions">
+                        <button class="category-action delete-hidden btn btn--outline btn--sm" data-action="delete" data-category="${category || ''}" title="Delete category">
+                            ×
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    /**
      * Render categories list
      */
     renderCategoriesList(categories, property) {
@@ -1033,19 +1084,7 @@ class PropertiesManager {
             return property.expenses[category];
         }
 
-        // Fallback to quarterly data if expenses object doesn't have the category
-        if (property.quarterlyData) {
-            const quarters = Object.keys(property.quarterlyData);
-            if (quarters.length > 0) {
-                const latestQuarter = quarters[quarters.length - 1];
-                const quarterData = property.quarterlyData[latestQuarter];
-                if (quarterData && quarterData.expenses && quarterData.expenses[category]) {
-                    return quarterData.expenses[category];
-                }
-            }
-        }
-
-        // If neither expenses nor quarterly data has the category, check if it exists in global categories
+        // If expenses object doesn't have the category, check if it exists in global categories
         // This handles the case where a category was added but the property hasn't been updated yet
         if (window.dataManager && typeof window.dataManager.getExpenseCategories === 'function') {
             const globalCategories = window.dataManager.getExpenseCategories();
@@ -1363,8 +1402,8 @@ class PropertiesManager {
         if (!property) return 0;
 
         if (subcategory) {
-            // For subcategories, get the value from expenses object first
-            const categoryValue = property.expenses[category];
+            // For subcategories, get the value from current period data
+            const categoryValue = this.getCategoryExpenseValue(property, category);
             if (typeof categoryValue === 'object' && categoryValue !== null && categoryValue[subcategory] !== undefined) {
                 const rawValue = categoryValue[subcategory];
                 // For display, show negative values as negative (expenses) and positive as positive (income)
@@ -1372,27 +1411,10 @@ class PropertiesManager {
                 return rawValue;
             }
 
-            // Fallback to quarterly data
-            if (property.quarterlyData) {
-                const quarters = Object.keys(property.quarterlyData);
-                if (quarters.length > 0) {
-                    const latestQuarter = quarters[quarters.length - 1];
-                    const quarterData = property.quarterlyData[latestQuarter];
-                    if (quarterData && quarterData.expenses && quarterData.expenses[category]) {
-                        const categoryData = quarterData.expenses[category];
-                        if (typeof categoryData === 'object' && categoryData !== null && categoryData[subcategory] !== undefined) {
-                            const rawValue = categoryData[subcategory];
-                            // Return stored value as-is for display
-                            return rawValue;
-                        }
-                    }
-                }
-            }
-
             return 0;
         }
 
-        const value = property.expenses[category];
+        const value = this.getCategoryExpenseValue(property, category);
         const rawValue = typeof value === 'object' ? this.sumObjectValues(value) : (value || 0);
 
         // Return the stored value as-is for display
@@ -1417,34 +1439,34 @@ class PropertiesManager {
         const categoryType = isIncomeCategory ? 'income' : 'expense';
         this.historyManager.createSnapshot(`Updated ${category}${subcategory ? ` - ${subcategory}` : ''} ${categoryType}`, '', false);
 
-        // Preserve user input: positive for income, negative for expenses
-        let finalValue = value;
-
-        if (isExpenseCategory && value > 0) {
-            // Convert positive input to negative for expense categories
-            finalValue = -value;
-        } else if (isIncomeCategory && value < 0) {
-            // Convert negative input to positive for income categories
-            finalValue = Math.abs(value);
+        // Handle NaN and invalid values
+        let processedValue = value;
+        if (isNaN(value) || value === null || value === undefined) {
+            processedValue = 0;
         }
-        // For other cases, preserve the original value
 
-        // Update both expenses object and quarterly data
+        // Preserve user input: positive for income, negative for expenses
+        let finalValue = processedValue;
+
+        if (isExpenseCategory && processedValue > 0) {
+            // Convert positive input to negative for expense categories
+            finalValue = -processedValue;
+        } else if (isIncomeCategory && processedValue < 0) {
+            // Convert negative input to positive for income categories
+            finalValue = Math.abs(processedValue);
+        }
+        // For other cases, preserve the processed value
+
+        // Update expenses object
         if (subcategory) {
             // Update subcategory value
             if (typeof property.expenses[category] !== 'object' || property.expenses[category] === null) {
                 property.expenses[category] = {};
             }
             property.expenses[category][subcategory] = finalValue;
-
-            // Update quarterly data as well
-            this.updateQuarterlyData(property, category, { [subcategory]: finalValue });
         } else {
             // Update category value
             property.expenses[category] = finalValue;
-
-            // Update quarterly data as well
-            this.updateQuarterlyData(property, category, finalValue);
         }
 
         // Save to storage
@@ -1452,9 +1474,6 @@ class PropertiesManager {
 
         // Re-render properties dashboard
         this.renderPropertiesDashboard();
-
-        // Trigger chart refresh if overview view is active
-        this.refreshChartsIfNeeded();
 
         // Force UI refresh to update totals
         if (this.uiManager && typeof this.uiManager.updateDataDisplay === 'function') {
@@ -1467,42 +1486,6 @@ class PropertiesManager {
         this.uiManager.showToast(`${categoryTypeLabel} updated successfully`, 'success');
     }
 
-    /**
-     * Update quarterly data to maintain consistency
-     */
-    updateQuarterlyData(property, category, value) {
-        if (!property.quarterlyData) return;
-
-        // Get the latest quarter
-        const quarters = Object.keys(property.quarterlyData);
-        if (quarters.length === 0) return;
-
-        const latestQuarter = quarters[quarters.length - 1];
-        const quarterData = property.quarterlyData[latestQuarter];
-
-        if (quarterData && quarterData.expenses) {
-            if (typeof value === 'object' && value !== null) {
-                // Hierarchical update
-                if (typeof quarterData.expenses[category] !== 'object' || quarterData.expenses[category] === null) {
-                    quarterData.expenses[category] = {};
-                }
-                Object.assign(quarterData.expenses[category], value);
-            } else {
-                // Flat update
-                quarterData.expenses[category] = value;
-            }
-
-            // Recalculate total for the quarter
-            const total = Object.values(quarterData.expenses).reduce((sum, expense) => {
-                if (typeof expense === 'object' && expense !== null) {
-                    return sum + Object.values(expense).reduce((subSum, val) => subSum + (val || 0), 0);
-                }
-                return sum + (expense || 0);
-            }, 0);
-
-            quarterData.total = total;
-        }
-    }
 
     /**
      * Cancel expense edit
@@ -1615,6 +1598,7 @@ class PropertiesManager {
      * Handle property name edit
      */
     handlePropertyNameEdit(event) {
+        if (!event || !event.target) return;
         const propertyNameElement = event.target.closest('.property-name.editable');
         if (!propertyNameElement || this.isEditMode) return;
 
@@ -1879,8 +1863,17 @@ class PropertiesManager {
      * Handle back navigation
      */
     handleBackNavigation() {
-        this.currentPropertyId = null;
-        this.currentCategoryPath = null;
+        if (this.currentCategoryPath && this.currentCategoryPath.subcategory) {
+            // From subcategory to category
+            this.currentCategoryPath = { category: this.currentCategoryPath.category };
+        } else if (this.currentCategoryPath && this.currentCategoryPath.category) {
+            // From category to property
+            this.currentCategoryPath = null;
+        } else if (this.currentPropertyId) {
+            // From property to properties list
+            this.currentPropertyId = null;
+            this.currentCategoryPath = null;
+        }
         this.renderPropertiesDashboard();
     }
 
@@ -2092,7 +2085,12 @@ class PropertiesManager {
         // Clean up any existing modal with the same ID first
         const existingModal = document.getElementById(modalId);
         if (existingModal) {
-            existingModal.remove();
+            // Remove existing modal safely
+            if (typeof existingModal.remove === 'function') {
+                existingModal.remove();
+            } else if (existingModal.parentNode) {
+                existingModal.parentNode.removeChild(existingModal);
+            }
         }
 
         // Create new modal
@@ -2116,7 +2114,7 @@ class PropertiesManager {
      * Add property
      */
     async addProperty(name) {
-        const result = await this.dataManager.addProperty(name);
+        const result = await this.dataManager.addProperty(name.trim());
         if (result.success) {
             this.historyManager.createSnapshot(`Added property "${name}"`, '', false);
 
@@ -2129,11 +2127,6 @@ class PropertiesManager {
             }
 
             this.renderPropertiesDashboard();
-
-            // Refresh charts after a short delay to ensure data is saved
-            setTimeout(() => {
-                this.refreshChartsIfNeeded();
-            }, 100);
 
             this.uiManager.showToast(result.message, 'success');
         } else {
@@ -2176,17 +2169,6 @@ class PropertiesManager {
         delete property.expenses[oldCategory];
         property.expenses[newCategory] = categoryValue;
 
-        // Update quarterly data if it exists
-        if (property.quarterlyData) {
-            Object.values(property.quarterlyData).forEach(quarterData => {
-                if (quarterData.expenses && quarterData.expenses.hasOwnProperty(oldCategory)) {
-                    const quarterValue = quarterData.expenses[oldCategory];
-                    delete quarterData.expenses[oldCategory];
-                    quarterData.expenses[newCategory] = quarterValue;
-                }
-            });
-        }
-
         // Save and refresh
         this.dataManager.save();
         this.renderPropertiesDashboard();
@@ -2217,19 +2199,6 @@ class PropertiesManager {
         delete categoryValue[oldSubcategory];
         categoryValue[newSubcategory] = subcategoryValue;
 
-        // Update quarterly data if it exists
-        if (property.quarterlyData) {
-            Object.values(property.quarterlyData).forEach(quarterData => {
-                if (quarterData.expenses && quarterData.expenses[category] &&
-                    typeof quarterData.expenses[category] === 'object' &&
-                    quarterData.expenses[category].hasOwnProperty(oldSubcategory)) {
-                    const quarterValue = quarterData.expenses[category][oldSubcategory];
-                    delete quarterData.expenses[category][oldSubcategory];
-                    quarterData.expenses[category][newSubcategory] = quarterValue;
-                }
-            });
-        }
-
         // Save and refresh
         this.dataManager.save();
         this.renderPropertiesDashboard();
@@ -2254,7 +2223,7 @@ class PropertiesManager {
         const property = this.dataManager.getPropertyById(propertyId);
         if (!property) return;
 
-        const result = this.dataManager.deleteProperty(propertyId);
+        const result = await this.dataManager.deleteProperty(propertyId);
         if (result.success) {
             // Save the changes to storage to ensure persistence
             const saveResult = await this.dataManager.save();
@@ -2267,7 +2236,6 @@ class PropertiesManager {
             this.historyManager.createSnapshot(`Deleted property "${property.name}"`, '', false);
             this.currentPropertyId = null;
             this.renderPropertiesDashboard();
-            this.refreshChartsIfNeeded();
             this.uiManager.showToast(result.message, 'success');
         } else {
             this.uiManager.showToast(result.message, 'error');
@@ -2355,19 +2323,9 @@ class PropertiesManager {
         // Remove category from property expenses
         delete property.expenses[category];
 
-        // Remove from quarterly data to prevent cached hierarchical data from persisting
-        if (property.quarterlyData) {
-            Object.keys(property.quarterlyData).forEach(quarter => {
-                if (property.quarterlyData[quarter] && property.quarterlyData[quarter].expenses) {
-                    delete property.quarterlyData[quarter].expenses[category];
-                }
-            });
-        }
-
         // Save and refresh
         this.dataManager.save();
         this.renderPropertiesDashboard();
-        this.refreshChartsIfNeeded();
         this.uiManager.showToast(`Category "${category}" deleted successfully`, 'success');
     }
 
@@ -2386,25 +2344,8 @@ class PropertiesManager {
         const property = this.dataManager.getPropertyById(this.currentPropertyId);
         if (!property) return;
 
-        // Use the same data source as getCategoryExpenseValue for consistency
-        let categoryValue = null;
-
-        // Check quarterly data first (same as getCategoryExpenseValue)
-        if (property.quarterlyData) {
-            const quarters = Object.keys(property.quarterlyData);
-            if (quarters.length > 0) {
-                const latestQuarter = quarters[quarters.length - 1];
-                const quarterData = property.quarterlyData[latestQuarter];
-                if (quarterData && quarterData.expenses && quarterData.expenses[category]) {
-                    categoryValue = quarterData.expenses[category];
-                }
-            }
-        }
-
-        // Fallback to expenses object
-        if (categoryValue === null && property.expenses.hasOwnProperty(category)) {
-            categoryValue = property.expenses[category];
-        }
+        // Use the expenses object
+        const categoryValue = property.expenses[category];
 
         if (categoryValue === null) return;
 
@@ -2415,29 +2356,7 @@ class PropertiesManager {
         // Create snapshot
         this.historyManager.createSnapshot(`Deleted subcategory "${subcategory}" from ${category}`, '', false);
 
-        // Remove subcategory from both quarterly data and main expenses
-        if (property.quarterlyData) {
-            const quarters = Object.keys(property.quarterlyData);
-            if (quarters.length > 0) {
-                const latestQuarter = quarters[quarters.length - 1];
-                const quarterData = property.quarterlyData[latestQuarter];
-                if (quarterData && quarterData.expenses && quarterData.expenses[category] &&
-                    typeof quarterData.expenses[category] === 'object') {
-                    delete quarterData.expenses[category][subcategory];
-
-                    // Recalculate total for the quarter
-                    const total = Object.values(quarterData.expenses).reduce((sum, expense) => {
-                        if (typeof expense === 'object' && expense !== null) {
-                            return sum + Object.values(expense).reduce((subSum, val) => subSum + (val || 0), 0);
-                        }
-                        return sum + (expense || 0);
-                    }, 0);
-                    quarterData.total = total;
-                }
-            }
-        }
-
-        // Remove from main expenses object
+        // Remove from expenses object
         if (property.expenses[category] && typeof property.expenses[category] === 'object') {
             delete property.expenses[category][subcategory];
 
@@ -2450,7 +2369,6 @@ class PropertiesManager {
         // Save and refresh
         this.dataManager.save();
         this.renderPropertiesDashboard();
-        this.refreshChartsIfNeeded();
         this.uiManager.showToast(`Subcategory "${subcategory}" deleted successfully`, 'success');
     }
 
@@ -2733,30 +2651,6 @@ class PropertiesManager {
         this.visibleDeleteButtons.clear();
     }
 
-    /**
-     * Refresh charts if needed (when data changes)
-     */
-    refreshChartsIfNeeded() {
-        try {
-            // Check if overview view is currently active
-            const currentView = this.dataManager.getCurrentView();
-
-            if (currentView === 'overview') {
-                console.log('[PROPERTIES] Refreshing sankey diagram after data change');
-
-                // Trigger sankey diagram refresh using the proper chartRenderer reference
-                if (this.chartRenderer && typeof this.chartRenderer.renderOverviewSankey === 'function') {
-                    this.chartRenderer.renderOverviewSankey();
-                } else {
-                    console.warn('[PROPERTIES] ChartRenderer not available for sankey refresh');
-                }
-            } else {
-                console.log(`[PROPERTIES] Skipping chart refresh - current view is ${currentView}`);
-            }
-        } catch (error) {
-            console.error('[PROPERTIES] Error refreshing charts:', error);
-        }
-    }
 
     /**
      * Check if a category is an expense category
@@ -2776,11 +2670,8 @@ class PropertiesManager {
      * @returns {boolean} True if income category, false otherwise
      */
     isIncomeCategory(category) {
-        // For now, no categories are income categories
-        // In the future, this will check against incomeCategories array
-        // const incomeCategories = this.dataManager.getIncomeCategories();
-        // return incomeCategories && incomeCategories.includes(category);
-        return false;
+        const incomeCategories = this.dataManager.getIncomeCategories();
+        return incomeCategories && incomeCategories.includes(category);
     }
 
     /**
@@ -3004,21 +2895,10 @@ class PropertiesManager {
     hasDataForMonthYear(year, month) {
         const properties = this.dataManager.getProperties();
 
-        // Check if any property has data for this month/year
+        // Check if any property has expenses data
         for (const property of properties) {
-            if (property.monthlyData) {
-                // Look for month key in format "MMM YYYY"
-                const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                                   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                const monthIndex = parseInt(month) - 1;
-                const monthName = monthNames[monthIndex];
-
-                if (monthName) {
-                    const monthKey = `${monthName} ${year}`;
-                    if (property.monthlyData[monthKey]) {
-                        return true;
-                    }
-                }
+            if (property.expenses && Object.keys(property.expenses).length > 0) {
+                return true;
             }
         }
 

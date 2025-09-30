@@ -42,8 +42,18 @@
  * ```
  */
 
+import * as d3 from 'd3';
+
 class ChartRenderer {
+    static instance = null;
+
     constructor(dataManager, uiManager, formatter, themeManager) {
+        if (ChartRenderer.instance) {
+            console.warn('[CHART] ChartRenderer already exists, returning existing instance');
+            return ChartRenderer.instance;
+        }
+        ChartRenderer.instance = this;
+
         this.dataManager = dataManager;
         this.uiManager = uiManager;
         this.formatter = formatter;
@@ -51,7 +61,7 @@ class ChartRenderer {
 
         // Chart configuration
         this.chartConfig = {
-            margins: { top: 40, right: 80, bottom: 60, left: 160 },
+            margins: { top: 10, right: 10, bottom: 10, left: 50 },
             animations: {
                 duration: 750,
                 ease: d3.easeCubicInOut,
@@ -62,27 +72,97 @@ class ChartRenderer {
         this.updateChartColors();
 
         // Listen for color theme changes
-        document.addEventListener('colorThemeChange', this.handleColorThemeChange.bind(this));
+        if (!document._colorThemeListenerAdded) {
+            document.addEventListener('colorThemeChange', this.handleColorThemeChange.bind(this));
+            document._colorThemeListenerAdded = true;
+        }
+
+        // Listen for data changes
+        if (this.dataManager) {
+            this.dataManager.on('dataChange', this.handleDataChange.bind(this));
+        }
 
         // Chart state
         this.currentChart = null;
         this.tooltip = null;
         this.legends = new Map();
 
-        // Sankey interaction state
-        this.selectedFlow = null;
-        this.highlightedFlow = null;
-        this.selectedFlowMousePosition = null;
-        this.selectedNode = null;
-        this.selectedNodeMousePosition = null;
+        // Sankey state
+        this.sankeyData = null;
+        this.state = { selected: null, highlighted: null, paths: { nodes: [], links: [] } };
+        this.persistentPos = null;
+
+        // Interaction state
+        this.interactionState = 'IDLE'; // 'IDLE' | 'RIPPLE_HOVER' | 'PINNED_SELECT'
+        this.rippleForces = new Map(); // Cache custom forces
+        this.hoverTimeout = null; // Debounce hover
+        this.resizeObserver = null; // ResizeObserver instance
+        this.bboxCache = new Map(); // Cache bbox computations
+        this.relatedIdsCache = new Map(); // Memoize relatedIds per filterKey
+
+        // Debounced render method for ResizeObserver
+        this.debouncedRender = this.debounce(this.renderOverviewSankey.bind(this), 250);
+
+        // Alias for tests
+        this.debouncedRenderOverviewSankey = this.debouncedRender;
+
+        // Initialization flag
+        this.isInitialized = false;
+        this.isRendering = false;
+        this.isRenderingOverview = false;
 
         console.log('[CHART] ChartRenderer initialized');
+    }
+
+    /**
+     * Debounce function
+     * @param {Function} func - Function to debounce
+     * @param {number} wait - Wait time in milliseconds
+     * @returns {Function} Debounced function
+     */
+    debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+
+    /**
+     * Throttle function
+     * @param {Function} func - Function to throttle
+     * @param {number} limit - Time limit in milliseconds
+     * @returns {Function} Throttled function
+     */
+    throttle(func, limit) {
+        let inThrottle;
+        return function executedFunction(...args) {
+            if (!inThrottle) {
+                func.apply(this, args);
+                inThrottle = true;
+                setTimeout(() => inThrottle = false, limit);
+            }
+        };
     }
 
     /**
      * Initialize chart renderer
      */
     async initialize() {
+        if (this.isInitialized) {
+            console.log('[CHART] Already initialized, skipping');
+            return;
+        }
+        // Cleanup old elements if exist
+        d3.select('body').select('.chart-tooltip').remove();
+        d3.select('#overviewChartContent svg').remove();  // Clear old SVG
+        this.isInitialized = true;
+
+        await this.uiManager.getElement('chart-container'); // Ensures ready before setupChartContainers
         this.createTooltip();
         this.setupChartContainers();
 
@@ -117,64 +197,103 @@ class ChartRenderer {
      * Setup chart containers
      */
     setupChartContainers() {
-        // Setup chart containers for different views
-        const containers = [
-            'overviewChartContent'
-        ];
+        try {
+            const container = this.uiManager.getElement('chart-container');
+            if (!container) throw new Error('Chart container not found');
+            this.chartContainer = container; // Same for tooltip, etc.
+            const ids = ['chart-container', 'tooltip'];
+            ids.forEach(id => {
+                const el = this.uiManager.getElement(id);
+                if (el) this[id] = el;
+            });
 
-        containers.forEach(containerId => {
-            const container = this.uiManager.getElement(containerId);
-            if (container) {
-                // Clear any existing content
-                container.innerHTML = '';
+            // Setup chart containers for different views
+            const containers = [
+                'overviewChartContent'
+            ];
 
-                // Set up basic container styling
-                container.style.position = 'relative';
-                container.style.width = '100%';
-                container.style.height = '100%';
-                container.style.overflow = 'hidden';
-
-                console.log(`[CHART] Setup container: ${containerId}`);
-            } else {
-                console.warn(`[CHART] Container not found: ${containerId}`);
-            }
-        });
+            containers.forEach(containerId => {
+                const container = this.uiManager.getElement(containerId);
+                if (container) {
+                    // Ensure container is ready for SVG
+                    container.style.position = 'relative';
+                    container.style.width = '100%';
+                    container.style.height = '100%';
+                } else {
+                    console.warn(`[CHART] Container ${containerId} not found`);
+                }
+            });
+        } catch(e) {
+            console.error('Setup failed:', e);
+            this.showError('UI setup error');
+        }
     }
 
     /**
      * Render overview sankey diagram
      */
     async renderOverviewSankey() {
+        if (this.isRendering) return;
+        this.isRendering = true;
+
         const container = this.uiManager.getElement('overviewChartContent');
         if (!container) {
-            console.error('[CHART] Overview chart container not found');
+            this.isRendering = false;
             return;
         }
-
-        // Clear existing content
         container.innerHTML = '';
+        this.uiManager.showLoadingState('Loading overview...');
+
+        // Setup ResizeObserver for container-specific resizing
+        if (this.resizeObserver) {
+            this.resizeObserver.disconnect();
+        }
+        this.resizeObserver = new ResizeObserver(entries => {
+            if (entries[0].contentRect.width !== this.lastWidth) {
+                this.lastWidth = entries[0].contentRect.width;
+                this.debouncedRender();
+            }
+        });
+        this.resizeObserver.observe(container);
 
         try {
-            this.uiManager.showLoadingState('Loading overview...');
+            console.log('[CHART] Rendering...');
+            const period = this.dataManager.getCurrentTimePeriod();
+            const year = this.dataManager.getSelectedYear();
+            const aggregatedData = this.dataManager.getAggregatedSankeyData(period, year);
 
-            // Get current time period and selected year from data manager
-            const currentTimePeriod = this.dataManager.getCurrentTimePeriod();
-            const selectedYear = this.dataManager.getSelectedYear();
-
-            // Use current time period for the overview Sankey chart, with year filtering if applicable
-            const sankeyData = this.prepareSankeyData(currentTimePeriod, selectedYear);
-
-            if (!sankeyData || sankeyData.nodes.length === 0) {
+            if (aggregatedData.propExpenses.size === 0) {
                 this.showOverviewPlaceholder(container);
                 return;
             }
 
-            this.createSankeyDiagram(container, sankeyData);
-            this.uiManager.hideLoadingState();
+            const properties = this.dataManager.getProperties().filter(p => this.dataManager.hasData(p, period, year));
+            const categories = this.dataManager.getExpenseCategories();
+            const { width, height } = this.getDimensions(container);
 
+            let data;
+            try {
+                data = this.buildSankeyData(properties, aggregatedData.sources, aggregatedData.propIncomes, aggregatedData.propExpenses, categories, aggregatedData.hasIncome, aggregatedData.catTotals, aggregatedData.subTotals, width, height);
+            } catch (error) {
+                console.error('[CHART] buildSankeyData error:', error);
+                this.showError('Failed to process chart data');
+                this.showOverviewPlaceholder(container);
+                return;
+            }
+
+            if (!data.nodes.length) {
+                this.showOverviewPlaceholder(container);
+                return;
+            }
+
+            this.createSankey(container, data);
+            this.uiManager.hideLoadingState();
         } catch (error) {
-            console.error('[CHART] Error rendering sankey:', error);
+            console.error('[CHART] Render error:', error);
             this.showOverviewPlaceholder(container);
+        } finally {
+            this.isRendering = false;
+            this.isRenderingOverview = false;
         }
     }
 
@@ -185,687 +304,610 @@ class ChartRenderer {
         this.renderOverviewSankey();
     }
 
-    /**
-     * Prepare data for sankey diagram
-     * @param {string} timePeriod - Time period to use ('all', 'year', 'quarter', 'month')
-     * @param {string} selectedYear - Selected year to filter by ('all' for all years)
-     */
-    prepareSankeyData(timePeriod = null, selectedYear = null) {
-        const allProperties = this.dataManager.getProperties();
-        const categories = this.dataManager.getExpenseCategories();
 
-        // Filter out properties that don't have any meaningful expense or income data
-        let properties = allProperties.filter(property => {
-            // Check if property has any expenses at all (not just empty objects)
-            const hasAnyExpenses = property.expenses &&
-                                  typeof property.expenses === 'object' &&
-                                  Object.keys(property.expenses).length > 0 &&
-                                  // Check if any category has actual non-zero values
-                                  Object.entries(property.expenses).some(([category, value]) => {
-                                      if (typeof value === 'number') {
-                                          return value !== 0;
-                                      } else if (typeof value === 'object' && value !== null) {
-                                          // For hierarchical categories, check if any subcategory has non-zero values
-                                          return Object.values(value).some(subValue =>
-                                              typeof subValue === 'number' && subValue !== 0
-                                          );
-                                      }
-                                      return false;
-                                  });
 
-            // Check if property has monthly data with actual expense values
-            const hasMonthlyData = property.monthlyData &&
-                                  typeof property.monthlyData === 'object' &&
-                                  Object.keys(property.monthlyData).length > 0 &&
-                                  Object.values(property.monthlyData).some(monthData =>
-                                      monthData && typeof monthData === 'object' &&
-                                      Object.values(monthData).some(value =>
-                                          typeof value === 'number' && value !== 0
-                                      )
-                                  );
-
-            // Check if property has quarterly data with actual values
-            const hasQuarterlyData = property.quarterlyData &&
-                                    typeof property.quarterlyData === 'object' &&
-                                    Object.keys(property.quarterlyData).length > 0 &&
-                                    Object.values(property.quarterlyData).some(quarterData =>
-                                        quarterData && typeof quarterData === 'object' &&
-                                        typeof quarterData.total === 'number' && quarterData.total !== 0
-                                    );
-
-            return hasAnyExpenses || hasMonthlyData || hasQuarterlyData;
-        });
-
-        if (!properties || properties.length === 0) {
-            console.log('[CHART] No properties with data available for sankey');
-            return null;
+    // Build DAG with D3 stratify for auto-hierarchy/sorting (~40 lines)
+    buildSankeyData(properties, sources, propIncomes, propExpenses, categories, hasIncome, catTotals, subTotals, width, height) {
+        // Check for missing property expenses data
+        if (!propExpenses) {
+            console.warn('[CHART] Missing property expenses data');
+            return { nodes: [{ name: 'Missing Expense Data', value: 0, isPlaceholder: true }], links: [], hasIncome: false };
         }
 
+        const levelOffset = hasIncome ? 2 : 1;
+        const validProperties = properties.filter(p => p && typeof p.id === 'number');
         const nodes = [];
         const links = [];
-        const nodeMap = new Map();
-        let subcategoryIndex = 0;
-
-        // Dynamically detect hierarchical categories and their subcategories from current expenses
-        const hierarchicalCategories = {};
-
-        // Scan through all properties to find hierarchical categories in current expenses
-        properties.forEach(property => {
-            const currentExpenses = property.expenses || {};
-            Object.entries(currentExpenses).forEach(([category, expenseData]) => {
-                if (typeof expenseData === 'object' && expenseData !== null) {
-                    // This is a hierarchical category - collect all subcategories
-                    if (!hierarchicalCategories[category]) {
-                        hierarchicalCategories[category] = new Set();
-                    }
-                    Object.keys(expenseData).forEach(subCategory => {
-                        hierarchicalCategories[category].add(subCategory);
-                    });
-                }
-            });
-        });
-
-        // Convert Sets to Arrays for easier processing
-        Object.keys(hierarchicalCategories).forEach(category => {
-            hierarchicalCategories[category] = Array.from(hierarchicalCategories[category]);
-        });
-
-        // Step 1: Create property nodes (Level 1) - sorted by amount
-        const propertyNodes = [];
-        const propertyTotals = new Map();
-
-        // Calculate property totals first
-        properties.forEach((property, index) => {
-            const propertyData = this.dataManager.getCurrentPeriodData(property, timePeriod);
-            propertyTotals.set(property.id, propertyData.total);
-        });
-
-        // If a specific year is selected, filter properties to only include those with data for that year
-        if (selectedYear !== 'all') {
-            properties = properties.filter(property => {
-                if (!property.monthlyData) return false;
-
-                // Check if property has any data for the selected year
-                return Object.keys(property.monthlyData).some(monthKey => {
-                    const parts = monthKey.split(' ');
-                    return parts.length === 2 && parts[1] === selectedYear;
-                });
-            });
-
-            // If no properties have data for the selected year, return null
-            if (properties.length === 0) {
-                console.log('[CHART] No properties found with data for year:', selectedYear);
-                return null;
+        
+        // L0-1: Income (if any)
+        if (hasIncome) {
+          let sortKey = 0;
+          Object.entries(sources).sort(([,a], [,b]) => b - a).forEach(([source, total]) => {
+            if (total > 0) {
+              const id = `income-${source}`;
+              nodes.push({ id, name: source.toUpperCase(), type: 'income-source', level: 0, sortKey: sortKey++, color: this.getColor('categories', sortKey), total });
             }
+          });
+          nodes.push({ id: 'earnings', name: 'EARNINGS', type: 'earnings', level: 1, sortKey: 0, color: '#059669', widthFactor: 2 });
+          Object.entries(sources).forEach(([source, total]) => {
+            if (total > 0) links.push({ source: `income-${source}`, target: 'earnings', value: total, type: 'income-to-earnings' });
+          });
+        } else {
+          nodes.push({ id: 'dummy-source', name: '', type: 'dummy', level: 0, sortKey: -1, color: 'transparent', isDummy: true });
+        }
+        
+        // L2: Properties (sorted by expense)
+        const sortedProps = validProperties.sort((a, b) => propExpenses.get(b.id) - propExpenses.get(a.id));
+        let propKey = 0;
+        sortedProps.forEach(prop => {
+          const id = `prop-${prop.id}`;
+          const total = propExpenses.get(prop.id);
+          nodes.push({ id, name: (prop.name || 'Unknown').toUpperCase(), type: 'property', level: levelOffset, sortKey: propKey++, color: this.getColor('properties', propKey), total, propData: prop });
+          const src = hasIncome ? 'earnings' : 'dummy-source';
+          links.push({ source: src, target: id, value: Math.max(1, propIncomes.get(prop.id) || 0), type: 'earnings-to-prop', property: prop.name });
+        });
+        
+        // L3: Expenses/Profit (wide)
+        nodes.push({ id: 'expenses', name: 'EXPENSES', type: 'expenses', level: levelOffset + 1, sortKey: 0, color: '#DC2626', widthFactor: 2 });
+        if (hasIncome) nodes.push({ id: 'profit', name: 'PROFIT', type: 'profit', level: levelOffset + 1, sortKey: 1, color: '#059669', widthFactor: 2 });
+        sortedProps.forEach(prop => {
+          const id = `prop-${prop.id}`;
+          const exp = propExpenses.get(prop.id);
+          const inc = propIncomes.get(prop.id) || 0;
+          const profit = Math.max(0, inc - exp);
+          links.push({ source: id, target: 'expenses', value: exp, type: 'prop-to-expenses', property: prop.name });
+          if (hasIncome && profit > 0) links.push({ source: id, target: 'profit', value: profit, type: 'prop-to-profit', property: prop.name });
+        });
+
+        // L4-5: Cats/Subs via D3 stratify (use pre-computed totals)
+        const totalExpenses = Object.values(Object.fromEntries(catTotals)).reduce((sum, v) => sum + v, 0) || 0;
+        if (!totalExpenses) {
+            console.warn('[CHART] No expense data available for stratification');
+            return { nodes: [{ name: 'No Expenses', value: 0, isPlaceholder: true }], links: [], hasIncome: false };
         }
 
-        // Sort properties by absolute total amount descending (highest to lowest)
-        const sortedProperties = properties.slice().sort((a, b) => {
-            const totalA = propertyTotals.get(a.id) || 0;
-            const totalB = propertyTotals.get(b.id) || 0;
-            if (totalA !== totalB) {
-                return Math.abs(totalB) - Math.abs(totalA); // Sort by absolute value descending
-            }
-            return a.name.localeCompare(b.name); // Stable sort
-        });
+        // Explicit check for missing expenses data
+        if (!propExpenses || propExpenses.size === 0) {
+            console.warn('[CHART] Missing property expenses data');
+            return { nodes: [{ name: 'Missing Expense Data', value: 0, isPlaceholder: true }], links: [], hasIncome: false };
+        }
 
-        // Create property nodes in sorted order
-        sortedProperties.forEach((property, index) => {
-            const nodeId = `property-${property.id}`;
-            nodeMap.set(nodeId, nodes.length);
-            nodes.push({
-                id: nodeId,
-                name: property.name.toUpperCase(),
-                type: 'property',
-                level: 1,
-                color: this.chartConfig.colors.properties[index % this.chartConfig.colors.properties.length],
-                propertyIndex: index,
-                originalIndex: nodes.length
+        const hierarchyArray = [{ name: 'expenses', value: totalExpenses, depth: 3 }];
+        Object.entries(Object.fromEntries(catTotals)).forEach(([catName, catValue]) => {
+            hierarchyArray.push({ name: catName, parent: 'expenses', value: catValue, depth: 4 });
+        });
+        (subTotals || new Map()).forEach((subs, catName) => {
+            subs.forEach((subValue, subName) => {
+                hierarchyArray.push({ name: subName, parent: catName, value: subValue, depth: 5 });
             });
         });
+        hierarchyArray.slice(1).sort((a, b) => b.value - a.value);
 
-        // Create a map of property ID to its sorted index
-        const propertySortedIndex = new Map();
-        sortedProperties.forEach((property, sortedIndex) => {
-            propertySortedIndex.set(property.id, sortedIndex);
-        });
+        console.log('Stratify data:', hierarchyArray);
 
-        // Step 2: Create category nodes (Level 2) - sorted by amount
-        const categoryTotals = new Map();
+        let root;
+        try {
+            root = d3.stratify().parentId(d => d.parent)(hierarchyArray);
+        } catch (error) {
+            console.error('[CHART] Stratify error:', error);
+            return { nodes: [{ name: 'Data Processing Error', value: 0, isPlaceholder: true }], links: [], hasIncome: false };
+        }
+        const expenseNodes = root.descendants();
 
-        // Calculate category totals using the same data source as the sankey data
-        categories.forEach((category) => {
-            let total = 0;
-            properties.forEach(property => {
-                const propertyData = this.dataManager.getCurrentPeriodData(property, timePeriod, true);
-                const expenseData = propertyData.expenses[category];
-                if (expenseData) {
-                    if (typeof expenseData === 'object' && expenseData !== null) {
-                        // Hierarchical category - sum all subcategory values
-                        Object.values(expenseData).forEach(value => {
-                            if (value !== 0) total += Math.abs(value); // Include negative values (expenses) using absolute value
-                        });
-                    } else {
-                        // Flat category - direct value
-                        const value = expenseData || 0;
-                        if (value !== 0) total += Math.abs(value); // Include negative values (expenses) using absolute value
-                    }
-                }
-            });
-            categoryTotals.set(category, total);
-        });
-
-        // Sort categories by absolute total amount descending (highest to lowest)
-        const sortedCategories = categories.slice().sort((a, b) => {
-            const totalA = categoryTotals.get(a) || 0;
-            const totalB = categoryTotals.get(b) || 0;
-            if (totalA !== totalB) {
-                return Math.abs(totalB) - Math.abs(totalA); // Sort by absolute value descending
-            }
-            return a.localeCompare(b); // Stable sort
-        });
-
-        // Create a map of category to its sorted index
-        const categorySortedIndex = new Map();
-        sortedCategories.forEach((category, sortedIndex) => {
-            categorySortedIndex.set(category, sortedIndex);
-        });
-
-        // Create category nodes in sorted order
-        sortedCategories.forEach((category, sortedIndex) => {
-            const nodeId = `category-${sortedIndex}`; // Use sorted index for node ID to ensure proper ordering
-            nodeMap.set(nodeId, nodes.length);
-            nodes.push({
-                id: nodeId,
-                name: category.toUpperCase(),
-                type: 'category',
-                level: 2,
-                color: this.chartConfig.colors.categories[sortedIndex % this.chartConfig.colors.categories.length],
-                hasSubcategories: hierarchicalCategories[category] !== undefined,
-                categoryIndex: categories.indexOf(category),
-                sortedIndex: sortedIndex, // Add sorted index for proper grouping
-                originalIndex: sortedIndex // Use sorted index as original index for proper sorting
-            });
-        });
-
-        // Step 3: Create subcategory nodes (Level 3) - grouped by parent, sorted by amount within each group
-        sortedCategories.forEach((category) => {
-            if (hierarchicalCategories[category]) {
-                const subcategories = hierarchicalCategories[category];
-
-                // Calculate subcategory totals
-                const subcategoryTotals = new Map();
-                subcategories.forEach(subCategory => {
-                    let total = 0;
-                    properties.forEach(property => {
-                        const propertyData = this.dataManager.getCurrentPeriodData(property, timePeriod, true);
-                        const expenseData = propertyData.expenses[category];
-                        if (typeof expenseData === 'object' && expenseData && expenseData[subCategory]) {
-                            total += expenseData[subCategory];
-                        }
-                    });
-                    subcategoryTotals.set(subCategory, total);
-                });
-
-                // Sort subcategories by absolute amount descending (highest to lowest)
-                const sortedSubcategories = subcategories.slice().sort((a, b) => {
-                    const totalA = subcategoryTotals.get(a) || 0;
-                    const totalB = subcategoryTotals.get(b) || 0;
-                    if (totalA !== totalB) {
-                        return Math.abs(totalB) - Math.abs(totalA); // Sort by absolute value descending
-                    }
-                    return a.localeCompare(b); // Stable sort
-                });
-
-                // Create subcategory nodes in sorted order
-                sortedSubcategories.forEach((subCategory) => {
-                    const subNodeId = `sub-${category}-${subCategory}`;
-                    const totalAmount = subcategoryTotals.get(subCategory) || 0;
-                    nodeMap.set(subNodeId, nodes.length);
-                    nodes.push({
-                        id: subNodeId,
-                        name: subCategory.toUpperCase(),
-                        type: 'subcategory',
-                        level: 3,
-                        color: this.chartConfig.colors.categories[subcategoryIndex++ % this.chartConfig.colors.categories.length],
-                        parentCategory: category,
-                        parentCategoryIndex: categorySortedIndex.get(category),
-                        originalIndex: nodes.length,
-                        totalAmount: totalAmount
-                    });
+        // Add expense nodes to main nodes array
+        expenseNodes.forEach(d => {
+            if (d.data.name !== 'expenses') { // Skip root, already added
+                const level = d.depth === 1 ? levelOffset + 2 : levelOffset + 3;
+                const type = d.depth === 1 ? 'category' : 'subcategory';
+                const sortKey = d.depth === 1 ? Array.from(catTotals.keys()).indexOf(d.data.name) : 0;
+                const color = this.getColor('categories', sortKey);
+                nodes.push({
+                    id: d.data.name,
+                    name: d.data.name.toUpperCase(),
+                    type,
+                    level,
+                    sortKey,
+                    color,
+                    total: d.data.value,
+                    depth: d.depth
                 });
             }
         });
 
-        // Step 3.5: Add dummy sink node for flat categories to ensure they're on level 2
-        const dummySinkId = 'dummy-sink';
-        nodeMap.set(dummySinkId, nodes.length);
-        nodes.push({
-            id: dummySinkId,
-            name: '',
-            type: 'dummy',
-            level: 3,
-            color: 'transparent',
-            isDummy: true
+        // Add links from expenses to cats and cats to subs
+        root.links().forEach(l => {
+            if (l.source.data.name === 'expenses') {
+                links.push({
+                    source: 'expenses',
+                    target: l.target.data.name,
+                    value: l.target.data.value,
+                    type: 'expenses-to-cat'
+                });
+            } else {
+                links.push({
+                    source: l.source.data.name,
+                    target: l.target.data.name,
+                    value: l.target.data.value,
+                    type: 'cat-to-sub',
+                    category: l.source.data.name
+                });
+            }
         });
 
-        // Step 4: Create links with laminar flow
-        properties.forEach((property, propIndex) => {
-            const propertyData = this.dataManager.getCurrentPeriodData(property, timePeriod, true);
-            const sortedPropertyIndex = propertySortedIndex.get(property.id);
+        // D3 Sankey on stratified data
+        const { nodes: sankeyNodes, links: sankeyLinks } = d3.sankey()
+            .nodeId(d => d.id)
+            .nodeWidth(15)
+            .nodePadding(1)
+            .extent([[50, 10], [width - 50, height - 50]])
+            .iterations(12)({ nodes, links });
 
-            categories.forEach((category, categoryIndex) => {
-                const expenseData = propertyData.expenses[category];
+        // Filter visibles, assign positions
+        const visibleNodes = sankeyNodes.filter(n => !n.isDummy && n.name?.trim());
+        const visibleLinks = sankeyLinks.filter(l => !l.type?.includes('dummy') && l.target && !l.target.isDummy);
+        visibleNodes.forEach(n => { n.x0 ??= 0; n.y0 ??= 0; n.x1 = n.x0 + 15; n.y1 = n.y0 + Math.max(10, n.y1 - n.y0); });
+        visibleLinks.forEach(l => { l.width = Math.max(0.5, l.width); l.path = d3.sankeyLinkHorizontal()(l); });
 
-                // Check if this category has hierarchical data in the current period
-                const isHierarchicalInPeriod = typeof expenseData === 'object' && expenseData !== null;
-                const isHierarchicalInProperty = hierarchicalCategories[category] !== undefined;
+        // Scale wide nodes (Expenses spans props)
+        const propLayer = visibleNodes.filter(n => n.level === levelOffset);
+        if (propLayer.length) {
+            const minY = d3.min(propLayer, d => d.y0), maxY = d3.max(propLayer, d => d.y1);
+            const expNode = visibleNodes.find(n => n.id === 'expenses');
+            if (expNode) { expNode.y0 = minY; expNode.y1 = maxY; }
+        }
 
-                if (isHierarchicalInPeriod) {
-                    // Current period has hierarchical data - create hierarchical flows
-                    let categoryTotal = 0;
-                    Object.entries(expenseData).forEach(([subCategory, value]) => {
-                        if (value !== 0) { // Include both positive and negative values
-                            categoryTotal += value;
-                        }
-                    });
+        return { nodes: visibleNodes, links: visibleLinks, hasIncome, sources };
+    }
 
-                    // Link property -> category (intermediate node)
-                    if (categoryTotal !== 0) {
-                        links.push({
-                            source: nodeMap.get(`property-${property.id}`),
-                            target: nodeMap.get(`category-${categorySortedIndex.get(category)}`),
-                            value: Math.abs(categoryTotal), // Convert to positive for sankey
-                            property: property.name,
-                            category,
-                            flowType: 'property-to-category',
-                            propertyIndex: sortedPropertyIndex
-                        });
 
-                        // Link category -> subcategories
-                        Object.entries(expenseData).forEach(([subCategory, value]) => {
-                            if (value !== 0) {
-                                const subNodeId = `sub-${category}-${subCategory}`;
-                                if (nodeMap.has(subNodeId)) { // Only create link if subcategory node exists
-                                    links.push({
-                                        source: nodeMap.get(`category-${categorySortedIndex.get(category)}`),
-                                        target: nodeMap.get(subNodeId),
-                                        value: Math.abs(value), // Convert to positive for sankey
-                                        property: property.name,
-                                        category: subCategory,
-                                        flowType: 'category-to-subcategory',
-                                        propertyIndex: sortedPropertyIndex
-                                    });
-                                }
-                            }
-                        });
-                    }
-                } else if (isHierarchicalInProperty && !isHierarchicalInPeriod) {
-                    // Category is hierarchical in property but flat in current period
-                    // This can happen when time period filtering results in flat data
-                    const value = expenseData || 0;
-                    if (value !== 0) {
-                        // Create direct link to category node (flat flow)
-                        links.push({
-                            source: nodeMap.get(`property-${property.id}`),
-                            target: nodeMap.get(`category-${categorySortedIndex.get(category)}`),
-                            value: Math.abs(value), // Convert to positive for sankey
-                            property: property.name,
-                            category,
-                            flowType: 'property-to-category-flat'
-                        });
 
-                        // Add dummy link from flat category to dummy sink to ensure it's on level 2
-                        links.push({
-                            source: nodeMap.get(`category-${categorySortedIndex.get(category)}`),
-                            target: nodeMap.get(dummySinkId),
-                            value: 0.001, // Very small value
-                            property: '',
-                            category: '',
-                            flowType: 'dummy'
-                        });
-                    }
-                } else {
-                    // Flat category - direct flow to category node
-                    const value = expenseData || 0;
-                    if (value !== 0) {
-                        links.push({
-                            source: nodeMap.get(`property-${property.id}`),
-                            target: nodeMap.get(`category-${categorySortedIndex.get(category)}`),
-                            value: Math.abs(value), // Convert to positive for sankey
-                            property: property.name,
-                            category,
-                            flowType: 'property-to-category-flat'
-                        });
+    // Render SVG with gradients/animations (~40 lines)
+    createSankey(container, data) {
+        const { width, height } = this.getDimensions(container);
+        const svg = d3.select(container).append('svg')
+            .attr('width', width).attr('height', height).attr('viewBox', `0 0 ${width} ${height}`)
+            .on('click', (e) => { if (e.target.tagName === 'svg') this.clearSelection(); });
 
-                        // Add dummy link from flat category to dummy sink to ensure it's on level 2
-                        links.push({
-                            source: nodeMap.get(`category-${categorySortedIndex.get(category)}`),
-                            target: nodeMap.get(dummySinkId),
-                            value: 0.001, // Very small value
-                            property: '',
-                            category: '',
-                            flowType: 'dummy'
-                        });
-                    }
-                }
+        this.zoomBehavior = d3.zoom();
+        svg.call(this.zoomBehavior);
+
+        // Initialize zoom transform property to prevent undefined errors
+        if (this.zoomBehavior && typeof this.zoomBehavior.transform !== 'undefined') {
+            this.zoomBehavior.transform = d3.zoomIdentity;
+        }
+
+        // Shared gradients (limit types)
+        const defs = svg.append('defs');
+        const types = [...new Set(data.links.map(l => l.type))].slice(0, 8);
+        types.forEach(type => {
+            const id = `grad-${type.replace(/[^a-z]/g, '')}`;
+            const grad = defs.append('linearGradient').attr('id', id).attr('x1', '0%').attr('y1', '0%').attr('x2', '100%').attr('y2', '0%');
+            grad.append('stop').attr('offset', '0%').attr('stop-color', this.getTypeColor(type, 'start'));
+            grad.append('stop').attr('offset', '100%').attr('stop-color', this.getTypeColor(type, 'end'));
+        });
+
+        requestAnimationFrame(() => {
+            // Links: Animate "flow" in
+            const linkG = svg.append('g').attr('class', 'links');
+            linkG.selectAll('path').data(data.links).enter().append('path')
+                .attr('d', d => d.path)
+                .attr('fill', 'none').attr('stroke', d => `url(#grad-${d.type.replace(/[^a-z]/g, '')})`)
+                .attr('stroke-width', d => d.width)
+                .style('opacity', 0).style('mix-blend-mode', 'multiply')
+                .classed('link', true)
+                .attr('data-type', d => d.type)
+                .each(function(d) { d.pathLength = this.getTotalLength(); })
+                .on('mouseover', this.throttle((e, d) => {
+                    if (this.hoverTimeout) clearTimeout(this.hoverTimeout);
+                    this.hoverTimeout = setTimeout(() => this.handleInteraction(e, d, 'link', false), 100);
+                }, 50))
+                .on('mouseout', this.throttle(() => {
+                    if (this.hoverTimeout) clearTimeout(this.hoverTimeout);
+                    this.hoverTimeout = setTimeout(() => this.onHoverOut(), 100);
+                }, 50))
+                .on('click', this.throttle((e, d) => this.handleInteraction(e, d, 'link', true), 100))
+                .transition().delay((d, i) => d.source.level * 200).duration(1000).ease(d3.easeCubicInOut)
+                .style('opacity', 0.4).attrTween('stroke-dasharray', d => d3.interpolate(`0,${d.pathLength}`, `${d.pathLength},${d.pathLength}`));
+
+            // Nodes: Pulse on load
+            const nodeG = svg.append('g').attr('class', 'nodes');
+            const nodeEnter = nodeG.selectAll('g').data(data.nodes).enter().append('g');
+            nodeEnter.append('rect')
+                .attr('x', d => d.x0).attr('y', d => d.y0).attr('height', d => d.y1 - d.y0)
+                .attr('width', d => d.x1 - d.x0).attr('stroke', '#fff')
+                .attr('stroke-width', 1).attr('rx', 3).style('cursor', 'pointer')
+                .classed('node', true)
+                .attr('data-type', d => d.type)
+                .on('mouseover', this.throttle((e, d) => {
+                    if (this.hoverTimeout) clearTimeout(this.hoverTimeout);
+                    this.hoverTimeout = setTimeout(() => this.handleInteraction(e, d, 'node', false), 100);
+                }, 50))
+                .on('mouseout', this.throttle(() => {
+                    if (this.hoverTimeout) clearTimeout(this.hoverTimeout);
+                    this.hoverTimeout = setTimeout(() => this.onHoverOut(), 100);
+                }, 50))
+                .on('click', this.throttle((e, d) => this.handleInteraction(e, d, 'node', true), 100))
+                .transition().duration(750).style('opacity', 1);
+            nodeEnter.append('text')
+                .attr('x', d => d.x0 > width / 2 ? d.x0 - 8 : d.x1 + 8)
+                .attr('y', d => (d.y0 + d.y1) / 2).attr('dy', '0.35em')
+                .attr('text-anchor', d => d.x0 > width / 2 ? 'end' : 'start')
+                .text(d => d.name.length > 12 ? d.name.slice(0, 12) + '...' : d.name)
+                .style('font-size', '12px').style('fill', 'var(--color-text)');
+        });
+
+        // Store with simulation for traces (creative: force for fast neighbors)
+        this.sankeyData = {
+            svg,
+            nodes: data.nodes,
+            links: data.links,
+            sim: d3.forceSimulation(data.nodes)
+                .force('link', d3.forceLink(data.links).id(d => d.index).distance(30))
+                .force('charge', d3.forceManyBody().strength(-50))
+                .force('center', d3.forceCenter(width / 2, height / 2))
+                .stop() // Precompute positions for queries
+        };
+        this.state = { selected: null, highlighted: null };
+
+        // Cache ripple forces post-render
+        this.rippleForces = new Map();
+        const pathForce = d3.forceLink(this.sankeyData.links).id(d => d.index).distance(d => 20 + d.value / 10);
+        const nodeForce = d3.forceManyBody();
+        nodeForce.path = pathForce;
+        this.rippleForces.set('node', nodeForce);
+        const linkForce = d3.forceManyBody();
+        linkForce.path = pathForce;
+        this.rippleForces.set('link', linkForce);
+
+        // Build relation index for quick lookups (include income source keys)
+        this.sankeyData.relationIndex = new Map();
+        data.links.forEach(link => {
+            const keys = [link.source.name, link.target.name, link.property, link.category].filter(Boolean);
+            keys.forEach(key => {
+                if (!this.sankeyData.relationIndex.has(key)) this.sankeyData.relationIndex.set(key, new Set());
+                this.sankeyData.relationIndex.get(key).add(link.source.id);
+                this.sankeyData.relationIndex.get(key).add(link.target.id);
             });
         });
 
-        return { nodes, links };
+        // Add income source keys to relationIndex for full ripples
+        if (data.hasIncome) {
+            Object.keys(data.sources).forEach(sourceName => {
+                const key = sourceName.toUpperCase();
+                if (!this.sankeyData.relationIndex.has(key)) this.sankeyData.relationIndex.set(key, new Set());
+                // Add all nodes connected to income sources
+                data.links.filter(l => l.source.name === sourceName.toUpperCase() || l.target.name === sourceName.toUpperCase())
+                    .forEach(l => {
+                        this.sankeyData.relationIndex.get(key).add(l.source.id);
+                        this.sankeyData.relationIndex.get(key).add(l.target.id);
+                    });
+            });
+        }
+
+        this.repositionPersistentTooltip(); // If any
+
+        return svg;
+    }
+
+    getPathLength(pathNode) {
+        return pathNode.getTotalLength();
+    }
+
+    // Unified interaction handler
+    handleInteraction(event, item, type, isClick = false) {
+        if (!this.sankeyData?.sim) return;
+        const sim = this.sankeyData.sim;
+        const nodes = sim.nodes();
+        const links = this.sankeyData.links;
+        const startNode = type === 'link' ? item.source : item;
+        const filterKey = item.property || item.category || item.name; // For property/cat-specific ripples
+
+        // Memoize relatedIds per filterKey
+        let relatedIds = this.relatedIdsCache.get(filterKey);
+        if (!relatedIds) {
+            relatedIds = this.sankeyData.relationIndex.get(filterKey) || new Set();
+            this.relatedIdsCache.set(filterKey, relatedIds);
+        }
+
+        const forces = this.rippleForces.get(type);
+        forces.filter = d3.forceManyBody().strength(d => {
+            const isRelated = relatedIds.has(d.id);
+            return isRelated ? 0 : -30; // Attract related, repel unrelated (fades them)
+        });
+        forces.ripple = d3.forceRadial(50, startNode.x, startNode.y).strength(0.1); // Circular ripple from start
+
+        // State machine
+        if (isClick && this.interactionState === 'PINNED_SELECT' && this.isSameSelection(type, item)) {
+            this.clearRipple();
+            return;
+        }
+
+        // For clicks, enable full sim
+        if (isClick) {
+            sim.force('path', forces.path).force('filter', forces.filter).force('ripple', forces.ripple)
+               .alpha(0.3).alphaDecay(0.05).restart();
+        }
+
+        // Update visuals
+        this.updateRippleVisuals(nodes, links, relatedIds, false, isClick);
+
+        // Update state
+        this.interactionState = isClick ? 'PINNED_SELECT' : 'RIPPLE_HOVER';
+        this.state[isClick ? 'selected' : 'highlighted'] = { type, item, startNode, filterKey, relatedIds: new Set(relatedIds) };
+
+        // Show enhanced tooltip (SVG-based for sleekness)
+        this.showRippleTooltip(event, item, type, isClick);
+
+        // On click: Zoom to ripple bbox (elegant pan/zoom)
+        if (isClick) {
+            const rippleNodes = nodes.filter(n => relatedIds.has(n.id));
+            const key = JSON.stringify([...relatedIds].sort());
+            let bbox = this.bboxCache.get(key);
+            if (!bbox) {
+                bbox = this.computeRippleBbox(rippleNodes);
+                this.bboxCache.set(key, bbox);
+            }
+            this.zoomToBbox(bbox);
+        }
+    }
+
+
+
+    // Declarative visual update (elegant: D3 transitions on sim positions)
+    updateRippleVisuals(nodes, links, relatedIds, isFinal, isClick) {
+        const relatedNodes = nodes.filter(n => relatedIds.has(n.id));
+        const relatedLinks = links.filter(l => relatedIds.has(l.source.id) || relatedIds.has(l.target.id));
+
+        const t = this.sankeyData.svg.transition().duration(isFinal ? 500 : 300).ease(d3.easeCubicInOut);
+
+        // Links: Animate to sim positions, opacity by relation
+        this.sankeyData.svg.selectAll('.link')
+            .data(links, d => d.index)
+            .classed('related', d => relatedLinks.includes(d))
+            .transition(t)
+            .attr('d', isClick ? d3.sankeyLinkHorizontal() : null)
+            .style('opacity', d => relatedLinks.includes(d) ? (this.interactionState === 'PINNED_SELECT' ? 1 : 0.8) : (this.interactionState === 'PINNED_SELECT' ? 0.05 : 0.3))
+            .style('stroke-width', d => relatedLinks.includes(d) ? d.width * 1.2 : d.width);
+
+        // Nodes: Scale/position with ripple, color tint
+        this.sankeyData.svg.selectAll('.nodes rect')
+            .data(nodes, d => d.index)
+            .classed('related', d => relatedNodes.includes(d))
+            .transition(t)
+            .attr('width', d => (d.width || 15) * (relatedNodes.includes(d) ? 1.2 : 0.8))
+            .attr('height', d => (d.height || 20) * (relatedNodes.includes(d) ? 1.2 : 0.8))
+            .style('fill', d => relatedNodes.includes(d) ? this.adjustColorBrightness(d.color, 0.2) : d.color)
+            .style('opacity', d => relatedNodes.includes(d) ? 1 : (this.interactionState === 'PINNED_SELECT' ? 0.1 : 0.6))
+            .attr('x', isClick ? d => d.x - (d.width || 15)/2 : null)
+            .attr('y', isClick ? d => d.y - (d.height || 20)/2 : null);
+    }
+
+    // Clear: Fade back to idle
+    clearRipple() {
+        this.interactionState = 'IDLE';
+        this.state.selected = this.state.highlighted = null;
+        const sim = this.sankeyData.sim;
+        sim.force('path', null).force('filter', null).force('ripple', null).alpha(0.1);
+        this.updateRippleVisuals(sim.nodes(), this.sankeyData.links, null, null, true);
+        this.hideTooltip();
+        if (this.sankeyData.svg.call) this.sankeyData.svg.call(this.zoomBehavior?.transform, d3.zoomIdentity); // Reset zoom
+    }
+
+    // Add helper method for tooltip content (similar to current DOM formatting)
+formatTooltipContent(item, type) {
+    const lines = [];
+    if (type === 'node') {
+        lines.push(item.name);
+        if (item.total !== undefined) {
+            lines.push(`${this.formatter.formatCurrency(item.total)}`);
+        }
+        if (item.type === 'property' && item.propData) {
+            lines.push(`Property: ${item.propData.address || 'N/A'}`);
+        } else if (item.type === 'category' || item.type === 'subcategory') {
+            lines.push(`Category: ${item.type.toUpperCase()}`);
+        }
+    } else if (type === 'link') {
+        lines.push(`${item.source?.name || 'Source'} → ${item.target?.name || 'Target'}`);
+        lines.push(`${this.formatter.formatCurrency(item.value)} flow`);
+        if (item.property) lines.push(`Property: ${item.property}`);
+        if (item.category) lines.push(`Category: ${item.category}`);
+    }
+    return lines.map(line => ({ text: line, bold: line === lines[0] })); // First line bold
+}
+
+// Enhanced tooltip as SVG (sleek, no DOM jumps) - replace placeholder
+showRippleTooltip(event, item, type, persistent) {
+    // Remove old
+    this.sankeyData.svg.select('.ripple-tooltip').remove();
+    
+    const tooltipG = this.sankeyData.svg.append('g')
+        .attr('class', 'ripple-tooltip')
+        .style('pointer-events', 'none')
+        .style('opacity', 0)
+        .attr('transform', 'scale(0.5)'); // Start scaled for animation
+    
+    // Background rect (similar to current div styles)
+    const bgRect = tooltipG.append('rect')
+        .attr('fill', 'var(--color-surface)')
+        .attr('stroke', 'var(--color-border)')
+        .attr('stroke-width', 1)
+        .attr('rx', 'var(--radius-base, 4)')
+        .attr('filter', persistent ? 'url(#glow)' : null); // Creative glow on persistent
+    
+    // Add glow filter if persistent (in defs if not exists)
+    if (persistent) {
+        const defs = this.sankeyData.svg.select('defs');
+        if (defs.select('#glow').empty()) {
+            const glow = defs.append('filter').attr('id', 'glow').attr('x', '-50%').attr('y', '-50%').attr('width', '200%').attr('height', '200%');
+            glow.append('feGaussianBlur').attr('stdDeviation', 3).attr('result', 'coloredBlur');
+            const feMerge = glow.append('feMerge');
+            feMerge.append('feMergeNode').attr('in', 'coloredBlur');
+            feMerge.append('feMergeNode').attr('in', 'SourceGraphic');
+        }
+    }
+    
+    // Foreign object for text with max-width (SVG text doesn't support max-width)
+    const foreignObject = tooltipG.append('foreignObject')
+        .attr('x', 12)
+        .attr('y', 8)
+        .attr('width', 280)
+        .attr('height', 100); // Estimate height
+
+    const div = foreignObject.append('xhtml:div')
+        .style('max-width', '280px')
+        .style('font-size', 'var(--font-size-sm, 12px)')
+        .style('font-family', 'var(--font-family, sans-serif)')
+        .style('color', 'var(--color-text)')
+        .style('line-height', '1.2em')
+        .style('word-wrap', 'break-word');
+
+    // Generate content
+    const contentLines = this.formatTooltipContent(item, type);
+    const htmlContent = contentLines.map(line => line.bold ? `<b>${line.text}</b>` : line.text).join('<br>');
+    div.html(htmlContent);
+
+    // Size rect to fit (use estimated size)
+    bgRect.attr('x', 4).attr('y', 4)
+          .attr('width', 280 + 16).attr('height', contentLines.length * 16 + 8)
+          .attr('box-shadow', 'var(--shadow-lg)'); // Note: SVG shadow via CSS or filter
+    
+    // Position near pointer (similar to current absolute pos)
+    const [x, y] = d3.pointer(event, this.sankeyData.svg.node());
+    const anchorX = x + 10;
+    const anchorY = y - 10;
+    tooltipG.attr('transform', `translate(${anchorX}, ${anchorY})`);
+    
+    // Animate in (sleek scale + opacity, like current fade)
+    tooltipG.transition()
+        .duration(200)
+        .ease(d3.easeBackOut)
+        .style('opacity', 1)
+        .attr('transform', `translate(${anchorX}, ${anchorY}) scale(1)`);
+    
+    if (persistent) {
+        this.persistentTooltip = tooltipG;
+        this.persistentPos = [anchorX, anchorY];
+    }
+}
+
+// Update hideTooltip to handle SVG (add after clearRipple)
+hideTooltip() {
+    if (this.tooltip) {
+        this.tooltip.style('opacity', 0);
+    }
+    if (this.persistentTooltip) {
+        try {
+            this.persistentTooltip.transition().duration(200).style('opacity', 0).remove();
+        } catch (error) {
+            // Fallback for mock environments where transition methods may not be fully implemented
+            try {
+                this.persistentTooltip.style('opacity', 0).remove();
+            } catch (fallbackError) {
+                // Last resort fallback - just null out the tooltip
+                console.warn('[CHART] Could not properly hide persistent tooltip, clearing reference');
+            }
+        }
+        this.persistentTooltip = null;
+        this.persistentPos = null;
+    }
+}
+
+// Update repositionPersistentTooltip (if exists, or add) to handle SVG
+repositionPersistentTooltip() {
+    if (this.persistentTooltip && this.persistentPos) {
+        const [x, y] = this.persistentPos;
+        this.persistentTooltip.transition().duration(150)
+            .attr('transform', `translate(${x}, ${y}) scale(1)`);
+    }
+}
+
+    // In createSankey defs, ensure vars are accessible (SVG supports CSS vars via style)
+
+    // Zoom to bbox (add D3.zoom)
+    zoomToBbox(bbox) {
+        const k = Math.min(this.sankeyData.svg.attr('width') / (bbox[1][0] - bbox[0][0]),
+                           this.sankeyData.svg.attr('height') / (bbox[1][1] - bbox[0][1]));
+        const tx = (this.sankeyData.svg.attr('width') - k * (bbox[1][0] + bbox[0][0])) / 2;
+        const ty = (this.sankeyData.svg.attr('height') - k * (bbox[1][1] + bbox[0][1])) / 2;
+
+        // Ensure zoomBehavior.transform exists before using it
+        if (this.zoomBehavior && this.zoomBehavior.transform) {
+            this.sankeyData.svg.transition().call(this.zoomBehavior.transform, d3.zoomIdentity.translate(tx, ty).scale(k));
+        } else {
+            // Fallback for mock environments
+            this.sankeyData.svg.transition().call(d3.zoomIdentity.translate(tx, ty).scale(k));
+        }
     }
 
     /**
-     * Create sankey diagram
+     * Get color from theme
+     * @param {string} type - Color type ('properties' or 'categories')
+     * @param {number} index - Color index
+     * @returns {string} Color string
      */
-    createSankeyDiagram(container, data) {
-        const width = container.clientWidth;
-        const height = container.clientHeight;
+    getColor(type, index) {
+        const colors = this.chartConfig.colors[type] || this.chartConfig.colors.categories;
+        return colors[index % colors.length];
+    }
 
-        // Clear container
-        container.innerHTML = '';
+    /**
+     * Get type color for gradients
+     * @param {string} type - Link type
+     * @param {string} position - 'start' or 'end'
+     * @returns {string} Color string
+     */
+    getTypeColor(type, position) {
+        const baseColor = this.getColor('categories', 0);
+        if (position === 'start') return baseColor;
+        return this.adjustColorBrightness(baseColor, -0.2);
+    }
 
-        // Validate data
-        if (!data || !data.nodes || !data.links || data.nodes.length === 0) {
-            console.error('[CHART] Invalid sankey data');
-            this.showOverviewPlaceholder(container);
-            return;
+    /**
+     * Get container dimensions
+     * @param {HTMLElement} container - Container element
+     * @returns {Object} Width and height
+     */
+    getDimensions(container) {
+        const rect = container.getBoundingClientRect();
+        return {
+            width: rect.width || 800,
+            height: rect.height || 600
+        };
+    }
+
+    /**
+     * Check if selection is the same
+     * @param {string} type - Selection type
+     * @param {Object} item - Selected item
+     * @returns {boolean} Whether selection is the same
+     */
+    isSameSelection(type, item) {
+        const current = this.state.selected;
+        return !!(current && current.type === type && current.item === item);
+    }
+
+    /**
+     * Handle hover out
+     */
+    onHoverOut() {
+        if (this.interactionState === 'RIPPLE_HOVER') {
+            this.clearRipple();
         }
+    }
 
-        // Create SVG
-        const svg = d3.select(container)
-            .append('svg')
-            .attr('width', width)
-            .attr('height', height)
-            .attr('viewBox', `0 0 ${width} ${height}`)
-            .style('background', 'transparent');
-
-        // Check if d3.sankey is available
-        if (typeof d3.sankey === 'undefined') {
-            console.error('[CHART] D3 Sankey plugin not loaded');
-            this.showOverviewPlaceholder(container);
-            return;
-        }
-
-        try {
-            // Sort links to ensure laminar flow - same target nodes get inputs in property order
-            const sortedLinks = data.links.slice().sort((a, b) => {
-                // Primary: sort by target node index (ensures laminar flow to same targets)
-                if (a.target !== b.target) {
-                    return a.target - b.target;
-                }
-                // Secondary: for same target, sort by source node index
-                if (a.source !== b.source) {
-                    return a.source - b.source;
-                }
-                // Tertiary: for category-to-subcategory links, sort by property index (property order)
-                if (a.flowType === 'category-to-subcategory' && b.flowType === 'category-to-subcategory') {
-                    return (a.propertyIndex || 0) - (b.propertyIndex || 0);
-                }
-                // Otherwise sort by value descending
-                return b.value - a.value;
-            });
-
-            // Group subcategories by parent category for consistent spacing
-            const categoryGroups = {};
-            data.nodes.forEach(node => {
-                if (node.level === 3 && node.parentCategory) {
-                    if (!categoryGroups[node.parentCategory]) {
-                        categoryGroups[node.parentCategory] = [];
-                    }
-                    categoryGroups[node.parentCategory].push(node);
-                }
-            });
-
-            // Calculate spacing between category groups
-            const categoryGroupKeys = Object.keys(categoryGroups).sort((a, b) => {
-                const parentA = data.nodes.find(n => n.level === 2 && n.name === a.toUpperCase());
-                const parentB = data.nodes.find(n => n.level === 2 && n.name === b.toUpperCase());
-                return (parentA?.sortedIndex || 0) - (parentB?.sortedIndex || 0);
-            });
-
-            // Create sankey layout with custom node sorting for consistent spacing
-            const sankey = d3.sankey()
-                .nodeWidth(20)
-                .nodePadding(6)  // Even tighter padding
-                .iterations(32)
-                .nodeSort((a, b) => {
-                    // First sort by level
-                    if (a.level !== b.level) {
-                        return a.level - b.level;
-                    }
-
-                    // For level 3 (subcategories), ensure consistent grouping by parent category
-                    if (a.level === 3 && b.level === 3) {
-                        // Get parent category indices for consistent ordering
-                        const parentAIndex = categoryGroupKeys.indexOf(a.parentCategory);
-                        const parentBIndex = categoryGroupKeys.indexOf(b.parentCategory);
-
-                        if (parentAIndex !== parentBIndex) {
-                            return parentAIndex - parentBIndex;
-                        }
-
-                        // Within the same parent category, sort by absolute amount (descending)
-                        return Math.abs(b.totalAmount || 0) - Math.abs(a.totalAmount || 0);
-                    }
-
-                    // For level 2 (categories), maintain amount-based sorting
-                    if (a.level === 2 && b.level === 2) {
-                        return (a.sortedIndex || 0) - (b.sortedIndex || 0);
-                    }
-
-                    // For level 1 (properties), maintain amount-based sorting
-                    return a.originalIndex - b.originalIndex;
-                })
-                .linkSort(null)
-                .extent([[25, 0], [width - 25, height - 25]]);
-
-            // Process data - nodes are already in correct order from prepareSankeyData
-            const sankeyData = sankey({
-                nodes: data.nodes.map(d => ({ ...d })),
-                links: sortedLinks.map(d => ({ ...d })),
-            });
-
-            // Validate sankey output
-            if (!sankeyData.nodes || !sankeyData.links) {
-                throw new Error('Sankey layout failed');
-            }
-
-            const { nodes, links } = sankeyData;
-
-            // Apply consistent colors based on node type
-            // Get the current color theme
-            const currentTheme = this.themeManager ? this.themeManager.getCurrentColorTheme() : 'default';
-            const themeColors = this.themeManager ? this.themeManager.getColorTheme() : this.themeManager.getColorTheme('default');
-
-            // Group nodes by type for consistent color assignment
-            const propertyNodes = nodes.filter(d => d.type === 'property');
-            const categoryNodes = nodes.filter(d => d.type === 'category');
-            const subcategoryNodes = nodes.filter(d => d.type === 'subcategory');
-
-            nodes.forEach(d => {
-                if (d.type === 'property') {
-                    // Properties use property colors
-                    const propertyIndex = d.propertyIndex !== undefined ? d.propertyIndex : propertyNodes.indexOf(d);
-                    d.color = themeColors.properties[propertyIndex % themeColors.properties.length];
-    } else if (d.type === 'category') {
-        // Categories use category colors based on sorted index for proper gradient application
-        const categoryIndex = d.sortedIndex !== undefined ? d.sortedIndex : (d.categoryIndex !== undefined ? d.categoryIndex : categoryNodes.indexOf(d));
-        d.color = themeColors.categories[categoryIndex % themeColors.categories.length];
-                } else if (d.type === 'subcategory') {
-                    // Subcategories use parent category colors
-                    const parentIndex = d.parentCategoryIndex !== undefined ? d.parentCategoryIndex : 0;
-                    d.color = themeColors.categories[parentIndex % themeColors.categories.length];
-                } else {
-                    // Fallback for any other node types
-                    d.color = d.color || '#666666';
-                }
-            });
-
-            // Note: Node spacing is handled by the custom nodeSort function above
-
-            // Store reference to SVG for interaction updates
-            this.sankeySvg = svg;
-            this.sankeyNodes = nodes;
-            this.sankeyLinks = links;
-
-            // Filter out dummy elements for rendering
-            const visibleLinks = links.filter(l => l.flowType !== 'dummy');
-            const visibleNodes = nodes.filter(n => !n.isDummy);
-
-            // Create gradients for links with proper direction
-            const defs = svg.append('defs');
-
-            // Create individual gradients for each link
-            visibleLinks.forEach((d, i) => {
-                const deltaX = Math.abs(d.target.x0 - d.source.x1);
-                const deltaY = Math.abs((d.target.y0 + d.target.y1) / 2 - (d.source.y0 + d.source.y1) / 2);
-
-                if (deltaY > deltaX) {
-                    // Vertical gradient - create per link
-                    const gradient = defs.append('linearGradient')
-                        .attr('id', `vertical-gradient-${i}`)
-                        .attr('gradientUnits', 'userSpaceOnUse');
-
-                    const sourceCenterX = (d.source.x0 + d.source.x1) / 2;
-                    gradient
-                        .attr('x1', sourceCenterX)
-                        .attr('x2', sourceCenterX)
-                        .attr('y1', d.source.y0 + (d.source.y1 - d.source.y0) / 2)  // source center y
-                        .attr('y2', d.target.y0 + (d.target.y1 - d.target.y0) / 2); // target center y
-
-                    gradient.append('stop')
-                        .attr('offset', '0%')
-                        .attr('stop-color', d.source.color);
-
-                    gradient.append('stop')
-                        .attr('offset', '100%')
-                        .attr('stop-color', d.target.color);
-
-                    d.gradientId = `vertical-gradient-${i}`;
-                } else {
-                    // Horizontal gradient - create per link
-                    const gradient = defs.append('linearGradient')
-                        .attr('id', `horizontal-gradient-${i}`)
-                        .attr('gradientUnits', 'userSpaceOnUse');
-
-                    const sourceCenterY = (d.source.y0 + d.source.y1) / 2;
-                    gradient
-                        .attr('x1', d.source.x1)
-                        .attr('x2', d.target.x0)
-                        .attr('y1', sourceCenterY)
-                        .attr('y2', sourceCenterY);
-
-                    gradient.append('stop')
-                        .attr('offset', '0%')
-                        .attr('stop-color', d.source.color);
-
-                    gradient.append('stop')
-                        .attr('offset', '100%')
-                        .attr('stop-color', d.target.color);
-
-                    d.gradientId = `horizontal-gradient-${i}`;
-                }
-            });
-
-            // Draw links with gradients (like the original HTML example)
-            const linkElements = svg.append('g')
-                .attr('class', 'sankey-links')
-                .attr('fill', 'none')
-                .selectAll('path')
-                .data(visibleLinks)
-                .enter()
-                .append('path')
-                .attr('d', d3.sankeyLinkHorizontal())
-                .attr('stroke', d => `url(#${d.gradientId})`)
-                .attr('stroke-width', d => Math.max(5, d.width || 1))
-                .attr('opacity', 0.6)
-                .attr('class', d => this.getLinkClass(d))
-                .style('cursor', 'pointer')
-                .on('mouseover', (event, d) => {
-                    this.highlightFlow(d);
-                })
-                .on('mouseout', () => {
-                    this.clearHighlight();
-                    // Only hide tooltip if no flow or node is selected
-                    if (!this.selectedFlow && !this.selectedNode) {
-                        this.hideTooltip();
-                    }
-                })
-                .on('click', (event, d) => {
-                    this.selectFlow(d);
-                });
-
-            // Draw nodes with interactive features
-            const nodeElements = svg.append('g')
-                .attr('class', 'sankey-nodes')
-                .selectAll('g')
-                .data(visibleNodes)
-                .enter()
-                .append('g')
-                .attr('class', d => this.getNodeClass(d));
-
-            nodeElements.append('rect')
-                .attr('x', d => Math.min(d.x0, d.x1))
-                .attr('y', d => Math.min(d.y0, d.y1))
-                .attr('height', d => Math.abs(d.y1 - d.y0))
-                .attr('width', d => Math.abs(d.x1 - d.x0))
-                .attr('fill', d => d.color)
-                .attr('stroke', '#fff')
-                .attr('stroke-width', 1)
-                .attr('rx', 4)
-                .style('cursor', 'pointer')
-                .on('mouseover', (event, d) => {
-                    this.highlightNode(d);
-                })
-                .on('mouseout', () => {
-                    this.clearHighlight();
-                    // Only hide tooltip if no flow or node is selected
-                    if (!this.selectedFlow && !this.selectedNode) {
-                        this.hideTooltip();
-                    }
-                })
-                .on('click', (event, d) => {
-                    this.selectNode(d);
-                });
-
-            // Add node labels
-            nodeElements.append('text')
-                .attr('x', d => d.x0 < width / 2 ? d.x1 + 6 : d.x0 - 6)
-                .attr('y', d => (d.y0 + d.y1) / 2)
-                .attr('dy', '0.35em')
-                .attr('text-anchor', d => d.x0 < width / 2 ? 'start' : 'end')
-                .style('font-size', 'var(--font-size-sm)')
-                .style('fill', 'var(--color-text)')
-                .style('cursor', 'pointer')
-                .text(d => d.name.length > 15 ? d.name.substring(0, 15) + '...' : d.name)
-                .on('mouseover', (event, d) => {
-                    this.highlightNode(d);
-                })
-                .on('mouseout', () => {
-                    this.clearHighlight();
-                    // Only hide tooltip if no flow or node is selected
-                    if (!this.selectedFlow && !this.selectedNode) {
-                        this.hideTooltip();
-                    }
-                })
-                .on('click', (event, d) => {
-                    this.selectNode(d);
-                });
-
-            // Add click handler to clear selection when clicking on empty space
-            svg.on('click', (event) => {
-                if (event.target.tagName === 'svg') {
-                    this.clearSelection();
-                }
-            });
-
-
-
-        } catch (error) {
-            console.error('[CHART] Error creating sankey diagram:', error);
-            this.showOverviewPlaceholder(container);
-        }
+    /**
+     * Compute ripple bounding box
+     * @param {Array} nodes - Ripple nodes
+     * @returns {Array} Bounding box [[x0,y0], [x1,y1]]
+     */
+    computeRippleBbox(nodes) {
+        if (!nodes.length) return [[0,0], [100,100]];
+        const x0 = d3.min(nodes, d => d.x0);
+        const y0 = d3.min(nodes, d => d.y0);
+        const x1 = d3.max(nodes, d => d.x1);
+        const y1 = d3.max(nodes, d => d.y1);
+        if (isNaN(x0) || isNaN(y0) || isNaN(x1) || isNaN(y1)) return [[0,0], [100,100]];
+        return [[x0, y0], [x1, y1]];
     }
 
     /**
@@ -881,756 +923,21 @@ class ChartRenderer {
         `;
 
         this.uiManager.hideLoadingState();
+        this.isRendering = false;
     }
 
     /**
-     * Get CSS class for a link based on current state
+     * Show error message
+     * @param {string} message - Error message to display
      */
-    getLinkClass(link) {
-        const classes = ['sankey-link'];
-
-        // Check if this link is in the selected flow path by direct reference comparison
-        if (this.selectedFlowPath && this.selectedFlowPath.links.includes(link)) {
-            classes.push('sankey-link-selected');
-        } else if (this.selectedFlow === link) {
-            classes.push('sankey-link-selected');
-        } else if (this.highlightedFlowPath && this.highlightedFlowPath.links.includes(link)) {
-            classes.push('sankey-link-highlighted');
-        } else if (this.highlightedFlow === link) {
-            classes.push('sankey-link-highlighted');
-        } else if (this.selectedFlowPath || this.selectedFlow || this.highlightedFlowPath || this.highlightedFlow) {
-            classes.push('sankey-link-dimmed');
-        }
-
-        return classes.join(' ');
-    }
-
-    /**
-     * Get CSS class for a node based on current state
-     */
-    getNodeClass(node) {
-        const classes = ['sankey-node'];
-
-        // Check if this node is directly selected
-        if (this.selectedNode === node) {
-            classes.push('sankey-node-selected');
-        }
-        // Check if this node is in the selected flow path by direct reference comparison
-        else if (this.selectedFlowPath && this.selectedFlowPath.nodes.includes(node)) {
-            classes.push('sankey-node-selected');
-        } else if (this.selectedFlow && this.isNodeInFlow(node, this.selectedFlow)) {
-            classes.push('sankey-node-selected');
-        } else if (this.highlightedFlowPath && this.highlightedFlowPath.nodes.includes(node)) {
-            classes.push('sankey-node-highlighted');
-        } else if (this.highlightedFlow && this.isNodeInFlow(node, this.highlightedFlow)) {
-            classes.push('sankey-node-highlighted');
-        } else if (this.selectedFlowPath || this.selectedFlow || this.selectedNode || this.highlightedFlowPath || this.highlightedFlow) {
-            classes.push('sankey-node-dimmed');
-        }
-
-        return classes.join(' ');
-    }
-
-    /**
-     * Check if two flows are equal
-     */
-    isFlowEqual(flow1, flow2) {
-        // Handle cases where flow1 or flow2 might be undefined or null
-        if (!flow1 || !flow2) return false;
-
-        // Check if they are the same object reference first (fastest check)
-        if (flow1 === flow2) return true;
-
-        // Check if both have the required properties
-        if (!flow1.source || !flow2.source || !flow1.target || !flow2.target) return false;
-
-        // Compare by source/target node IDs and flow properties
-        const sourceId1 = typeof flow1.source === 'object' ? flow1.source.id : flow1.source;
-        const sourceId2 = typeof flow2.source === 'object' ? flow2.source.id : flow2.source;
-        const targetId1 = typeof flow1.target === 'object' ? flow1.target.id : flow1.target;
-        const targetId2 = typeof flow2.target === 'object' ? flow2.target.id : flow2.target;
-
-        return sourceId1 === sourceId2 &&
-               targetId1 === targetId2 &&
-               flow1.value === flow2.value &&
-               flow1.property === flow2.property;
-    }
-
-    /**
-     * Check if a node is part of a flow
-     */
-    isNodeInFlow(node, flow) {
-        return node.id === flow.source.id || node.id === flow.target.id;
-    }
-
-    /**
-     * Get opacity for a link based on current state
-     */
-    getLinkOpacity(link) {
-        // Selected flows have full opacity (1.0)
-        if (this.selectedFlowPath && this.selectedFlowPath.links.includes(link)) {
-            return 1.0;
-        } else if (this.selectedFlow === link) {
-            return 1.0;
-        }
-        // Highlighted flows have 30% lesser dim (0.7)
-        else if (this.highlightedFlowPath && this.highlightedFlowPath.links.includes(link)) {
-            return 0.7;
-        } else if (this.highlightedFlow === link) {
-            return 0.7;
-        }
-        // Dimmed flows have 90% dim when selected (0.1), 30% dim when highlighted (0.2)
-        else if (this.selectedFlowPath || this.selectedFlow) {
-            return 0.1; // 90% dimming for selected state
-        } else if (this.highlightedFlowPath || this.highlightedFlow) {
-            return 0.2; // 30% dimming for highlighted state
-        }
-        // Default opacity
-        return 0.6;
-    }
-
-    /**
-     * Get opacity for a node based on current state
-     */
-    getNodeOpacity(node) {
-        // Selected nodes have full opacity (1.0)
-        if (this.selectedFlowPath && this.selectedFlowPath.nodes.includes(node)) {
-            return 1.0;
-        } else if (this.selectedFlow && this.isNodeInFlow(node, this.selectedFlow)) {
-            return 1.0;
-        }
-        // Highlighted nodes have 30% lesser dim (0.7)
-        else if (this.highlightedFlowPath && this.highlightedFlowPath.nodes.includes(node)) {
-            return 0.7;
-        } else if (this.highlightedFlow && this.isNodeInFlow(node, this.highlightedFlow)) {
-            return 0.7;
-        }
-        // Dimmed nodes have 90% dim when selected (0.1), 30% dim when highlighted (0.2)
-        else if (this.selectedFlowPath || this.selectedFlow) {
-            return 0.1; // 90% dimming for selected state
-        } else if (this.highlightedFlowPath || this.highlightedFlow) {
-            return 0.2; // 30% dimming for highlighted state
-        }
-        // Default opacity
-        return 1.0;
-    }
-
-    /**
-     * Highlight a flow on mouseover
-     */
-    highlightFlow(flow) {
-        // Trace the complete flow path for the hovered flow's property
-        this.highlightedFlow = flow;
-        this.highlightedFlowPath = this.traceCompleteFlowPath(flow);
-        this.updateSankeyVisuals();
-    }
-
-    /**
-     * Clear flow highlighting
-     */
-    clearHighlight() {
-        this.highlightedFlow = null;
-        this.highlightedFlowPath = null;
-        this.updateSankeyVisuals();
-    }
-
-    /**
-     * Select/deselect a flow
-     */
-    selectFlow(flow, event) {
-        if (this.selectedFlow === flow) {
-            // Deselect if clicking the same flow
-            this.selectedFlow = null;
-            this.selectedFlowPath = null;
-            this.selectedFlowMousePosition = null;
+    showError(message) {
+        const errorElement = this.uiManager.getElement('error-placeholder');
+        if (errorElement) {
+            errorElement.textContent = `Error: ${message}`;
+            errorElement.style.display = 'block';
+            console.error('[CHART] Error displayed:', message);
         } else {
-            // Select the clicked flow and trace the complete path including all nodes
-            this.selectedFlow = flow;
-            this.selectedFlowPath = this.traceCompleteFlowPath(flow);
-            // Store mouse click position for tooltip
-            if (event) {
-                this.selectedFlowMousePosition = {
-                    x: event.pageX,
-                    y: event.pageY
-                };
-            }
-        }
-        this.updateSankeyVisuals();
-    }
-
-    /**
-     * Clear selection
-     */
-    clearSelection() {
-        this.selectedFlow = null;
-        this.selectedFlowPath = null;
-        this.selectedFlowMousePosition = null;
-        this.selectedNode = null;
-        this.selectedNodeMousePosition = null;
-        this.updateSankeyVisuals();
-    }
-
-    /**
-     * Trace the complete flow path from a clicked link
-     */
-    traceCompleteFlowPath(clickedLink) {
-        if (!this.sankeyLinks || !this.sankeyNodes) {
-            return { links: [], nodes: [] };
-        }
-
-        const flowPath = {
-            links: [],
-            nodes: [],
-        };
-
-        // Add the clicked link and its nodes
-        flowPath.links.push(clickedLink);
-        flowPath.nodes.push(clickedLink.source);
-        flowPath.nodes.push(clickedLink.target);
-
-        // For hierarchical flows, find the connected links in the same flow path
-        const propertyName = clickedLink.property;
-
-        // If this is a property->category link, find all subcategory links for this property and category
-        if (clickedLink.source.type === 'property' && clickedLink.target.type === 'category') {
-            // Find all subcategory links that come from this category for the same property
-            const subcategoryLinks = this.sankeyLinks.filter(link =>
-                link.source.id === clickedLink.target.id && // From the category
-                link.property === propertyName && // Same property
-                link.target.type === 'subcategory' // To subcategory
-            );
-
-            subcategoryLinks.forEach(link => {
-                flowPath.links.push(link);
-                if (!flowPath.nodes.some(n => n.id === link.target.id)) {
-                    flowPath.nodes.push(link.target);
-                }
-            });
-        }
-        // If this is a category->subcategory link, find the property->category link
-        else if (clickedLink.source.type === 'category' && clickedLink.target.type === 'subcategory') {
-            // Find the property link that connects to this category for the same property
-            const propertyLink = this.sankeyLinks.find(link =>
-                link.target.id === clickedLink.source.id &&
-                link.property === propertyName &&
-                link.source.type === 'property'
-            );
-
-            if (propertyLink) {
-                flowPath.links.push(propertyLink);
-                if (!flowPath.nodes.some(n => n.id === propertyLink.source.id)) {
-                    flowPath.nodes.push(propertyLink.source);
-                }
-            }
-        }
-
-        return flowPath;
-    }
-
-    /**
-     * Trace backward through the flow path for a specific property
-     */
-    traceBackward(node, flowPath, propertyName) {
-        // Add the current node
-        flowPath.nodes.add(node);
-
-        // Find links that flow into this node AND belong to the same property
-        const incomingLinks = this.sankeyLinks.filter(link =>
-            link.target.id === node.id && link.property === propertyName
-        );
-
-        incomingLinks.forEach(link => {
-            // Avoid infinite loops by checking if we've already processed this link
-            if (!flowPath.links.has(link)) {
-                flowPath.links.add(link);
-                // Recursively trace backward from the source of this link
-                this.traceBackward(link.source, flowPath, propertyName);
-            }
-        });
-    }
-
-    /**
-     * Trace forward through the flow path for a specific property
-     */
-    traceForward(node, flowPath, propertyName) {
-        // Add the current node
-        flowPath.nodes.add(node);
-
-        // Find links that flow out from this node AND belong to the same property
-        const outgoingLinks = this.sankeyLinks.filter(link =>
-            link.source.id === node.id && link.property === propertyName
-        );
-
-        outgoingLinks.forEach(link => {
-            // Avoid infinite loops by checking if we've already processed this link
-            if (!flowPath.links.has(link)) {
-                flowPath.links.add(link);
-                // Recursively trace forward from the target of this link
-                this.traceForward(link.target, flowPath, propertyName);
-            }
-        });
-    }
-
-    /**
-     * Highlight a flow on mouseover
-     */
-    highlightFlow(flow) {
-        // Trace the complete flow path for the hovered flow's property
-        this.highlightedFlow = flow;
-        this.highlightedFlowPath = this.traceCompleteFlowPath(flow);
-        this.updateSankeyVisuals();
-    }
-
-    /**
-     * Clear flow highlighting
-     */
-    clearHighlight() {
-        this.highlightedFlow = null;
-        this.highlightedFlowPath = null;
-        this.updateSankeyVisuals();
-    }
-
-    /**
-     * Select/deselect a flow
-     */
-    selectFlow(flow, event) {
-        if (this.selectedFlow === flow) {
-            // Deselect if clicking the same flow
-            this.selectedFlow = null;
-            this.selectedFlowPath = null;
-            this.selectedFlowMousePosition = null;
-        } else {
-            // Select the clicked flow and trace the complete path including all nodes
-            this.selectedFlow = flow;
-            this.selectedFlowPath = this.traceCompleteFlowPath(flow);
-            // Store mouse click position for tooltip
-            if (event) {
-                this.selectedFlowMousePosition = {
-                    x: event.pageX,
-                    y: event.pageY
-                };
-            }
-        }
-        this.updateSankeyVisuals();
-    }
-
-    /**
-     * Clear selection
-     */
-    clearSelection() {
-        this.selectedFlow = null;
-        this.selectedFlowPath = null;
-        this.selectedFlowMousePosition = null;
-        this.selectedNode = null;
-        this.selectedNodeMousePosition = null;
-        this.updateSankeyVisuals();
-    }
-
-    /**
-     * Trace the complete flow path from a clicked link
-     */
-    traceCompleteFlowPath(clickedLink) {
-        if (!this.sankeyLinks || !this.sankeyNodes) {
-            return { links: [], nodes: [] };
-        }
-
-        const flowPath = {
-            links: [],
-            nodes: [],
-        };
-
-        // Add the clicked link and its nodes
-        flowPath.links.push(clickedLink);
-        flowPath.nodes.push(clickedLink.source);
-        flowPath.nodes.push(clickedLink.target);
-
-        // For hierarchical flows, find the connected links in the same flow path
-        const propertyName = clickedLink.property;
-
-        // If this is a property->category link, find all subcategory links for this property and category
-        if (clickedLink.source.type === 'property' && clickedLink.target.type === 'category') {
-            // Find all subcategory links that come from this category for the same property
-            const subcategoryLinks = this.sankeyLinks.filter(link =>
-                link.source.id === clickedLink.target.id && // From the category
-                link.property === propertyName && // Same property
-                link.target.type === 'subcategory' // To subcategory
-            );
-
-            subcategoryLinks.forEach(link => {
-                flowPath.links.push(link);
-                if (!flowPath.nodes.some(n => n.id === link.target.id)) {
-                    flowPath.nodes.push(link.target);
-                }
-            });
-        }
-        // If this is a category->subcategory link, find the property->category link
-        else if (clickedLink.source.type === 'category' && clickedLink.target.type === 'subcategory') {
-            // Find the property link that connects to this category for the same property
-            const propertyLink = this.sankeyLinks.find(link =>
-                link.target.id === clickedLink.source.id &&
-                link.property === propertyName &&
-                link.source.type === 'property'
-            );
-
-            if (propertyLink) {
-                flowPath.links.push(propertyLink);
-                if (!flowPath.nodes.some(n => n.id === propertyLink.source.id)) {
-                    flowPath.nodes.push(propertyLink.source);
-                }
-            }
-        }
-
-        return flowPath;
-    }
-
-    /**
-     * Trace backward through the flow path for a specific property
-     */
-    traceBackward(node, flowPath, propertyName) {
-        // Add the current node
-        flowPath.nodes.add(node);
-
-        // Find links that flow into this node AND belong to the same property
-        const incomingLinks = this.sankeyLinks.filter(link =>
-            link.target.id === node.id && link.property === propertyName
-        );
-
-        incomingLinks.forEach(link => {
-            // Avoid infinite loops by checking if we've already processed this link
-            if (!flowPath.links.has(link)) {
-                flowPath.links.add(link);
-                // Recursively trace backward from the source of this link
-                this.traceBackward(link.source, flowPath, propertyName);
-            }
-        });
-    }
-
-    /**
-     * Trace forward through the flow path for a specific property
-     */
-    traceForward(node, flowPath, propertyName) {
-        // Add the current node
-        flowPath.nodes.add(node);
-
-        // Find links that flow out from this node AND belong to the same property
-        const outgoingLinks = this.sankeyLinks.filter(link =>
-            link.source.id === node.id && link.property === propertyName
-        );
-
-        outgoingLinks.forEach(link => {
-            // Avoid infinite loops by checking if we've already processed this link
-            if (!flowPath.links.has(link)) {
-                flowPath.links.add(link);
-                // Recursively trace forward from the target of this link
-                this.traceForward(link.target, flowPath, propertyName);
-            }
-        });
-    }
-
-    /**
-     * Highlight a node (show connected flows)
-     */
-    highlightNode(node) {
-        // Find all flows connected to this node
-        const connectedFlows = this.sankeyLinks.filter(link =>
-            link.source.id === node.id || link.target.id === node.id
-        );
-
-        if (connectedFlows.length > 0) {
-            this.highlightedFlow = connectedFlows[0]; // Highlight first connected flow
-            this.updateSankeyVisuals();
-        }
-    }
-
-    /**
-     * Select a node (highlight all paths flowing through it)
-     */
-    selectNode(node, event) {
-        // Clear any existing selection
-        this.clearSelection();
-
-        // Select the node and store mouse position
-        this.selectedNode = node;
-        if (event) {
-            this.selectedNodeMousePosition = {
-                x: event.pageX,
-                y: event.pageY
-            };
-        }
-
-        // Trace all paths flowing through this node
-        const allPaths = this.traceAllPathsThroughNode(node);
-
-        // Set the selection to include all paths through this node
-        this.selectedFlow = null;
-        this.selectedFlowPath = allPaths;
-
-        this.updateSankeyVisuals();
-    }
-
-    /**
-     * Trace all paths flowing through a node
-     */
-    traceAllPathsThroughNode(selectedNode) {
-        if (!this.sankeyLinks || !this.sankeyNodes) {
-            return { links: [], nodes: [] };
-        }
-
-        const allPaths = {
-            links: [],
-            nodes: [],
-        };
-
-        // Find all links connected to this node (both incoming and outgoing)
-        const connectedLinks = this.sankeyLinks.filter(link =>
-            link.source.id === selectedNode.id || link.target.id === selectedNode.id
-        );
-
-        // For each connected link, trace its complete path
-        connectedLinks.forEach(link => {
-            const path = this.traceCompleteFlowPath(link);
-
-            // Add all links from this path (avoid duplicates)
-            path.links.forEach(link => {
-                if (!allPaths.links.some(existingLink =>
-                    existingLink.source.id === link.source.id &&
-                    existingLink.target.id === link.target.id &&
-                    existingLink.property === link.property
-                )) {
-                    allPaths.links.push(link);
-                }
-            });
-
-            // Add all nodes from this path (avoid duplicates)
-            path.nodes.forEach(node => {
-                if (!allPaths.nodes.some(existingNode => existingNode.id === node.id)) {
-                    allPaths.nodes.push(node);
-                }
-            });
-        });
-
-        return allPaths;
-    }
-
-
-
-    /**
-     * Update sankey diagram visuals based on current state
-     */
-    updateSankeyVisuals() {
-        if (!this.sankeySvg || !this.sankeyLinks || !this.sankeyNodes) {
-            return;
-        }
-
-        // Update link classes and opacity
-        this.sankeySvg.selectAll('.sankey-links path')
-            .attr('class', d => this.getLinkClass(d))
-            .style('opacity', d => this.getLinkOpacity(d));
-
-        // Update node classes and opacity
-        this.sankeySvg.selectAll('.sankey-nodes rect')
-            .attr('class', d => this.getNodeClass(d))
-            .style('opacity', d => this.getNodeOpacity(d));
-
-        // Show tooltip for selected flow or node (persistent)
-        if (this.selectedFlow) {
-            this.showSelectedFlowTooltip();
-        } else if (this.selectedNode) {
-            this.showSelectedNodeTooltip();
-        } else {
-            this.hideTooltip();
-        }
-    }
-
-    /**
-     * Show tooltip for selected flow
-     */
-    showSelectedFlowTooltip() {
-        if (!this.tooltip || !this.selectedFlow) {
-            return;
-        }
-
-        let tooltipX, tooltipY;
-
-        // Use stored mouse click position if available
-        if (this.selectedFlowMousePosition) {
-            tooltipX = this.selectedFlowMousePosition.x;
-            tooltipY = this.selectedFlowMousePosition.y;
-        } else {
-            // Fallback to center of flow if no mouse position stored
-            const container = this.uiManager.getElement('overviewChartContent');
-            if (!container) {
-                return;
-            }
-
-            const containerRect = container.getBoundingClientRect();
-            const svgRect = container.querySelector('svg')?.getBoundingClientRect();
-
-            if (!svgRect) {
-                return;
-            }
-
-            // Calculate the center position of the selected flow
-            const sourceNode = this.selectedFlow.source;
-            const targetNode = this.selectedFlow.target;
-
-            // Get the midpoint of the link
-            const midX = (sourceNode.x1 + targetNode.x0) / 2;
-            const midY = (sourceNode.y0 + sourceNode.y1 + targetNode.y0 + targetNode.y1) / 4;
-
-            // Convert SVG coordinates to screen coordinates
-            const scaleX = svgRect.width / container.clientWidth;
-            const scaleY = svgRect.height / container.clientHeight;
-
-            tooltipX = svgRect.left + midX * scaleX;
-            tooltipY = svgRect.top + midY * scaleY;
-        }
-
-        // Create tooltip content
-        let content = `<strong>${this.selectedFlow.property}</strong>`;
-        if (this.selectedFlow.category) {
-            content += `<br/>${this.selectedFlow.category}`;
-        }
-        // Show negative values for expenses in tooltips
-        const displayValue = this.selectedFlow.flowType === 'dummy' ? this.selectedFlow.value : -Math.abs(this.selectedFlow.value);
-        const formattedValue = this.formatter.formatCurrency(Math.abs(displayValue));
-        content += `<br/>${displayValue < 0 ? '-' : ''}${formattedValue}`;
-
-        // Position and show tooltip
-        this.tooltip
-            .style('opacity', 1)
-            .html(content)
-            .style('left', (tooltipX + 10) + 'px')
-            .style('top', (tooltipY - 10) + 'px');
-    }
-
-    /**
-     * Show tooltip for selected node
-     */
-    showSelectedNodeTooltip() {
-        if (!this.tooltip || !this.selectedNode) {
-            return;
-        }
-
-        let tooltipX, tooltipY;
-
-        // Use stored mouse click position if available
-        if (this.selectedNodeMousePosition) {
-            tooltipX = this.selectedNodeMousePosition.x;
-            tooltipY = this.selectedNodeMousePosition.y;
-        } else {
-            // Fallback to center of node if no mouse position stored
-            const container = this.uiManager.getElement('overviewChartContent');
-            if (!container) {
-                return;
-            }
-
-            const containerRect = container.getBoundingClientRect();
-            const svgRect = container.querySelector('svg')?.getBoundingClientRect();
-
-            if (!svgRect) {
-                return;
-            }
-
-            // Calculate the center position of the selected node
-            const centerX = (this.selectedNode.x0 + this.selectedNode.x1) / 2;
-            const centerY = (this.selectedNode.y0 + this.selectedNode.y1) / 2;
-
-            // Convert SVG coordinates to screen coordinates
-            const scaleX = svgRect.width / container.clientWidth;
-            const scaleY = svgRect.height / container.clientHeight;
-
-            tooltipX = svgRect.left + centerX * scaleX;
-            tooltipY = svgRect.top + centerY * scaleY;
-        }
-
-        // Create tooltip content based on node type
-        let content = `<strong>${this.selectedNode.name}</strong>`;
-
-        // Calculate total value flowing through this node
-        let totalValue = 0;
-        if (this.sankeyLinks) {
-            this.sankeyLinks.forEach(link => {
-                if (link.source.id === this.selectedNode.id || link.target.id === this.selectedNode.id) {
-                    totalValue += link.value;
-                }
-            });
-        }
-
-        if (totalValue > 0) {
-            // Show negative values for expenses in tooltips
-            const formattedValue = this.formatter.formatCurrency(Math.abs(-totalValue));
-            content += `<br/>-${formattedValue}`;
-        }
-
-
-
-        // Set tooltip content first to get its dimensions
-        this.tooltip
-            .style('opacity', 1)
-            .html(content);
-
-        // Get tooltip dimensions
-        const tooltipRect = this.tooltip.node().getBoundingClientRect();
-        const tooltipWidth = tooltipRect.width;
-        const tooltipHeight = tooltipRect.height;
-
-        // Get viewport dimensions
-        const viewportWidth = window.innerWidth;
-        const viewportHeight = window.innerHeight;
-
-        // Smart positioning based on node location and viewport constraints
-        let finalX = tooltipX;
-        let finalY = tooltipY;
-
-        // Check if node is on the right side of the chart (level 3 nodes are typically here)
-        const container = this.uiManager.getElement('overviewChartContent');
-        if (container) {
-            const containerRect = container.getBoundingClientRect();
-            const svgRect = container.querySelector('svg')?.getBoundingClientRect();
-
-            if (svgRect) {
-                // Calculate node's position relative to container center
-                const nodeCenterX = (this.selectedNode.x0 + this.selectedNode.x1) / 2;
-                const containerCenterX = container.clientWidth / 2;
-
-                // If node is on the right side, position tooltip to the left
-                if (nodeCenterX > containerCenterX) {
-                    finalX = tooltipX - tooltipWidth - 15; // Position to the left with margin
-                } else {
-                    finalX = tooltipX + 15; // Position to the right with margin
-                }
-            }
-        }
-
-        // Ensure tooltip doesn't go off-screen horizontally
-        if (finalX + tooltipWidth > viewportWidth) {
-            finalX = viewportWidth - tooltipWidth - 10;
-        }
-        if (finalX < 10) {
-            finalX = 10;
-        }
-
-        // Ensure tooltip doesn't go off-screen vertically
-        if (finalY + tooltipHeight > viewportHeight) {
-            finalY = viewportHeight - tooltipHeight - 10;
-        }
-        if (finalY < 10) {
-            finalY = 10;
-        }
-
-        // Position and show tooltip
-        this.tooltip
-            .style('left', finalX + 'px')
-            .style('top', finalY + 'px');
-    }
-
-    /**
-     * Hide tooltip
-     */
-    hideTooltip() {
-        if (this.tooltip) {
-            this.tooltip.style('opacity', 0);
+            console.error('[CHART] Error placeholder not found, logging error:', message);
         }
     }
 
@@ -1649,13 +956,12 @@ class ChartRenderer {
      */
     updateChartColors() {
         if (!this.themeManager) {
-            console.warn('[CHART] Theme manager not available for color updates');
             return;
         }
 
-        const chartColors = this.themeManager.getChartColors();
+        const chartColors = this.themeManager.getColorTheme();
         this.chartConfig.colors = {
-            properties: chartColors.categories || ['#5D878F', '#DB4545', '#D2BA4C', '#964325', '#944454', '#13343B', '#ECEBD5', '#33808D', '#C0152F', '#A84B2F'],
+            properties: chartColors.properties || ['#5D878F', '#DB4545', '#D2BA4C', '#964325', '#944454', '#13343B', '#ECEBD5', '#33808D', '#C0152F', '#A84B2F'],
             categories: chartColors.categories || ['#5D878F', '#DB4545', '#D2BA4C', '#964325', '#944454', '#13343B', '#ECEBD5', '#33808D', '#C0152F', '#A84B2F'],
             trends: chartColors.trends || {
                 increasing: '#10B981',
@@ -1664,7 +970,30 @@ class ChartRenderer {
             },
         };
 
+        // Set CSS vars for node colors
+        document.documentElement.style.setProperty('--color-node-income', this.chartConfig.colors.categories[0]);
+        document.documentElement.style.setProperty('--color-node-property', this.chartConfig.colors.properties[0]);
+        document.documentElement.style.setProperty('--color-node-expenses', '#DC2626');
+        document.documentElement.style.setProperty('--color-node-profit', '#059669');
+        document.documentElement.style.setProperty('--color-node-earnings', '#059669');
+        document.documentElement.style.setProperty('--color-node-category', this.chartConfig.colors.categories[0]);
+        document.documentElement.style.setProperty('--color-node-subcategory', this.chartConfig.colors.categories[1]);
+
         console.log('[CHART] Updated chart colors from theme:', this.themeManager.getCurrentColorTheme());
+    }
+
+    /**
+     * Handle data change event
+     */
+    handleDataChange(data) {
+        console.log('[CHART] Data changed, re-rendering sankey');
+        // Clear cached data and re-render
+        if (this.dataManager) {
+            this.dataManager.clearSankeyCache();
+        }
+        // Invalidate memoized relatedIds cache
+        this.relatedIdsCache.clear();
+        this.renderOverviewSankey();
     }
 
     /**
@@ -1674,11 +1003,19 @@ class ChartRenderer {
         console.log('[CHART] Color theme changed, updating chart colors');
         this.updateChartColors();
 
-        // Re-render current charts if they exist
-        const overviewContainer = this.uiManager.getElement('overviewChartContent');
-        if (overviewContainer && !overviewContainer.querySelector('.coming-soon')) {
-            this.renderOverviewSankey();
+        // Update existing chart elements without full re-render
+        if (this.sankeyData) {
+            // Update link strokes
+            this.sankeyData.svg.selectAll('.link').attr('stroke', d => `url(#grad-${d.type.replace(/[^a-z]/g, '')})`);
+            // Update text color
+            this.sankeyData.svg.selectAll('.nodes text').style('fill', 'var(--color-text)');
         }
+
+        // Reposition persistent tooltip
+        this.repositionPersistentTooltip();
+
+        // Debounced re-render for theme changes
+        this.debouncedRender();
     }
 
     /**
@@ -1698,8 +1035,8 @@ class ChartRenderer {
 
         // Adjust brightness
         const adjust = (component) => {
-            const adjusted = Math.round(component + (255 - component) * factor);
-            return Math.min(255, Math.max(0, adjusted));
+            let val = component * (1 + factor);
+            return Math.min(255, Math.max(0, Math.round(val)));
         };
 
         const newR = adjust(r);
@@ -1719,7 +1056,21 @@ class ChartRenderer {
             this.tooltip = null;
         }
 
+        if (this.resizeObserver) {
+            this.resizeObserver.disconnect();
+            this.resizeObserver = null;
+        }
+
+        // Remove theme change listener
+        if (document._colorThemeListenerAdded) {
+            document.removeEventListener('colorThemeChange', this.handleColorThemeChange.bind(this));
+            document._colorThemeListenerAdded = false;
+        }
+
         this.legends.clear();
+        this.sankeyData = null;
+        this.state = { selected: null, highlighted: null, paths: { nodes: [], links: [] } };
+        this.persistentPos = null;
         console.log('[CHART] Chart renderer cleaned up');
     }
 
@@ -1732,16 +1083,15 @@ class ChartRenderer {
         console.log('[CHART DEBUG] Tooltip available:', !!this.tooltip);
         console.log('[CHART DEBUG] Legends count:', this.legends.size);
         console.log('[CHART DEBUG] Chart config:', this.chartConfig);
-        console.log('[CHART DEBUG] Selected flow:', this.selectedFlow);
-        console.log('[CHART DEBUG] Highlighted flow:', this.highlightedFlow);
+        console.log('[CHART DEBUG] Selected state:', this.state);
+        console.log('[CHART DEBUG] Sankey data available:', !!this.sankeyData);
         console.log('[CHART DEBUG] Current color theme:', this.themeManager ? this.themeManager.getCurrentColorTheme() : 'N/A');
         console.log('[CHART DEBUG] === END DEBUG ===');
     }
-}
+}  // Closing brace for class ChartRenderer
 
 // Export for use in other modules
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = ChartRenderer;
-} else {
-    window.ChartRenderer = ChartRenderer;
-}
+export default ChartRenderer;
+
+// Expose globally for Babel standalone transpilation
+window.ChartRenderer = ChartRenderer;

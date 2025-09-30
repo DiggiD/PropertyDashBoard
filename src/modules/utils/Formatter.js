@@ -262,8 +262,7 @@ class Formatter {
 }
 
 // Export for use in other modules
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = Formatter;
-} else {
-    window.Formatter = Formatter;
-}
+export default Formatter;
+
+// Expose globally for Babel standalone transpilation
+window.Formatter = Formatter;

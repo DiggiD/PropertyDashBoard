@@ -1,276 +1,357 @@
-<!DOCTYPE html> 
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Property Expense Dashboard</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏠</text></svg>">
-    <link rel="stylesheet" href="style.css">
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-    <script src="https://unpkg.com/d3-sankey@0.12.3/dist/d3-sankey.min.js"></script>
-    <script src="https://unpkg.com/dexie@3.2.4/dist/dexie.js"></script>
-</head>
-<body>
-    <div class="app-container">
-        <!-- Enhanced header with better accessibility -->
-        <header class="header" role="banner">
-            <div class="header-left">
-                <h1>RE.dash</h1>
-            </div>
-
-            <!-- Year/Month Picker - Visible on overview and properties dashboards -->
-            <div class="year-picker" id="yearPicker" style="display: none;">
-                <div class="year-picker-header" id="yearPickerHeader">
-                    <!-- Year options will be populated dynamically -->
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Property Expense Dashboard</title>
+        <link
+            rel="icon"
+            href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏠</text></svg>"
+        />
+        <link rel="stylesheet" href="style.css" />
+        <style> [data-theme="dark"] { background: #333; color: #fff; } #theme-toggle { cursor:pointer; padding:8px; } </style>
+        <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+        <script src="https://d3js.org/d3.v7.min.js"></script>
+        <script src="https://unpkg.com/d3-sankey@0.12.3/dist/d3-sankey.min.js"></script>
+        <script src="https://unpkg.com/dexie@3.2.4/dist/dexie.js"></script>
+    </head>
+    <body>
+        <div class="app-container">
+            <!-- Enhanced header with better accessibility -->
+            <header class="header" role="banner">
+                <div class="header-left">
+                    <h1>RE.dash</h1>
                 </div>
-                <div class="month-picker" id="monthPicker" style="display: none;">
-                    <div class="month-picker-header" id="monthPickerHeader">
-                        <!-- Month options will be populated dynamically -->
+
+                <!-- Year/Month Picker - Visible on overview and properties dashboards -->
+                <div class="year-picker" id="yearPicker" style="display: none">
+                    <div class="year-picker-header" id="yearPickerHeader">
+                        <!-- Year options will be populated dynamically -->
+                    </div>
+                    <div class="month-picker" id="monthPicker" style="display: none">
+                        <div class="month-picker-header" id="monthPickerHeader">
+                            <!-- Month options will be populated dynamically -->
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <nav class="header-actions" role="navigation" aria-label="Main actions">
-                <div class="dropdown" id="colorThemeDropdown">
-                    <button class="btn btn--outline btn--sm dropdown-btn" id="colorThemeBtn"
-                            aria-label="Select color theme" aria-haspopup="true" aria-expanded="false">
-                        🎨 Theme
+                <nav class="header-actions" role="navigation" aria-label="Main actions">
+                    <div class="dropdown" id="colorThemeDropdown">
+                        <button
+                            class="btn btn--outline btn--sm dropdown-btn"
+                            id="colorThemeBtn"
+                            aria-label="Select color theme"
+                            aria-haspopup="true"
+                            aria-expanded="false"
+                        >
+                            🎨 Theme
+                        </button>
+                        <div class="dropdown-menu" id="colorThemeMenu" role="menu" aria-hidden="true">
+                            <!-- Options will be populated dynamically by JavaScript -->
+                        </div>
+                    </div>
+
+                    <button class="btn btn--outline btn--sm" id="undoBtn" aria-label="Undo last action" disabled>
+                        Undo
                     </button>
-                    <div class="dropdown-menu" id="colorThemeMenu" role="menu" aria-hidden="true">
-                        <!-- Options will be populated dynamically by JavaScript -->
+                    <button class="btn btn--outline btn--sm" id="redoBtn" aria-label="Redo last undone action" disabled>
+                        Redo
+                    </button>
+                    <button
+                        class="btn btn--outline btn--sm"
+                        id="darkModeToggle"
+                        aria-label="Toggle dark mode"
+                        title="Toggle dark mode (for testing only)"
+                    >
+                        Dark
+                    </button>
+
+                    <button
+                        class="btn btn--outline btn--sm"
+                        id="historyBtn"
+                        aria-label="Manage data history and snapshots"
+                    >
+                        History
+                    </button>
+                </nav>
+            </header>
+
+            <!-- Enhanced main content with proper roles and sidebar support -->
+            <main class="main-content" role="main" aria-label="Expense visualization chart">
+                <!-- New Smooth Sidebar -->
+                <nav class="sidebar-nav" id="sidebarNav">
+                    <!-- Overview Item -->
+                    <div class="nav-item" id="overviewBtn" data-metric="overview">
+                        <div class="nav-icon">O</div>
+                        <div class="nav-text">
+                            <span class="nav-label">Overview</span>
+                        </div>
                     </div>
-                </div>
 
-                <button class="btn btn--outline btn--sm" id="undoBtn"
-                        aria-label="Undo last action" disabled>
-                    Undo
-                </button>
-                <button class="btn btn--outline btn--sm" id="redoBtn"
-                        aria-label="Redo last undone action" disabled>
-                    Redo
-                </button>
-                <button class="btn btn--outline btn--sm" id="darkModeToggle"
-                        aria-label="Toggle dark mode" title="Toggle dark mode (for testing only)">
-                    Dark
-                </button>
-
-                <button class="btn btn--outline btn--sm" id="historyBtn"
-                        aria-label="Manage data history and snapshots">
-                    History
-                </button>
-            </nav>
-        </header>
-
-        <!-- Enhanced main content with proper roles and sidebar support -->
-        <main class="main-content" role="main" aria-label="Expense visualization chart">
-            <!-- New Smooth Sidebar -->
-            <nav class="sidebar-nav" id="sidebarNav">
-                <!-- Overview Item -->
-                <div class="nav-item" id="overviewBtn" data-metric="overview">
-                    <div class="nav-icon">O</div>
-                    <div class="nav-text">
-                        <span class="nav-label">Overview</span>
+                    <!-- Properties Item -->
+                    <div class="nav-item" id="propertiesBtn" data-metric="properties">
+                        <div class="nav-icon">P</div>
+                        <div class="nav-text">
+                            <span class="nav-label">Properties</span>
+                        </div>
                     </div>
-                </div>
 
-                <!-- Properties Item -->
-                <div class="nav-item" id="propertiesBtn" data-metric="properties">
-                    <div class="nav-icon">P</div>
-                    <div class="nav-text">
-                        <span class="nav-label">Properties</span>
+                    <!-- Analytics Item -->
+                    <div class="nav-item" id="analyticsBtn" data-metric="analytics">
+                        <div class="nav-icon">A</div>
+                        <div class="nav-text">
+                            <span class="nav-label">Analytics</span>
+                        </div>
                     </div>
-                </div>
+                </nav>
 
-                <!-- Analytics Item -->
-                <div class="nav-item" id="analyticsBtn" data-metric="analytics">
-                    <div class="nav-icon">A</div>
-                    <div class="nav-text">
-                        <span class="nav-label">Analytics</span>
+                <!-- Dashboard Containers Section -->
+                <div class="dashboard-containers">
+                    <!-- Analytics Dashboard Container -->
+                    <div id="analyticsDashboard" class="dashboard-container dashboard-analytics hidden">
+                        <div
+                            id="analyticsChart"
+                            class="analytics-container"
+                            role="img"
+                            aria-label="Analytics visualization chart"
+                        >
+                            <div class="coming-soon">
+                                <div class="coming-soon-icon">Soon</div>
+                                <h3>Analytics Dashboard Coming Soon</h3>
+                                <p>
+                                    This feature is under development. Check back later for comprehensive analytics and
+                                    insights.
+                                </p>
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </nav>
-            
-            <!-- Dashboard Containers Section -->
-            <div class="dashboard-containers">
-                <!-- Analytics Dashboard Container -->
-                <div id="analyticsDashboard" class="dashboard-container dashboard-analytics hidden">
-                    <div id="analyticsChart" class="analytics-container" role="img" aria-label="Analytics visualization chart">
-                        <div class="coming-soon">
-                            <div class="coming-soon-icon">Soon</div>
-                            <h3>Analytics Dashboard Coming Soon</h3>
-                            <p>This feature is under development. Check back later for comprehensive analytics and insights.</p>
+
+                    <!-- Properties Dashboard Container -->
+                    <div id="propertiesDashboard" class="dashboard-container dashboard-properties hidden">
+                        <div class="dashboard-content">
+                            <!-- Properties dashboard content will be dynamically inserted here -->
+                        </div>
+                    </div>
+
+                    <!-- Overview Dashboard Container -->
+                    <div id="overviewDashboard" class="dashboard-container dashboard-overview hidden">
+                        <!-- Overview Chart Container - Ready for beautiful sankey diagram -->
+                        <div
+                            id="overviewChart"
+                            class="overview-container"
+                            role="img"
+                            aria-label="Overview sankey visualization chart"
+                        >
+                            <div class="loading-state" id="overviewLoadingState">
+                                <div class="loading-spinner"></div>
+                                <p>Loading overview chart...</p>
+                            </div>
+                            <div id="overviewChartContent" class="chart-content"></div>
                         </div>
                     </div>
                 </div>
+                <!-- Close dashboard-containers -->
+            </main>
 
-                <!-- Properties Dashboard Container -->
-                <div id="propertiesDashboard" class="dashboard-container dashboard-properties hidden">
-                    <div class="dashboard-content">
-                        <!-- Properties dashboard content will be dynamically inserted here -->
-                    </div>
+            <!-- Enhanced detail panel with accessibility -->
+            <div
+                id="detailPanel"
+                class="detail-panel"
+                role="complementary"
+                aria-label="Detailed information panel"
+                aria-hidden="true"
+            >
+                <div class="detail-header">
+                    <h3 id="detailTitle">Details</h3>
+                    <button class="detail-close" id="closeDetailPanel" aria-label="Close details panel">&times;</button>
                 </div>
-
-                <!-- Overview Dashboard Container -->
-                <div id="overviewDashboard" class="dashboard-container dashboard-overview hidden">
-                    <!-- Overview Chart Container - Ready for beautiful sankey diagram -->
-                    <div id="overviewChart" class="overview-container" role="img"
-                            aria-label="Overview sankey visualization chart">
-                        <div class="loading-state" id="overviewLoadingState">
-                            <div class="loading-spinner"></div>
-                            <p>Loading overview chart...</p>
-                        </div>
-                        <div id="overviewChartContent" class="chart-content"></div>
-                    </div>
+                <div class="detail-content" id="detailContent" role="region" aria-labelledby="detailTitle">
+                    <!-- Dynamic content will be inserted here -->
                 </div>
-            </div>  <!-- Close dashboard-containers -->
-        </main>
-
-        <!-- Enhanced detail panel with accessibility -->
-        <div id="detailPanel" class="detail-panel" role="complementary" 
-             aria-label="Detailed information panel" aria-hidden="true">
-            <div class="detail-header">
-                <h3 id="detailTitle">Details</h3>
-                <button class="detail-close" id="closeDetailPanel" 
-                        aria-label="Close details panel">&times;</button>
             </div>
-            <div class="detail-content" id="detailContent" role="region" 
-                 aria-labelledby="detailTitle">
-                <!-- Dynamic content will be inserted here -->
+
+            <!-- Enhanced overlay -->
+            <div id="panelOverlay" class="panel-overlay" aria-hidden="true"></div>
+        </div>
+
+        <!-- Add this import modal after the Add Category Modal (around line 191) -->
+        <div id="importModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Import Data</h3>
+                    <button class="modal-close" id="closeImportModal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label" for="importData">Paste JSON data to import</label>
+                        <textarea
+                            id="importData"
+                            class="form-control"
+                            rows="10"
+                            placeholder="Paste exported JSON data here..."
+                        ></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn--outline" id="cancelImport">Cancel</button>
+                    <button class="btn btn--primary" id="confirmImport">Import Data</button>
+                </div>
             </div>
         </div>
 
-        <!-- Enhanced overlay -->
-        <div id="panelOverlay" class="panel-overlay" aria-hidden="true"></div>
-    </div>
-
-
-
-    <!-- Add this import modal after the Add Category Modal (around line 191) -->
-    <div id="importModal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Import Data</h3>
-                <button class="modal-close" id="closeImportModal">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label class="form-label" for="importData">Paste JSON data to import</label>
-                    <textarea id="importData" class="form-control" rows="10" placeholder="Paste exported JSON data here..."></textarea>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn--outline" id="cancelImport">Cancel</button>
-                <button class="btn btn--primary" id="confirmImport">Import Data</button>
-            </div>
+        <!-- Toast Notification -->
+        <div id="toast" class="toast hidden">
+            <span id="toastMessage"></span>
         </div>
-    </div>
 
-    <!-- Toast Notification -->
-    <div id="toast" class="toast hidden">
-        <span id="toastMessage"></span>
-    </div>
+        <div id="chart-container" style="width:100%;height:600px;"></div>
+        <div id="error-placeholder" style="display:none; padding:20px; text-align:center; color:#dc3545; background:#f8d7da; border:1px solid #f5c6cb; border-radius:4px; margin:10px 0;"></div>
+        <div id="tooltip" style="position:absolute;opacity:0;"></div>
 
+        <!-- Test script to verify JavaScript is loading -->
+        <script>
+            console.log('[TEST] HTML JavaScript is loading...');
+            window.testTimestamp = Date.now();
+            console.log('[TEST] Timestamp:', window.testTimestamp);
 
+            // Test the container bug fix
+            window.testContainerFix = function () {
+                console.log('[FIX TEST] Testing container bug fix...');
 
-    <!-- Test script to verify JavaScript is loading -->
-    <script>
-        console.log('[TEST] HTML JavaScript is loading...');
-        window.testTimestamp = Date.now();
-        console.log('[TEST] Timestamp:', window.testTimestamp);
-
-        // Simple test to check if sankey functionality is available
-        window.testSankey = function() {
-            console.log('[TEST] Testing sankey functionality...');
-
-            if (typeof d3 !== 'undefined') {
-                console.log('[OK] D3.js is loaded');
-            } else {
-                console.log('[FAIL] D3.js is NOT loaded');
-            }
-
-            if (typeof d3.sankey !== 'undefined') {
-                console.log('[OK] D3 Sankey is loaded');
-            } else {
-                console.log('[FAIL] D3 Sankey is NOT loaded');
-            }
-
-            if (typeof ChartRenderer !== 'undefined') {
-                console.log('[OK] ChartRenderer is loaded');
-                if (ChartRenderer.prototype.renderOverviewSankey) {
-                    console.log('[OK] renderOverviewSankey method exists');
-                } else {
-                    console.log('[FAIL] renderOverviewSankey method NOT found');
-                }
-            } else {
-                console.log('[FAIL] ChartRenderer is NOT loaded');
-            }
-        };
-
-        // Auto-run test after a short delay
-        setTimeout(() => {
-            window.testSankey();
-            window.testDirectSankey();
-        }, 1000);
-
-        // Direct test of sankey functionality
-        window.testDirectSankey = function() {
-            console.log('[DIRECT TEST] Testing sankey chart directly...');
-
-            try {
-                // Create a simple test data structure
-                const testData = {
-                    nodes: [
-                        { id: 'prop1', name: 'Property 1', type: 'property', color: '#1FB8CD' },
-                        { id: 'util', name: 'Utilities', type: 'category', color: '#5D878F' },
-                        { id: 'elec', name: 'Electricity', type: 'subcategory', color: '#5D878F' },
-                        { id: 'water', name: 'Water', type: 'subcategory', color: '#5D878F' }
+                // Mock data
+                const properties = [{ id: 'prop1', name: 'Test Property' }];
+                const sources = { salary: 5000 };
+                const propIncomes = new Map([['prop1', 1000]]);
+                const propExpenses = new Map([['prop1', 800]]);
+                const categories = ['Utilities'];
+                const hasIncome = true;
+                const catTotals = new Map([['Utilities', 800]]);
+                const subTotals = new Map([
+                    [
+                        'Utilities',
+                        new Map([
+                            ['Electricity', 500],
+                            ['Water', 300],
+                        ]),
                     ],
-                    links: [
-                        { source: 0, target: 2, value: 1000 },
-                        { source: 0, target: 3, value: 500 },
-                        { source: 2, target: 1, value: 1000 },
-                        { source: 3, target: 1, value: 500 }
-                    ]
-                };
+                ]);
+                const width = 800;
+                const height = 600;
 
-                console.log('[DIRECT TEST] Test data created:', testData);
+                try {
+                    // This would fail before the fix because container was undefined
+                    const result = window.chartRenderer.buildSankeyData(
+                        properties,
+                        sources,
+                        propIncomes,
+                        propExpenses,
+                        categories,
+                        hasIncome,
+                        catTotals,
+                        subTotals,
+                        width,
+                        height,
+                    );
+                    console.log('✓ buildSankeyData executed successfully');
+                    console.log('Result:', result.nodes.length, 'nodes,', result.links.length, 'links');
+                    return true;
+                } catch (error) {
+                    console.error('✗ buildSankeyData failed:', error.message);
+                    return false;
+                }
+            };
 
-                // Test if we can create a sankey layout
-                if (typeof d3.sankey === 'function') {
-                    const sankey = d3.sankey()
-                        .nodeWidth(20)
-                        .nodePadding(10)
-                        .extent([[20, 20], [400, 200]]);
+            // Simple test to check if sankey functionality is available
+            window.testSankey = function () {
+                console.log('[TEST] Testing sankey functionality...');
 
-                    const layout = sankey(testData);
-                    console.log('[DIRECT TEST] Sankey layout created successfully:', layout);
-                    console.log('[DIRECT TEST] Nodes:', layout.nodes.length, 'Links:', layout.links.length);
+                if (typeof d3 !== 'undefined') {
+                    console.log('[OK] D3.js is loaded');
                 } else {
-                    console.log('[DIRECT TEST] d3.sankey is not a function');
+                    console.log('[FAIL] D3.js is NOT loaded');
                 }
 
-            } catch (error) {
-                console.error('[DIRECT TEST] Error in direct sankey test:', error);
-            }
-        };
-    </script>
+                if (typeof d3.sankey !== 'undefined') {
+                    console.log('[OK] D3 Sankey is loaded');
+                } else {
+                    console.log('[FAIL] D3 Sankey is NOT loaded');
+                }
 
-    <!-- Load all modular JavaScript files with cache busting -->
-    <script src="src/modules/utils/Formatter.js?v=1.0"></script>
-    <script src="src/modules/utils/Storage.js?v=1.0"></script>
-    <script src="src/modules/utils/Validator.js?v=1.0"></script>
-    <script src="src/modules/utils/ThemeManager.js?v=1.0"></script>
-    <script src="src/modules/utils/PerformanceOptimizer.js?v=1.0"></script>
-    <script src="src/modules/ModuleLoader.js?v=1.0"></script>
-    <script src="src/modules/core/DataManager.js?v=1.0"></script>
-    <script src="src/modules/core/UIManager.js?v=1.0"></script>
-    <script src="src/modules/core/HistoryManager.js?v=1.0"></script>
-    <script src="src/modules/core/EventHandler.js?v=1.0"></script>
-    <script src="src/modules/core/ChartRenderer.js?v=1.0"></script>
-    <script src="src/modules/PropertiesManager.js?v=1.0"></script>
-    <script src="src/App.js?v=1.0"></script>
-    <script src="src/index.js?v=1.0"></script>
+                if (typeof ChartRenderer !== 'undefined') {
+                    console.log('[OK] ChartRenderer is loaded');
+                    if (ChartRenderer.prototype.renderOverviewSankey) {
+                        console.log('[OK] renderOverviewSankey method exists');
+                    } else {
+                        console.log('[FAIL] renderOverviewSankey method NOT found');
+                    }
+                } else {
+                    console.log('[FAIL] ChartRenderer is NOT loaded');
+                }
+            };
 
-    <!-- Test script for data loading verification (removed) -->
-</body>
+            // Auto-run test after a short delay
+            setTimeout(() => {
+                window.testSankey();
+                window.testDirectSankey();
+                // Test the container fix after ChartRenderer is loaded
+                setTimeout(() => {
+                    if (window.chartRenderer) {
+                        window.testContainerFix();
+                    } else {
+                        console.log('[FIX TEST] ChartRenderer not available yet');
+                    }
+                }, 500);
+            }, 1000);
+
+            // Direct test of sankey functionality
+            window.testDirectSankey = function () {
+                console.log('[DIRECT TEST] Testing sankey chart directly...');
+
+                try {
+                    // Create a simple test data structure
+                    const testData = {
+                        nodes: [
+                            { id: 'prop1', name: 'Property 1', type: 'property', color: '#1FB8CD' },
+                            { id: 'util', name: 'Utilities', type: 'category', color: '#5D878F' },
+                            { id: 'elec', name: 'Electricity', type: 'subcategory', color: '#5D878F' },
+                            { id: 'water', name: 'Water', type: 'subcategory', color: '#5D878F' },
+                        ],
+                        links: [
+                            { source: 0, target: 2, value: 1000 },
+                            { source: 0, target: 3, value: 500 },
+                            { source: 2, target: 1, value: 1000 },
+                            { source: 3, target: 1, value: 500 },
+                        ],
+                    };
+
+                    console.log('[DIRECT TEST] Test data created:', testData);
+
+                    // Test if we can create a sankey layout
+                    if (typeof d3.sankey === 'function') {
+                        const sankey = d3
+                            .sankey()
+                            .nodeWidth(20)
+                            .nodePadding(10)
+                            .extent([
+                                [20, 20],
+                                [400, 200],
+                            ]);
+
+                        const layout = sankey(testData);
+                        console.log('[DIRECT TEST] Sankey layout created successfully:', layout);
+                        console.log('[DIRECT TEST] Nodes:', layout.nodes.length, 'Links:', layout.links.length);
+                    } else {
+                        console.log('[DIRECT TEST] d3.sankey is not a function');
+                    }
+                } catch (error) {
+                    console.error('[DIRECT TEST] Error in direct sankey test:', error);
+                }
+            };
+        </script>
+
+        <!-- Load modules with ESM -->
+        <script type="module" src="/src/index.js"></script>
+
+        <!-- Test script for data loading verification (removed) -->
+    </body>
 </html>

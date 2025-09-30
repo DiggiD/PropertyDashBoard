@@ -9,7 +9,7 @@
 
 class PerformanceOptimizer {
     constructor() {
-        this.cache = new Map();
+        this.cacheMap = new Map();
         this.observers = new Set();
         this.metrics = {
             moduleLoadTime: new Map(),
@@ -37,8 +37,8 @@ class PerformanceOptimizer {
      * Start memory monitoring
      */
     startMemoryMonitoring() {
-        if ('memory' in performance) {
-            setInterval(() => {
+        if (performance && performance.memory) {
+            this.memoryMonitoringInterval = setInterval(() => {
                 const memoryInfo = performance.memory;
                 this.metrics.memoryUsage.push({
                     timestamp: Date.now(),
@@ -148,11 +148,11 @@ class PerformanceOptimizer {
             ttl,
         };
 
-        this.cache.set(key, cacheEntry);
+        this.cacheMap.set(key, cacheEntry);
 
         // Auto-cleanup expired entries
         setTimeout(() => {
-            this.cache.delete(key);
+            this.cacheMap.delete(key);
         }, ttl);
 
         return value;
@@ -164,14 +164,14 @@ class PerformanceOptimizer {
     getCached(key) {
         if (!this.isEnabled) {return null;}
 
-        const entry = this.cache.get(key);
+        const entry = this.cacheMap.get(key);
         if (!entry) {
             this.metrics.cacheMisses++;
             return null;
         }
 
         if (Date.now() - entry.timestamp > entry.ttl) {
-            this.cache.delete(key);
+            this.cacheMap.delete(key);
             this.metrics.cacheMisses++;
             return null;
         }
@@ -185,13 +185,13 @@ class PerformanceOptimizer {
      */
     clearCache(pattern = null) {
         if (pattern) {
-            for (const key of this.cache.keys()) {
+            for (const key of this.cacheMap.keys()) {
                 if (key.includes(pattern)) {
-                    this.cache.delete(key);
+                    this.cacheMap.delete(key);
                 }
             }
         } else {
-            this.cache.clear();
+            this.cacheMap.clear();
         }
 
         console.log(`[PERFORMANCE] Cache cleared${pattern ? ` (pattern: ${pattern})` : ''}`);
@@ -248,7 +248,7 @@ class PerformanceOptimizer {
             return function executedFunction(...args) {
                 const later = () => {
                     clearTimeout(timeout);
-                    func(...args);
+                    func.apply(this, args);
                 };
                 clearTimeout(timeout);
                 timeout = setTimeout(later, wait);
@@ -266,6 +266,57 @@ class PerformanceOptimizer {
                 }
             };
         };
+    }
+
+    /**
+     * Debounce function
+     */
+    debounce(func, ms) {
+        return this.debounceEvent(func, ms);
+    }
+
+    /**
+     * Throttle function
+     */
+    throttle(func, ms) {
+        return this.throttleEvent(func, ms);
+    }
+
+    /**
+     * Measure time of function execution
+     */
+    async measureTime(func) {
+        const start = performance.now();
+        const result = await func();
+        const time = performance.now() - start;
+        return { result, time };
+    }
+
+    /**
+     * Optimize render with requestAnimationFrame batching
+     */
+    optimizeRender(callback) {
+        if (!this.renderCallbacks) {
+            this.renderCallbacks = [];
+            this._renderScheduled = false;
+        }
+
+        this.renderCallbacks.push(callback);
+
+        if (!this._renderScheduled) {
+            this._renderScheduled = true;
+            requestAnimationFrame(() => {
+                this.renderCallbacks.forEach(cb => {
+                    try {
+                        cb();
+                    } catch (error) {
+                        console.error('[PERFORMANCE] Error in render callback:', error);
+                    }
+                });
+                this.renderCallbacks = [];
+                this._renderScheduled = false;
+            });
+        }
     }
 
     /**
@@ -360,9 +411,9 @@ class PerformanceOptimizer {
                 hits: this.metrics.cacheHits,
                 misses: this.metrics.cacheMisses,
                 hitRate: isNaN(cacheHitRate) ? 0 : cacheHitRate.toFixed(2) + '%',
-                size: this.cache.size,
+                size: this.cacheMap.size,
             },
-            cacheSize: this.cache.size,
+            cacheSize: this.cacheMap.size,
         };
     }
 
@@ -404,7 +455,7 @@ class PerformanceOptimizer {
      */
     cleanup() {
         // Clear cache
-        this.cache.clear();
+        this.cacheMap.clear();
 
         // Disconnect observers
         this.observers.forEach(observer => {
@@ -413,6 +464,12 @@ class PerformanceOptimizer {
             }
         });
         this.observers.clear();
+
+        // Clear memory monitoring interval
+        if (this.memoryMonitoringInterval) {
+            clearInterval(this.memoryMonitoringInterval);
+            this.memoryMonitoringInterval = null;
+        }
 
         // Clear metrics
         this.metrics.moduleLoadTime.clear();
@@ -460,8 +517,7 @@ class PerformanceOptimizer {
 }
 
 // Export for use in other modules
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = PerformanceOptimizer;
-} else {
-    window.PerformanceOptimizer = PerformanceOptimizer;
-}
+export default PerformanceOptimizer;
+
+// Expose globally for Babel standalone transpilation
+window.PerformanceOptimizer = PerformanceOptimizer;
