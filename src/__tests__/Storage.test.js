@@ -30,7 +30,7 @@ const localStorageMock = {
     removeItem: jest.fn(),
     clear: jest.fn(),
     key: jest.fn(),
-    length: 0
+    length: 0,
 };
 global.localStorage = localStorageMock;
 
@@ -85,9 +85,9 @@ describe('Storage', () => {
         test('should validate correct data structure', () => {
             const validData = {
                 properties: [
-                    { id: 1, name: 'Test Property' }
+                    { id: 1, name: 'Test Property' },
                 ],
-                expenseCategories: ['Rent', 'Utilities']
+                expenseCategories: ['Rent', 'Utilities'],
             };
 
             const result = storage.validateDataForStorage(validData);
@@ -107,14 +107,14 @@ describe('Storage', () => {
 
         test('should reject data without properties array', () => {
             const invalidData = {
-                expenseCategories: ['Rent']
+                expenseCategories: ['Rent'],
             };
             expect(storage.validateDataForStorage(invalidData)).toBe(false);
         });
 
         test('should reject data without expenseCategories array', () => {
             const invalidData = {
-                properties: [{ id: 1, name: 'Test' }]
+                properties: [{ id: 1, name: 'Test' }],
             };
             expect(storage.validateDataForStorage(invalidData)).toBe(false);
         });
@@ -122,9 +122,9 @@ describe('Storage', () => {
         test('should reject data with invalid properties structure', () => {
             const invalidData = {
                 properties: [
-                    { name: 'Test Property' } // Missing id
+                    { name: 'Test Property' }, // Missing id
                 ],
-                expenseCategories: ['Rent']
+                expenseCategories: ['Rent'],
             };
             expect(storage.validateDataForStorage(invalidData)).toBe(false);
         });
@@ -132,9 +132,9 @@ describe('Storage', () => {
         test('should reject data with properties missing required fields', () => {
             const invalidData = {
                 properties: [
-                    { id: 1 } // Missing name
+                    { id: 1 }, // Missing name
                 ],
-                expenseCategories: ['Rent']
+                expenseCategories: ['Rent'],
             };
             expect(storage.validateDataForStorage(invalidData)).toBe(false);
         });
@@ -142,7 +142,7 @@ describe('Storage', () => {
         test('should accept data with empty arrays', () => {
             const validData = {
                 properties: [],
-                expenseCategories: []
+                expenseCategories: [],
             };
             expect(storage.validateDataForStorage(validData)).toBe(true);
         });
@@ -151,9 +151,9 @@ describe('Storage', () => {
             const validData = {
                 properties: [
                     { id: 1, name: 'Property 1' },
-                    { id: 2, name: 'Property 2' }
+                    { id: 2, name: 'Property 2' },
                 ],
-                expenseCategories: ['Rent', 'Utilities', 'Maintenance']
+                expenseCategories: ['Rent', 'Utilities', 'Maintenance'],
             };
             expect(storage.validateDataForStorage(validData)).toBe(true);
         });
@@ -260,7 +260,7 @@ describe('Storage', () => {
         test('should use getStringSize in saveToLocalStorage for size checking', () => {
             const validData = {
                 properties: [{ id: 1, name: 'Test' }],
-                expenseCategories: ['Test']
+                expenseCategories: ['Test'],
             };
 
             // Mock large data size
@@ -278,7 +278,7 @@ describe('Storage', () => {
         test('should handle localStorage setItem error and attempt backup', () => {
             const validData = {
                 properties: [{ id: 1, name: 'Test' }],
-                expenseCategories: ['Test']
+                expenseCategories: ['Test'],
             };
 
             // Mock setItem to succeed
@@ -305,13 +305,13 @@ describe('Storage', () => {
                         monthlyData: {
                             'Jan 2024': {
                                 expenses: {
-                                    'Utilities': { 'Electricity': 100, 'Water': 50 }
-                                }
-                            }
-                        }
-                    }
+                                    'Utilities': { 'Electricity': 100, 'Water': 50 },
+                                },
+                            },
+                        },
+                    },
                 ],
-                expenseCategories: ['Utilities']
+                expenseCategories: ['Utilities'],
             };
 
             const result = storage.validateDataForStorage(complexData);
@@ -370,9 +370,9 @@ describe('Storage', () => {
         test('should return exactly { properties: [], expenseCategories: [] } when database fails and localStorage has invalid data', async () => {
             // Override localStorage mock for this specific test
             localStorageMock.getItem.mockImplementation((key) => {
-                if (key === 'sankey-property-dashboard-data') return '{ invalid json }';
-                if (key === 'sankey-property-dashboard-backup') return null;
-                if (key === 'sankey-property-dashboard-data-lastSaved') return null;
+                if (key === 'sankey-property-dashboard-data') {return '{ invalid json }';}
+                if (key === 'sankey-property-dashboard-backup') {return null;}
+                if (key === 'sankey-property-dashboard-data-lastSaved') {return null;}
                 return null;
             });
 
@@ -402,9 +402,9 @@ describe('Storage', () => {
         test('should return exactly { properties: [], expenseCategories: [] } when database fails and backup also fails', async () => {
             // Override localStorage mock for this specific test
             localStorageMock.getItem.mockImplementation((key) => {
-                if (key === 'sankey-property-dashboard-data') return '{ invalid json }';
-                if (key === 'sankey-property-dashboard-backup') return '{ also invalid }';
-                if (key === 'sankey-property-dashboard-data-lastSaved') return null;
+                if (key === 'sankey-property-dashboard-data') {return '{ invalid json }';}
+                if (key === 'sankey-property-dashboard-backup') {return '{ also invalid }';}
+                if (key === 'sankey-property-dashboard-data-lastSaved') {return null;}
                 return null;
             });
 
@@ -461,7 +461,7 @@ describe('Storage', () => {
         test('should fallback to localStorage when database is unavailable', async () => {
             // Override localStorage mock for this specific test
             localStorageMock.getItem.mockImplementation((key) => {
-                if (key === `${storage.storageKey}-lastSaved`) return null;
+                if (key === `${storage.storageKey}-lastSaved`) {return null;}
                 return null;
             });
 
@@ -480,11 +480,11 @@ describe('Storage', () => {
             // Override localStorage mock for this specific test
             const invalidJson = '{invalid json';
             localStorageMock.getItem.mockImplementation((key) => {
-                if (key === storage.storageKey) return invalidJson;
-                if (key === storage.backupStorageKey) return JSON.stringify({
-                    data: { properties: [], expenseCategories: [] }
-                });
-                if (key === `${storage.storageKey}-lastSaved`) return null;
+                if (key === storage.storageKey) {return invalidJson;}
+                if (key === storage.backupStorageKey) {return JSON.stringify({
+                    data: { properties: [], expenseCategories: [] },
+                });}
+                if (key === `${storage.storageKey}-lastSaved`) {return null;}
                 return null;
             });
 
@@ -499,11 +499,11 @@ describe('Storage', () => {
             // Override localStorage mock for this specific test
             const invalidData = { properties: 'invalid', expenseCategories: [] };
             localStorageMock.getItem.mockImplementation((key) => {
-                if (key === storage.storageKey) return JSON.stringify(invalidData);
-                if (key === storage.backupStorageKey) return JSON.stringify({
-                    data: { properties: [], expenseCategories: [] }
-                });
-                if (key === `${storage.storageKey}-lastSaved`) return null;
+                if (key === storage.storageKey) {return JSON.stringify(invalidData);}
+                if (key === storage.backupStorageKey) {return JSON.stringify({
+                    data: { properties: [], expenseCategories: [] },
+                });}
+                if (key === `${storage.storageKey}-lastSaved`) {return null;}
                 return null;
             });
 
@@ -526,7 +526,7 @@ describe('Storage', () => {
             const flatExpenses = {
                 'Rent': 1000,
                 'Utilities': 500,
-                'Maintenance': 300
+                'Maintenance': 300,
             };
 
             const total = storage.calculateMonthTotal(flatExpenses);
@@ -538,13 +538,13 @@ describe('Storage', () => {
                 'Utilities': {
                     'Electricity': 300,
                     'Water': 200,
-                    'Gas': 150
+                    'Gas': 150,
                 },
                 'Maintenance': {
                     'Cleaning': 400,
-                    'Repairs': 600
+                    'Repairs': 600,
                 },
-                'Rent': 1000
+                'Rent': 1000,
             };
 
             const total = storage.calculateMonthTotal(hierarchicalExpenses);
@@ -561,10 +561,10 @@ describe('Storage', () => {
             const mixedExpenses = {
                 'Utilities': {
                     'Electricity': 300,
-                    'Water': 200
+                    'Water': 200,
                 },
                 'Rent': 1000,
-                'Insurance': 500
+                'Insurance': 500,
             };
 
             const total = storage.calculateMonthTotal(mixedExpenses);
@@ -578,8 +578,8 @@ describe('Storage', () => {
                 'Maintenance': undefined,
                 'Insurance': {
                     'Policy': 200,
-                    'Deductible': null
-                }
+                    'Deductible': null,
+                },
             };
 
             const total = storage.calculateMonthTotal(expensesWithNulls);
@@ -590,12 +590,12 @@ describe('Storage', () => {
             const expensesData = {
                 'Jan 2024': {
                     expenses: { 'Rent': 1000, 'Utilities': 500 },
-                    total: 1500
+                    total: 1500,
                 },
                 'Feb 2024': {
                     expenses: { 'Rent': 1000, 'Utilities': 600 },
-                    total: 1600
-                }
+                    total: 1600,
+                },
             };
 
             const incomesData = {};
@@ -605,13 +605,13 @@ describe('Storage', () => {
             expect(merged['Jan 2024']).toEqual({
                 expenses: { 'Rent': 1000, 'Utilities': 500 },
                 incomes: {},
-                total: 1500 // expense total only
+                total: 1500, // expense total only
             });
 
             expect(merged['Feb 2024']).toEqual({
                 expenses: { 'Rent': 1000, 'Utilities': 600 },
                 incomes: {},
-                total: 1600
+                total: 1600,
             });
         });
 
@@ -619,11 +619,11 @@ describe('Storage', () => {
             const expensesData = {};
             const incomesData = {
                 'Jan 2024': {
-                    incomes: { 'Rent': 1200, 'Parking': 100 }
+                    incomes: { 'Rent': 1200, 'Parking': 100 },
                 },
                 'Feb 2024': {
-                    incomes: { 'Rent': 1200, 'Parking': 150 }
-                }
+                    incomes: { 'Rent': 1200, 'Parking': 150 },
+                },
             };
 
             const merged = storage.mergeMonthlyData(expensesData, incomesData);
@@ -631,13 +631,13 @@ describe('Storage', () => {
             expect(merged['Jan 2024']).toEqual({
                 expenses: {},
                 incomes: { 'Rent': 1200, 'Parking': 100 },
-                total: 1300 // income total only
+                total: 1300, // income total only
             });
 
             expect(merged['Feb 2024']).toEqual({
                 expenses: {},
                 incomes: { 'Rent': 1200, 'Parking': 150 },
-                total: 1350
+                total: 1350,
             });
         });
 
@@ -645,14 +645,14 @@ describe('Storage', () => {
             const expensesData = {
                 'Jan 2024': {
                     expenses: { 'Utilities': 500, 'Maintenance': 300 },
-                    total: 800
-                }
+                    total: 800,
+                },
             };
 
             const incomesData = {
                 'Jan 2024': {
-                    incomes: { 'Rent': 1200, 'Parking': 100 }
-                }
+                    incomes: { 'Rent': 1200, 'Parking': 100 },
+                },
             };
 
             const merged = storage.mergeMonthlyData(expensesData, incomesData);
@@ -660,19 +660,19 @@ describe('Storage', () => {
             expect(merged['Jan 2024']).toEqual({
                 expenses: { 'Utilities': 500, 'Maintenance': 300 },
                 incomes: { 'Rent': 1200, 'Parking': 100 },
-                total: 2100 // 800 (expenses) + 1300 (incomes)
+                total: 2100, // 800 (expenses) + 1300 (incomes)
             });
         });
 
         test('should merge monthly data with overlapping months', () => {
             const expensesData = {
                 'Jan 2024': { expenses: { 'Rent': 1000 }, total: 1000 },
-                'Feb 2024': { expenses: { 'Rent': 1000 }, total: 1000 }
+                'Feb 2024': { expenses: { 'Rent': 1000 }, total: 1000 },
             };
 
             const incomesData = {
                 'Jan 2024': { incomes: { 'Rent': 1200 } },
-                'Mar 2024': { incomes: { 'Rent': 1200 } }
+                'Mar 2024': { incomes: { 'Rent': 1200 } },
             };
 
             const merged = storage.mergeMonthlyData(expensesData, incomesData);
@@ -690,11 +690,11 @@ describe('Storage', () => {
 
         test('should merge monthly data handling missing properties', () => {
             const expensesData = {
-                'Jan 2024': { total: 1000 } // missing expenses
+                'Jan 2024': { total: 1000 }, // missing expenses
             };
 
             const incomesData = {
-                'Jan 2024': {} // missing incomes
+                'Jan 2024': {}, // missing incomes
             };
 
             const merged = storage.mergeMonthlyData(expensesData, incomesData);
@@ -702,7 +702,7 @@ describe('Storage', () => {
             expect(merged['Jan 2024']).toEqual({
                 expenses: {},
                 incomes: {},
-                total: 1000
+                total: 1000,
             });
         });
     });

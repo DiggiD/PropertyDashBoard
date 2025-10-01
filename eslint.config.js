@@ -1,6 +1,16 @@
 import js from '@eslint/js';
 
 export default [
+    {
+        ignores: [
+            'node_modules/',
+            'dist/',
+            'build/',
+            '*.min.js',
+            'src/__mocks__/',
+            'src/__tests__/',
+        ],
+    },
     js.configs.recommended,
     {
         languageOptions: {
@@ -86,11 +96,5 @@ export default [
             'no-duplicate-imports': 'error',
             'no-template-curly-in-string': 'error',
         },
-        ignores: [
-            'node_modules/',
-            'dist/',
-            'build/',
-            '*.min.js',
-        ],
     },
 ];

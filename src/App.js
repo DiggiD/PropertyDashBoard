@@ -198,7 +198,7 @@ class App {
      * Setup view navigation
      */
     setupViewNavigation() {
-        if (!this.uiManager) return;
+        if (!this.uiManager) {return;}
 
         // Overview view
         const overviewBtn = this.uiManager.getElement('overviewBtn');
@@ -217,7 +217,7 @@ class App {
      * Setup data management events
      */
     setupDataManagement() {
-        if (!this.uiManager) return;
+        if (!this.uiManager) {return;}
 
         // History button
         const historyBtn = this.uiManager.getElement('historyBtn');
@@ -242,7 +242,7 @@ class App {
      * Setup UI interaction events
      */
     setupUIInteractions() {
-        if (!this.uiManager) return;
+        if (!this.uiManager) {return;}
 
         // Dark mode toggle
         const darkModeToggle = this.uiManager.getElement('darkModeToggle');
@@ -267,9 +267,9 @@ class App {
                     // Check if current month has data, otherwise find latest month with data
                     if (this.hasDataForMonthYear(selectedYear, currentMonth)) {
                         selectedMonth = currentMonth;
-                      } else {
+                    } else {
                         selectedMonth = this.getLastAvailableMonthForYear(selectedYear);
-                      }
+                    }
 
                     if (selectedMonth) {
                         this.dataManager.setSelectedMonth(selectedMonth);
@@ -311,7 +311,7 @@ class App {
      * Setup overview navigation
      */
     setupOverviewNavigation() {
-        if (!this.uiManager) return;
+        if (!this.uiManager) {return;}
         const overviewBtn = this.uiManager.getElement('overviewBtn');
         if (overviewBtn) {
             overviewBtn.addEventListener('click', () => this.showOverviewView());
@@ -322,7 +322,7 @@ class App {
      * Setup properties navigation
      */
     setupPropertiesNavigation() {
-        if (!this.uiManager) return;
+        if (!this.uiManager) {return;}
         const propertiesBtn = this.uiManager.getElement('propertiesBtn');
         if (propertiesBtn) {
             propertiesBtn.addEventListener('click', () => this.showPropertiesView());
@@ -333,7 +333,7 @@ class App {
      * Setup undo/redo operations
      */
     setupUndoRedo() {
-        if (!this.uiManager) return;
+        if (!this.uiManager) {return;}
         const undoBtn = this.uiManager.getElement('undoBtn');
         const redoBtn = this.uiManager.getElement('redoBtn');
 
@@ -358,7 +358,7 @@ class App {
      * Setup history operations
      */
     setupHistoryOperations() {
-        if (!this.uiManager) return;
+        if (!this.uiManager) {return;}
         const historyBtn = this.uiManager.getElement('historyBtn');
         if (historyBtn) {
             historyBtn.addEventListener('click', () => this.openHistoryManager());
@@ -393,7 +393,7 @@ class App {
      * Setup color theme operations
      */
     setupColorThemeOperations() {
-        if (!this.uiManager) return;
+        if (!this.uiManager) {return;}
         const darkModeToggle = this.uiManager.getElement('darkModeToggle');
         if (darkModeToggle) {
             darkModeToggle.addEventListener('click', () => this.toggleDarkMode());
@@ -431,10 +431,10 @@ class App {
             console.log('[APP] Auto-selected most recent year:', mostRecentYear);
         }
 
-    // Render overview sankey diagram
-    if (this.chartRenderer) {
-        this.chartRenderer.renderOverviewSankey();
-    }
+        // Render overview sankey diagram
+        if (this.chartRenderer) {
+            this.chartRenderer.renderOverviewSankey();
+        }
     }
 
     /**
@@ -549,7 +549,7 @@ class App {
             if (property.monthlyData) {
                 // Look for month key in format "MMM YYYY"
                 const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                                   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
                 const monthIndex = parseInt(month) - 1;
                 const monthName = monthNames[monthIndex];
 
@@ -585,7 +585,7 @@ class App {
                         if (parts.length === 2) {
                             const monthName = parts[0];
                             const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                                               'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                                'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
                             const monthIndex = monthNames.indexOf(monthName);
                             if (monthIndex !== -1) {
                                 const monthNum = String(monthIndex + 1).padStart(2, '0');

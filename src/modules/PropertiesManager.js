@@ -50,7 +50,7 @@ class PropertiesManager {
             tooltipText = 'Add Subcategory';
         }
 
-        if (!tooltipText) return;
+        if (!tooltipText) {return;}
 
         // Create tooltip element
         const tooltip = document.createElement('div');
@@ -81,7 +81,7 @@ class PropertiesManager {
         let left = buttonRect.left + (buttonRect.width / 2) - (tooltipRect.width / 2);
 
         // Ensure tooltip stays within viewport
-        if (left < 10) left = 10;
+        if (left < 10) {left = 10;}
         if (left + tooltipRect.width > window.innerWidth - 10) {
             left = window.innerWidth - tooltipRect.width - 10;
         }
@@ -115,7 +115,7 @@ class PropertiesManager {
      * Show tooltip for delete button
      */
     showDeleteButtonTooltip(button, event) {
-        if (!button) return;
+        if (!button) {return;}
         // Remove any existing tooltip
         this.hideAddButtonTooltip();
 
@@ -131,7 +131,7 @@ class PropertiesManager {
             }
         }
 
-        if (!tooltipText) return;
+        if (!tooltipText) {return;}
 
         // Create tooltip element
         const tooltip = document.createElement('div');
@@ -173,8 +173,8 @@ class PropertiesManager {
         const minLeft = containerRect ? containerRect.left + 10 : 10;
 
         // Ensure tooltip stays within bounds
-        if (left < minLeft) left = minLeft;
-        if (left > maxLeft) left = maxLeft;
+        if (left < minLeft) {left = minLeft;}
+        if (left > maxLeft) {left = maxLeft;}
 
         // If not enough space above, position below
         if (top < 10) {
@@ -284,7 +284,7 @@ class PropertiesManager {
             // Double-click for inline editing of names
             this.uiManager.addEventListener(container, 'dblclick', (e) => {
                 const editableElement = e.target.closest('.property-name.editable, .category-name.editable, .subcategory-name.editable');
-                if (!editableElement) return;
+                if (!editableElement) {return;}
 
                 // Constrain to direct clicks on the name text (not padding/margins)
                 const rect = editableElement.getBoundingClientRect();
@@ -297,7 +297,7 @@ class PropertiesManager {
                 const isInTextArea = clickX >= rect.left && clickX <= rect.left + textWidth &&
                                    clickY >= rect.top && clickY <= rect.top + textHeight;
 
-                if (!isInTextArea) return;
+                if (!isInTextArea) {return;}
 
                 // Cancel any pending selection for this item
                 const itemElement = editableElement.closest('.property-item');
@@ -608,13 +608,13 @@ class PropertiesManager {
         return `
             <div class="properties-list ${hasSelected ? 'has-selected' : ''}">
                 ${sortedProperties.map(property => {
-                    const isSelected = property.id === this.currentPropertyId;
-                    const currentData = this.dataManager.getCurrentPeriodData(property);
-                    const categoryCount = Object.keys(property.expenses || {}).length;
-                    const totalValue = currentData && currentData.total !== undefined ? currentData.total : 0;
-                    const formattedTotal = this.uiManager.formatter ? this.uiManager.formatter.formatCurrency(totalValue) : totalValue;
+        const isSelected = property.id === this.currentPropertyId;
+        const currentData = this.dataManager.getCurrentPeriodData(property);
+        const categoryCount = Object.keys(property.expenses || {}).length;
+        const totalValue = currentData && currentData.total !== undefined ? currentData.total : 0;
+        const formattedTotal = this.uiManager.formatter ? this.uiManager.formatter.formatCurrency(totalValue) : totalValue;
 
-                    return `
+        return `
                         <div class="property-item ${isSelected ? 'selected' : ''}" data-property-id="${property.id || ''}">
                             <div class="property-info">
                                 <h5 class="property-name editable" data-property-id="${property.id || ''}">${property.name || 'Unnamed Property'}</h5>
@@ -629,7 +629,7 @@ class PropertiesManager {
                             </div>
                         </div>
                     `;
-                }).join('')}
+    }).join('')}
             </div>
         `;
     }
@@ -674,16 +674,16 @@ class PropertiesManager {
         return `
             <div class="properties-list ${hasSelected ? 'has-selected' : ''}">
                 ${sortedCategories.map(category => {
-                    const isSelected = category === this.currentCategoryPath?.category;
-                    const expenseValue = this.getCategoryExpenseValue(property, category);
-                    const isHierarchical = typeof expenseValue === 'object' && expenseValue !== null;
-                    const displayValue = isHierarchical ?
-                        `${this.uiManager.formatter ? this.uiManager.formatter.formatCurrency(this.sumObjectValues(expenseValue)) : this.sumObjectValues(expenseValue)}` :
-                        `${this.uiManager.formatter ? this.uiManager.formatter.formatCurrency(expenseValue || 0) : (expenseValue || 0)}`;
+        const isSelected = category === this.currentCategoryPath?.category;
+        const expenseValue = this.getCategoryExpenseValue(property, category);
+        const isHierarchical = typeof expenseValue === 'object' && expenseValue !== null;
+        const displayValue = isHierarchical ?
+            `${this.uiManager.formatter ? this.uiManager.formatter.formatCurrency(this.sumObjectValues(expenseValue)) : this.sumObjectValues(expenseValue)}` :
+            `${this.uiManager.formatter ? this.uiManager.formatter.formatCurrency(expenseValue || 0) : (expenseValue || 0)}`;
 
-                    if (isHierarchical) {
-                        // Hierarchical category - original layout with navigation
-                        return `
+        if (isHierarchical) {
+            // Hierarchical category - original layout with navigation
+            return `
                             <div class="property-item ${isSelected ? 'selected' : ''}" data-category="${category || ''}">
                                 <div class="property-info">
                                     <h5 class="category-name editable" data-category="${category || ''}" title="Click to edit category name">${category || 'Unnamed Category'}</h5>
@@ -698,9 +698,9 @@ class PropertiesManager {
                                 </div>
                             </div>
                         `;
-                    } else {
-                        // Non-hierarchical category - inline name and value
-                        return `
+        } else {
+            // Non-hierarchical category - inline name and value
+            return `
                             <div class="property-item ${isSelected ? 'selected' : ''}" data-category="${category || ''}">
                                 <div class="property-info">
                                     <div class="subcategory-inline">
@@ -717,8 +717,8 @@ class PropertiesManager {
                                 </div>
                             </div>
                         `;
-                    }
-                }).join('')}
+        }
+    }).join('')}
             </div>
         `;
     }
@@ -766,10 +766,10 @@ class PropertiesManager {
             return `
                 <div class="properties-list ${hasSelected ? 'has-selected' : ''}">
                     ${sortedSubcategories.map(([subcat, value]) => {
-                        const isSelected = subcat === subcategory;
-                        const displayValue = `${this.uiManager.formatter ? this.uiManager.formatter.formatCurrency(value || 0) : (value || 0)}`;
+        const isSelected = subcat === subcategory;
+        const displayValue = `${this.uiManager.formatter ? this.uiManager.formatter.formatCurrency(value || 0) : (value || 0)}`;
 
-                return `
+        return `
                     <div class="property-item ${isSelected ? 'selected' : ''}" data-category="${category}" data-subcategory="${subcat}">
                         <div class="property-info">
                             <div class="subcategory-inline">
@@ -786,7 +786,7 @@ class PropertiesManager {
                         </div>
                     </div>
                 `;
-                    }).join('')}
+    }).join('')}
                 </div>
             `;
         }
@@ -842,8 +842,8 @@ class PropertiesManager {
         try {
             const currentData = this.dataManager.getCurrentPeriodData(property);
             const categoryCount = Object.keys(property.expenses || {}).length;
-                    const totalValue = currentData && currentData.total !== undefined ? currentData.total : 0;
-                    const formattedTotal = this.uiManager.formatter ? this.uiManager.formatter.formatCurrency(totalValue) : totalValue;
+            const totalValue = currentData && currentData.total !== undefined ? currentData.total : 0;
+            const formattedTotal = this.uiManager.formatter ? this.uiManager.formatter.formatCurrency(totalValue) : totalValue;
 
             return `
                 <div class="property-item" data-property-id="${property.id || ''}">
@@ -1035,7 +1035,7 @@ class PropertiesManager {
 
         confirmBtn.addEventListener('click', handleConfirm);
         input.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') handleConfirm();
+            if (e.key === 'Enter') {handleConfirm();}
         });
 
         input.focus();
@@ -1048,13 +1048,13 @@ class PropertiesManager {
         return `
             <div class="subcategories">
                 ${Object.entries(subcategories).map(([subcategory, value]) =>
-                    `<div class="subcategory-item">
+        `<div class="subcategory-item">
                         <span class="subcategory-name">${subcategory}</span>
                         <div class="subcategory-value expense-value" data-category="${category}" data-subcategory="${subcategory}">
                             ${this.uiManager.formatter ? this.uiManager.formatter.formatCurrency(value || 0) : (value || 0)}
                         </div>
-                    </div>`
-                ).join('')}
+                    </div>`,
+    ).join('')}
             </div>
         `;
     }
@@ -1063,7 +1063,7 @@ class PropertiesManager {
      * Get property categories
      */
     getPropertyCategories(property) {
-        if (!property || !property.expenses) return [];
+        if (!property || !property.expenses) {return [];}
         return Object.keys(property.expenses);
     }
 
@@ -1071,7 +1071,7 @@ class PropertiesManager {
      * Get category expense value
      */
     getCategoryExpenseValue(property, category) {
-        if (!property) return 0;
+        if (!property) {return 0;}
 
         // Use getCurrentPeriodData to respect time period filtering
         const currentData = this.dataManager.getCurrentPeriodData(property, null, true);
@@ -1091,13 +1091,13 @@ class PropertiesManager {
             if (globalCategories.includes(category)) {
                 // Category exists globally but not in this property - initialize it
                 console.log(`[PROPERTIES] Initializing missing category "${category}" for property: ${property.name}`);
-                if (!property.expenses) property.expenses = {};
+                if (!property.expenses) {property.expenses = {};}
 
                 // Check if any other property has hierarchical data for this category
                 const dataManager = window.dataManager;
                 const allProperties = dataManager.getProperties();
                 const hierarchicalProperty = allProperties.find(prop =>
-                    prop.expenses && prop.expenses[category] && typeof prop.expenses[category] === 'object'
+                    prop.expenses && prop.expenses[category] && typeof prop.expenses[category] === 'object',
                 );
 
                 if (hierarchicalProperty) {
@@ -1123,7 +1123,7 @@ class PropertiesManager {
      * Sum object values
      */
     sumObjectValues(obj) {
-        if (typeof obj !== 'object' || obj === null) return 0;
+        if (typeof obj !== 'object' || obj === null) {return 0;}
         return Object.values(obj).reduce((sum, val) => sum + (val || 0), 0);
     }
 
@@ -1132,7 +1132,7 @@ class PropertiesManager {
      */
     handleItemClick(event) {
         const propertyItem = event.target.closest('.property-item');
-        if (!propertyItem) return;
+        if (!propertyItem) {return;}
 
         // Check if it's a property (has property-id)
         if (propertyItem.dataset.propertyId) {
@@ -1186,7 +1186,7 @@ class PropertiesManager {
      */
     handlePropertyClick(event) {
         const propertyItem = event.target.closest('.property-item');
-        if (!propertyItem) return;
+        if (!propertyItem) {return;}
 
         const propertyId = parseInt(propertyItem.dataset.propertyId);
         if (propertyId) {
@@ -1201,7 +1201,7 @@ class PropertiesManager {
      */
     handlePropertyAction(event) {
         const button = event.target.closest('.property-action');
-        if (!button) return;
+        if (!button) {return;}
 
         event.stopPropagation();
 
@@ -1223,7 +1223,7 @@ class PropertiesManager {
      */
     handleCategoryClick(event) {
         const categoryItem = event.target.closest('.category-item');
-        if (!categoryItem) return;
+        if (!categoryItem) {return;}
 
         const category = categoryItem.dataset.category;
         if (category) {
@@ -1237,7 +1237,7 @@ class PropertiesManager {
      */
     handleCategoryAction(event) {
         const button = event.target.closest('.category-action');
-        if (!button) return;
+        if (!button) {return;}
 
         event.stopPropagation();
 
@@ -1261,7 +1261,7 @@ class PropertiesManager {
      */
     handleExpenseEdit(event) {
         const valueElement = event.target.closest('.expense-value');
-        if (!valueElement || this.isEditMode) return;
+        if (!valueElement || this.isEditMode) {return;}
 
         // Stop event propagation to prevent parent click handlers
         event.stopPropagation();
@@ -1372,7 +1372,7 @@ class PropertiesManager {
             input = event.target.closest('.expense-input');
         }
 
-        if (!input) return;
+        if (!input) {return;}
 
         const category = input.dataset.category;
         const subcategory = input.dataset.subcategory;
@@ -1399,7 +1399,7 @@ class PropertiesManager {
      */
     getCurrentExpenseValue(category, subcategory) {
         const property = this.dataManager.getPropertyById(this.currentPropertyId);
-        if (!property) return 0;
+        if (!property) {return 0;}
 
         if (subcategory) {
             // For subcategories, get the value from current period data
@@ -1429,7 +1429,7 @@ class PropertiesManager {
      */
     saveExpenseValue(category, subcategory, value) {
         const property = this.dataManager.getPropertyById(this.currentPropertyId);
-        if (!property) return;
+        if (!property) {return;}
 
         // Determine if this is an expense or income category
         const isExpenseCategory = this.isExpenseCategory(category);
@@ -1520,7 +1520,7 @@ class PropertiesManager {
      */
     handleValueItemClick(event) {
         const valueItem = event.target.closest('.value-item');
-        if (!valueItem) return;
+        if (!valueItem) {return;}
 
         const category = valueItem.dataset.category;
         const subcategory = valueItem.dataset.subcategory;
@@ -1543,7 +1543,7 @@ class PropertiesManager {
      */
     handlePropertyHover(event, isHover) {
         const propertyItem = event.target.closest('.property-item');
-        if (!propertyItem) return;
+        if (!propertyItem) {return;}
 
         if (isHover) {
             propertyItem.classList.add('hovered');
@@ -1557,7 +1557,7 @@ class PropertiesManager {
      */
     handleCategoryHover(event, isHover) {
         const categoryItem = event.target.closest('.category-item');
-        if (!categoryItem) return;
+        if (!categoryItem) {return;}
 
         if (isHover) {
             categoryItem.classList.add('hovered');
@@ -1571,7 +1571,7 @@ class PropertiesManager {
      */
     handleValueItemHover(event, isHover) {
         const valueItem = event.target.closest('.value-item');
-        if (!valueItem) return;
+        if (!valueItem) {return;}
 
         if (isHover) {
             valueItem.classList.add('hovered');
@@ -1585,7 +1585,7 @@ class PropertiesManager {
      */
     handleExpenseValueHover(event, isHover) {
         const expenseValue = event.target.closest('.expense-value');
-        if (!expenseValue) return;
+        if (!expenseValue) {return;}
 
         if (isHover) {
             expenseValue.classList.add('hovered');
@@ -1598,9 +1598,9 @@ class PropertiesManager {
      * Handle property name edit
      */
     handlePropertyNameEdit(event) {
-        if (!event || !event.target) return;
+        if (!event || !event.target) {return;}
         const propertyNameElement = event.target.closest('.property-name.editable');
-        if (!propertyNameElement || this.isEditMode) return;
+        if (!propertyNameElement || this.isEditMode) {return;}
 
         const propertyId = parseInt(propertyNameElement.dataset.propertyId);
 
@@ -1628,7 +1628,7 @@ class PropertiesManager {
     startPropertyNameEdit(propertyNameElement, propertyId) {
         this.isEditMode = true;
         const property = this.dataManager.getPropertyById(propertyId);
-        if (!property) return;
+        if (!property) {return;}
 
         // Replace with input
         propertyNameElement.innerHTML = `
@@ -1646,7 +1646,7 @@ class PropertiesManager {
      */
     handlePropertyNameSave(event) {
         const input = event.target.closest('.property-name-input');
-        if (!input) return;
+        if (!input) {return;}
 
         const propertyId = parseInt(input.dataset.propertyId);
         const newName = input.value.trim();
@@ -1690,7 +1690,7 @@ class PropertiesManager {
      */
     handleCategoryNameEdit(event) {
         const categoryNameElement = event.target.closest('.category-name.editable');
-        if (!categoryNameElement || this.isEditMode) return;
+        if (!categoryNameElement || this.isEditMode) {return;}
 
         const category = categoryNameElement.dataset.category;
 
@@ -1717,7 +1717,7 @@ class PropertiesManager {
     startCategoryNameEdit(categoryNameElement, category) {
         this.isEditMode = true;
         const property = this.dataManager.getPropertyById(this.currentPropertyId);
-        if (!property || !category) return;
+        if (!property || !category) {return;}
 
         // Replace with input
         categoryNameElement.innerHTML = `
@@ -1735,7 +1735,7 @@ class PropertiesManager {
      */
     handleCategoryNameSave(event) {
         const input = event.target.closest('.category-name-input');
-        if (!input) return;
+        if (!input) {return;}
 
         const oldCategory = input.dataset.category;
         const newCategory = input.value.trim();
@@ -1775,7 +1775,7 @@ class PropertiesManager {
      */
     handleSubcategoryNameEdit(event) {
         const subcategoryNameElement = event.target.closest('.subcategory-name.editable');
-        if (!subcategoryNameElement || this.isEditMode) return;
+        if (!subcategoryNameElement || this.isEditMode) {return;}
 
         const category = subcategoryNameElement.dataset.category;
         const subcategory = subcategoryNameElement.dataset.subcategory;
@@ -1805,7 +1805,7 @@ class PropertiesManager {
     startSubcategoryNameEdit(subcategoryNameElement, category, subcategory) {
         this.isEditMode = true;
         const property = this.dataManager.getPropertyById(this.currentPropertyId);
-        if (!property || !category || !subcategory) return;
+        if (!property || !category || !subcategory) {return;}
 
         // Replace with input
         subcategoryNameElement.innerHTML = `
@@ -1823,7 +1823,7 @@ class PropertiesManager {
      */
     handleSubcategoryNameSave(event) {
         const input = event.target.closest('.subcategory-name-input');
-        if (!input) return;
+        if (!input) {return;}
 
         const category = input.dataset.category;
         const oldSubcategory = input.dataset.subcategory;
@@ -1915,7 +1915,7 @@ class PropertiesManager {
 
         confirmBtn.addEventListener('click', handleConfirm);
         input.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') handleConfirm();
+            if (e.key === 'Enter') {handleConfirm();}
         });
 
         input.focus();
@@ -1926,7 +1926,7 @@ class PropertiesManager {
      */
     showEditPropertyModal(propertyId) {
         const property = this.dataManager.getPropertyById(propertyId);
-        if (!property) return;
+        if (!property) {return;}
 
         const timestamp = Date.now();
         const modalHtml = `
@@ -1962,7 +1962,7 @@ class PropertiesManager {
 
         confirmBtn.addEventListener('click', handleConfirm);
         input.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') handleConfirm();
+            if (e.key === 'Enter') {handleConfirm();}
         });
 
         input.focus();
@@ -2016,7 +2016,7 @@ class PropertiesManager {
 
         confirmBtn.addEventListener('click', handleConfirm);
         input.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') handleConfirm();
+            if (e.key === 'Enter') {handleConfirm();}
         });
 
         input.focus();
@@ -2072,7 +2072,7 @@ class PropertiesManager {
 
         confirmBtn.addEventListener('click', handleConfirm);
         nameInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') handleConfirm();
+            if (e.key === 'Enter') {handleConfirm();}
         });
 
         nameInput.focus();
@@ -2153,7 +2153,7 @@ class PropertiesManager {
      */
     updateCategoryName(oldCategory, newCategory) {
         const property = this.dataManager.getPropertyById(this.currentPropertyId);
-        if (!property || !property.expenses.hasOwnProperty(oldCategory)) return;
+        if (!property || !property.expenses.hasOwnProperty(oldCategory)) {return;}
 
         // Check if new category name already exists
         if (property.expenses.hasOwnProperty(newCategory) && newCategory !== oldCategory) {
@@ -2180,10 +2180,10 @@ class PropertiesManager {
      */
     updateSubcategoryName(category, oldSubcategory, newSubcategory) {
         const property = this.dataManager.getPropertyById(this.currentPropertyId);
-        if (!property || !property.expenses.hasOwnProperty(category)) return;
+        if (!property || !property.expenses.hasOwnProperty(category)) {return;}
 
         const categoryValue = property.expenses[category];
-        if (typeof categoryValue !== 'object' || !categoryValue.hasOwnProperty(oldSubcategory)) return;
+        if (typeof categoryValue !== 'object' || !categoryValue.hasOwnProperty(oldSubcategory)) {return;}
 
         // Check if new subcategory name already exists
         if (categoryValue.hasOwnProperty(newSubcategory) && newSubcategory !== oldSubcategory) {
@@ -2210,7 +2210,7 @@ class PropertiesManager {
      */
     confirmDeleteProperty(propertyId) {
         const property = this.dataManager.getPropertyById(propertyId);
-        if (!property) return;
+        if (!property) {return;}
 
         // Show inline confirmation instead of browser popup
         this.showInlineDeleteConfirmation(propertyId, 'property', property.name);
@@ -2221,7 +2221,7 @@ class PropertiesManager {
      */
     async deleteProperty(propertyId) {
         const property = this.dataManager.getPropertyById(propertyId);
-        if (!property) return;
+        if (!property) {return;}
 
         const result = await this.dataManager.deleteProperty(propertyId);
         if (result.success) {
@@ -2247,7 +2247,7 @@ class PropertiesManager {
      */
     addCategory(name, isHierarchical = false) {
         const property = this.dataManager.getPropertyById(this.currentPropertyId);
-        if (!property) return;
+        if (!property) {return;}
 
         // Check if category already exists
         if (property.expenses.hasOwnProperty(name)) {
@@ -2272,10 +2272,10 @@ class PropertiesManager {
      */
     addSubcategory(name, value = 0) {
         const property = this.dataManager.getPropertyById(this.currentPropertyId);
-        if (!property || !this.currentCategoryPath) return;
+        if (!property || !this.currentCategoryPath) {return;}
 
         const category = this.currentCategoryPath.category;
-        if (!property.expenses.hasOwnProperty(category)) return;
+        if (!property.expenses.hasOwnProperty(category)) {return;}
 
         // Ensure the category is hierarchical
         if (typeof property.expenses[category] !== 'object' || property.expenses[category] === null) {
@@ -2315,7 +2315,7 @@ class PropertiesManager {
      */
     deleteCategory(category) {
         const property = this.dataManager.getPropertyById(this.currentPropertyId);
-        if (!property || !property.expenses.hasOwnProperty(category)) return;
+        if (!property || !property.expenses.hasOwnProperty(category)) {return;}
 
         // Create snapshot
         this.historyManager.createSnapshot(`Deleted category "${category}" from ${property.name}`, '', false);
@@ -2342,16 +2342,16 @@ class PropertiesManager {
      */
     deleteSubcategory(category, subcategory) {
         const property = this.dataManager.getPropertyById(this.currentPropertyId);
-        if (!property) return;
+        if (!property) {return;}
 
         // Use the expenses object
         const categoryValue = property.expenses[category];
 
-        if (categoryValue === null) return;
+        if (categoryValue === null) {return;}
 
-        if (typeof categoryValue !== 'object' || categoryValue === null) return;
+        if (typeof categoryValue !== 'object' || categoryValue === null) {return;}
 
-        if (!categoryValue.hasOwnProperty(subcategory)) return;
+        if (!categoryValue.hasOwnProperty(subcategory)) {return;}
 
         // Create snapshot
         this.historyManager.createSnapshot(`Deleted subcategory "${subcategory}" from ${category}`, '', false);
@@ -2380,11 +2380,11 @@ class PropertiesManager {
         this.removeExistingConfirmations();
 
         const container = this.uiManager.getElement('propertiesDashboard');
-        if (!container) return;
+        if (!container) {return;}
 
         // Find the delete button that triggered this confirmation
         const deleteButton = this.findDeleteButton(itemId, itemType, itemName, category);
-        if (!deleteButton) return;
+        if (!deleteButton) {return;}
 
         const timestamp = Date.now();
         const confirmationHtml = `
@@ -2447,7 +2447,7 @@ class PropertiesManager {
 
         // Focus the cancel button for accessibility
         setTimeout(() => {
-            if (cancelBtn) cancelBtn.focus();
+            if (cancelBtn) {cancelBtn.focus();}
         }, 100);
     }
 
@@ -2535,19 +2535,19 @@ class PropertiesManager {
         this.pendingLongPresses.set(longPressId, {
             propertyId: propertyItem.dataset.propertyId,
             category: propertyItem.dataset.category,
-            subcategory: propertyItem.dataset.subcategory
+            subcategory: propertyItem.dataset.subcategory,
         });
 
         // Set up the long press timer
         const timerId = setTimeout(() => {
             // Get the stored data
             const data = this.pendingLongPresses.get(longPressId);
-            if (!data) return;
+            if (!data) {return;}
 
             this.pendingLongPresses.delete(longPressId);
 
             // Find the current element
-            let currentItem = this.findItemElement(data.propertyId, data.category, data.subcategory);
+            const currentItem = this.findItemElement(data.propertyId, data.category, data.subcategory);
 
             if (currentItem) {
                 this.showDeleteButton(currentItem);
@@ -2586,7 +2586,7 @@ class PropertiesManager {
         } else if (propertyItem.dataset.category && propertyItem.dataset.subcategory) {
             this.currentCategoryPath = {
                 category: propertyItem.dataset.category,
-                subcategory: propertyItem.dataset.subcategory
+                subcategory: propertyItem.dataset.subcategory,
             };
         }
 
@@ -2594,7 +2594,7 @@ class PropertiesManager {
         this.renderPropertiesDashboard();
 
         // After re-render, find the current element again using consistent approach
-        let currentItem = this.findItemElement(propertyItem.dataset.propertyId, propertyItem.dataset.category, propertyItem.dataset.subcategory);
+        const currentItem = this.findItemElement(propertyItem.dataset.propertyId, propertyItem.dataset.category, propertyItem.dataset.subcategory);
 
         if (currentItem) {
             // Find the delete button within this item
@@ -2607,7 +2607,7 @@ class PropertiesManager {
                 this.visibleDeleteButtons.set(currentItem, {
                     propertyId: currentItem.dataset.propertyId,
                     category: currentItem.dataset.category,
-                    subcategory: currentItem.dataset.subcategory
+                    subcategory: currentItem.dataset.subcategory,
                 });
 
                 // Store reference to the item with visible delete button
@@ -2840,7 +2840,7 @@ class PropertiesManager {
         const yearSelect = document.getElementById('propertiesYearSelect');
         const monthSelect = document.getElementById('propertiesMonthSelect');
 
-        if (!yearSelect || !monthSelect) return;
+        if (!yearSelect || !monthSelect) {return;}
 
         const selectedYear = yearSelect.value;
         const selectedMonth = monthSelect.value;
@@ -2881,7 +2881,7 @@ class PropertiesManager {
             '09': 'September',
             '10': 'October',
             '11': 'November',
-            '12': 'December'
+            '12': 'December',
         };
         return monthNames[monthNumber] || monthNumber;
     }
@@ -2946,7 +2946,7 @@ class PropertiesManager {
 
             // Convert month name to MM format
             const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                               'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
             const monthIndex = monthNames.indexOf(monthName);
             if (monthIndex !== -1) {
                 const month = String(monthIndex + 1).padStart(2, '0');
@@ -2969,7 +2969,7 @@ class PropertiesManager {
             const year = parseInt(parts[1]);
 
             const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                               'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
             const monthIndex = monthNames.indexOf(monthName);
 
             if (monthIndex !== -1 && !isNaN(year)) {
@@ -3025,7 +3025,7 @@ class PropertiesManager {
 
             // Convert month name to MM format
             const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                               'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
             const monthIndex = monthNames.indexOf(monthName);
             if (monthIndex !== -1) {
                 return String(monthIndex + 1).padStart(2, '0');

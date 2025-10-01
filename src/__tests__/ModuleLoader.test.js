@@ -438,7 +438,7 @@ describe('ModuleLoader', () => {
             const MockDep2 = jest.fn().mockImplementation(() => ({ initialize: jest.fn().mockResolvedValue() }));
             const MockMain = jest.fn().mockImplementation((dep1, dep2) => ({
                 dep1, dep2,
-                initialize: jest.fn().mockResolvedValue()
+                initialize: jest.fn().mockResolvedValue(),
             }));
 
             moduleLoader.registerModule('Dep1', MockDep1);
@@ -459,17 +459,17 @@ describe('ModuleLoader', () => {
             const MockA = jest.fn().mockImplementation(() => ({
                 initialize: jest.fn().mockImplementation(async () => {
                     initOrder.push('A');
-                })
+                }),
             }));
             const MockB = jest.fn().mockImplementation(() => ({
                 initialize: jest.fn().mockImplementation(async () => {
                     initOrder.push('B');
-                })
+                }),
             }));
             const MockC = jest.fn().mockImplementation(() => ({
                 initialize: jest.fn().mockImplementation(async () => {
                     initOrder.push('C');
-                })
+                }),
             }));
 
             moduleLoader.registerModule('ModuleA', MockA);
@@ -491,10 +491,10 @@ describe('ModuleLoader', () => {
 
         test('should initAllModules with mixed dependency patterns', async () => {
             const MockIndependent = jest.fn().mockImplementation(() => ({
-                initialize: jest.fn().mockResolvedValue()
+                initialize: jest.fn().mockResolvedValue(),
             }));
             const MockDependent = jest.fn().mockImplementation(() => ({
-                initialize: jest.fn().mockResolvedValue()
+                initialize: jest.fn().mockResolvedValue(),
             }));
 
             moduleLoader.registerModule('Independent', MockIndependent);
@@ -511,7 +511,7 @@ describe('ModuleLoader', () => {
         test('should dynamically load modules on demand', async () => {
             const MockModule = jest.fn().mockImplementation(() => ({
                 initialize: jest.fn().mockResolvedValue(),
-                dynamicMethod: jest.fn()
+                dynamicMethod: jest.fn(),
             }));
 
             moduleLoader.registerModule('DynamicModule', MockModule);
@@ -528,12 +528,12 @@ describe('ModuleLoader', () => {
         test('should handle dynamic loading with runtime dependencies', async () => {
             const MockBase = jest.fn().mockImplementation(() => ({
                 initialize: jest.fn().mockResolvedValue(),
-                getData: () => 'base data'
+                getData: () => 'base data',
             }));
             const MockExtension = jest.fn().mockImplementation((base) => ({
                 base,
                 initialize: jest.fn().mockResolvedValue(),
-                extendedMethod: () => 'extended'
+                extendedMethod: () => 'extended',
             }));
 
             moduleLoader.registerModule('BaseModule', MockBase);
@@ -550,7 +550,7 @@ describe('ModuleLoader', () => {
             const MockModule = jest.fn().mockImplementation(() => ({
                 initialize: jest.fn().mockResolvedValue(),
                 cleanup: jest.fn().mockResolvedValue(),
-                version: 1
+                version: 1,
             }));
 
             moduleLoader.registerModule('ReloadModule', MockModule);
@@ -581,7 +581,7 @@ describe('ModuleLoader', () => {
 
         test('should handle loadModule errors with missing dependencies', async () => {
             const MockModule = jest.fn().mockImplementation(() => ({
-                initialize: jest.fn().mockResolvedValue()
+                initialize: jest.fn().mockResolvedValue(),
             }));
 
             moduleLoader.registerModule('TestModule', MockModule, ['NonExistentDep']);
@@ -591,7 +591,7 @@ describe('ModuleLoader', () => {
 
         test('should handle initialization errors gracefully', async () => {
             const mockInstance = {
-                initialize: jest.fn().mockRejectedValue(new Error('Init failed'))
+                initialize: jest.fn().mockRejectedValue(new Error('Init failed')),
             };
             const MockModule = jest.fn().mockReturnValue(mockInstance);
 
@@ -694,7 +694,7 @@ describe('ModuleLoader', () => {
         test('should reload module and call cleanup', async () => {
             const mockInstance = {
                 initialize: jest.fn().mockResolvedValue(),
-                cleanup: jest.fn().mockResolvedValue()
+                cleanup: jest.fn().mockResolvedValue(),
             };
             const MockModule = jest.fn().mockReturnValue(mockInstance);
             moduleLoader.registerModule('TestModule', MockModule);

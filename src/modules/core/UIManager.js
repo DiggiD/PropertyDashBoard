@@ -14,7 +14,7 @@ class UIManager {
         this.formatter = formatter || {
             formatCurrency: (value) => `$${value}`,
             formatDate: (date) => date.toISOString().split('T')[0],
-            formatNumber: (num) => num.toString()
+            formatNumber: (num) => num.toString(),
         };
 
         // Singleton fallback for ThemeManager
@@ -154,8 +154,10 @@ class UIManager {
             const element = document.querySelector(selector);
             if (element) {
                 this.elements.set(key, element);
+                console.log(`[UI] Cached element: ${key} -> ${selector}`);
+            } else {
+                console.warn(`[UI] Element not found: ${key} -> ${selector}`);
             }
-            // Removed console.warn to eliminate element not found warnings
         });
     }
 
@@ -171,7 +173,7 @@ class UIManager {
         if (!el) {
             el = document.getElementById(id) || document.querySelector(`#${id}`);
             if (!el && createIfMissing) { el = document.createElement('div'); el.id = id; el.style.display = 'none'; document.body.appendChild(el); }
-            if (el) this.elements.set(id, el); else { console.warn(`UI Element '${id}' missing; creating fallback.`); el = this.createFallbackElement(id); this.elements.set(id, el); }
+            if (el) {this.elements.set(id, el);} else { console.warn(`UI Element '${id}' missing; creating fallback.`); el = this.createFallbackElement(id); this.elements.set(id, el); }
         }
         return el;
     }
@@ -394,7 +396,7 @@ class UIManager {
         // Set data-active for the selected view
         const viewMap = {
             'overview': 'overviewBtn',
-            'properties': 'propertiesBtn'
+            'properties': 'propertiesBtn',
         };
 
         const buttonId = viewMap[activeView];
@@ -633,7 +635,7 @@ class UIManager {
         // Month names array
         const monthNames = [
             'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-            'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+            'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
         ];
 
         // Calculate the 3 months to show (previous, current, next)
@@ -724,7 +726,7 @@ class UIManager {
 
         // Trigger month change event
         const event = new CustomEvent('monthChange', {
-            detail: { selectedMonth }
+            detail: { selectedMonth },
         });
         document.dispatchEvent(event);
 
@@ -788,7 +790,7 @@ class UIManager {
 
         // Trigger year change event
         const event = new CustomEvent('yearChange', {
-            detail: { selectedYear }
+            detail: { selectedYear },
         });
         document.dispatchEvent(event);
 
@@ -800,7 +802,7 @@ class UIManager {
      * @param {string} selectedYear - Year to select
      */
     updateYearPickerSelection(selectedYear) {
-        if (!selectedYear) return;
+        if (!selectedYear) {return;}
 
         if (this.selectedYear === selectedYear) {
 
@@ -835,7 +837,7 @@ class UIManager {
      * @param {string} selectedMonth - Month to select
      */
     updateMonthPickerSelection(selectedMonth) {
-        if (!selectedMonth) return;
+        if (!selectedMonth) {return;}
 
         if (this.selectedMonth === selectedMonth) {
 
@@ -1460,7 +1462,7 @@ class UIManager {
      */
     populateColorThemeDropdown() {
         const colorThemeMenu = this.getElement('colorThemeMenu');
-        if (!colorThemeMenu) return;
+        if (!colorThemeMenu) {return;}
 
         // Clear existing options
         colorThemeMenu.innerHTML = '';
@@ -1565,7 +1567,7 @@ class UIManager {
         if (el) {
             el.textContent = value;
         } else {
-            console.warn(`Element not found`);
+            console.warn('Element not found');
         }
     }
 

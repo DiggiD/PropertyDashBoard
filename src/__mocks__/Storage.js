@@ -6,96 +6,96 @@ export default class MockStorage {
             properties: [
                 {
                     id: 1,
-                    name: "Downtown Office Complex",
+                    name: 'Downtown Office Complex',
                     monthlyData: {
-                        "Jan 2023": {
+                        'Jan 2023': {
                             expenses: {
-                                "Utilities": { "Electricity": -933, "Water": -400, "Gas": -267 },
-                                "Maintenance": { "Cleaning": -800, "Repairs": -1333, "Landscaping": -300 },
-                                "Insurance": -833,
-                                "Taxes": -1167,
-                                "Security": -600,
-                                "Parking": -833,
-                                "Management": -667,
-                                "Legal": -500
+                                'Utilities': { 'Electricity': -933, 'Water': -400, 'Gas': -267 },
+                                'Maintenance': { 'Cleaning': -800, 'Repairs': -1333, 'Landscaping': -300 },
+                                'Insurance': -833,
+                                'Taxes': -1167,
+                                'Security': -600,
+                                'Parking': -833,
+                                'Management': -667,
+                                'Legal': -500,
                             },
-                            incomes: { "Rent": 5000 }
+                            incomes: { 'Rent': 5000 },
                         },
-                        "Feb 2023": {
+                        'Feb 2023': {
                             expenses: {
-                                "Utilities": { "Electricity": -933, "Water": -400, "Gas": -267 },
-                                "Maintenance": { "Cleaning": -800, "Repairs": -1333, "Landscaping": -300 },
-                                "Insurance": -833,
-                                "Taxes": -1167,
-                                "Security": -600,
-                                "Parking": -833,
-                                "Management": -667,
-                                "Legal": -500
+                                'Utilities': { 'Electricity': -933, 'Water': -400, 'Gas': -267 },
+                                'Maintenance': { 'Cleaning': -800, 'Repairs': -1333, 'Landscaping': -300 },
+                                'Insurance': -833,
+                                'Taxes': -1167,
+                                'Security': -600,
+                                'Parking': -833,
+                                'Management': -667,
+                                'Legal': -500,
                             },
-                            incomes: { "Rent": 5000 }
+                            incomes: { 'Rent': 5000 },
                         },
-                        "Mar 2023": {
+                        'Mar 2023': {
                             expenses: {
-                                "Utilities": { "Electricity": -933, "Water": -400, "Gas": -267 },
-                                "Maintenance": { "Cleaning": -800, "Repairs": -1333, "Landscaping": -300 },
-                                "Insurance": -833,
-                                "Taxes": -1167,
-                                "Security": -600,
-                                "Parking": -833,
-                                "Management": -667,
-                                "Legal": -500
+                                'Utilities': { 'Electricity': -933, 'Water': -400, 'Gas': -267 },
+                                'Maintenance': { 'Cleaning': -800, 'Repairs': -1333, 'Landscaping': -300 },
+                                'Insurance': -833,
+                                'Taxes': -1167,
+                                'Security': -600,
+                                'Parking': -833,
+                                'Management': -667,
+                                'Legal': -500,
                             },
-                            incomes: { "Rent": 5000 }
-                        }
-                    }
+                            incomes: { 'Rent': 5000 },
+                        },
+                    },
                 },
                 {
                     id: 2,
-                    name: "Suburban Retail Center",
+                    name: 'Suburban Retail Center',
                     monthlyData: {
-                        "Jan 2023": {
+                        'Jan 2023': {
                             expenses: {
-                                "Rent": -4000,
-                                "Utilities": { "Electricity": -800, "Water": -300, "Gas": -200 },
-                                "Maintenance": { "Cleaning": -600, "Repairs": -1000, "Landscaping": -250 },
-                                "Insurance": -700,
-                                "Taxes": -1000,
-                                "Security": -500,
-                                "Parking": -700,
-                                "Management": -550,
-                                "Legal": -400
-                            }
+                                'Rent': -4000,
+                                'Utilities': { 'Electricity': -800, 'Water': -300, 'Gas': -200 },
+                                'Maintenance': { 'Cleaning': -600, 'Repairs': -1000, 'Landscaping': -250 },
+                                'Insurance': -700,
+                                'Taxes': -1000,
+                                'Security': -500,
+                                'Parking': -700,
+                                'Management': -550,
+                                'Legal': -400,
+                            },
                         },
-                        "Feb 2023": {
+                        'Feb 2023': {
                             expenses: {
-                                "Rent": -4000,
-                                "Utilities": { "Electricity": -800, "Water": -300, "Gas": -200 },
-                                "Maintenance": { "Cleaning": -600, "Repairs": -1000, "Landscaping": -250 },
-                                "Insurance": -700,
-                                "Taxes": -1000,
-                                "Security": -500,
-                                "Parking": -700,
-                                "Management": -550,
-                                "Legal": -400
-                            }
+                                'Rent': -4000,
+                                'Utilities': { 'Electricity': -800, 'Water': -300, 'Gas': -200 },
+                                'Maintenance': { 'Cleaning': -600, 'Repairs': -1000, 'Landscaping': -250 },
+                                'Insurance': -700,
+                                'Taxes': -1000,
+                                'Security': -500,
+                                'Parking': -700,
+                                'Management': -550,
+                                'Legal': -400,
+                            },
                         },
-                        "Mar 2023": {
+                        'Mar 2023': {
                             expenses: {
-                                "Rent": -4000,
-                                "Utilities": { "Electricity": -800, "Water": -300, "Gas": -200 },
-                                "Maintenance": { "Cleaning": -600, "Repairs": -1000, "Landscaping": -250 },
-                                "Insurance": -700,
-                                "Taxes": -1000,
-                                "Security": -500,
-                                "Parking": -700,
-                                "Management": -550,
-                                "Legal": -400
-                            }
-                        }
-                    }
-                }
+                                'Rent': -4000,
+                                'Utilities': { 'Electricity': -800, 'Water': -300, 'Gas': -200 },
+                                'Maintenance': { 'Cleaning': -600, 'Repairs': -1000, 'Landscaping': -250 },
+                                'Insurance': -700,
+                                'Taxes': -1000,
+                                'Security': -500,
+                                'Parking': -700,
+                                'Management': -550,
+                                'Legal': -400,
+                            },
+                        },
+                    },
+                },
             ],
-            lastBackup: null
+            lastBackup: null,
         };
     }
 
@@ -118,7 +118,7 @@ export default class MockStorage {
         }
         return {
             incomes: property.monthlyData[period].incomes || {},
-            expenses: property.monthlyData[period].expenses || {}
+            expenses: property.monthlyData[period].expenses || {},
         };
     }
 
@@ -270,7 +270,7 @@ export default class MockStorage {
 
     async exportUserData(userId = 'default') {
         return Promise.resolve({
-            userId: userId,
+            userId,
             exportDate: new Date().toISOString(),
             version: '2.0',
             data: {
@@ -278,7 +278,7 @@ export default class MockStorage {
                 expenseCategories: [],
                 expenses: [],
                 auditTrail: [],
-            }
+            },
         });
     }
 

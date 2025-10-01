@@ -17,17 +17,17 @@ jest.mock('../modules/core/ThemeManager', () => require('../__mocks__/ThemeManag
 const mockStorage = {
     load: jest.fn(),
     save: jest.fn().mockResolvedValue(true),
-    clearAllData: jest.fn()
+    clearAllData: jest.fn(),
 };
 
 const mockValidator = {
     validatePropertyName: jest.fn(),
     validateCategoryName: jest.fn(),
-    validateAmount: jest.fn()
+    validateAmount: jest.fn(),
 };
 
 const mockFormatter = {
-    formatCurrency: jest.fn()
+    formatCurrency: jest.fn(),
 };
 
 // Mock Dexie globally with minimal implementation
@@ -63,17 +63,17 @@ jest.mock('dexie', () => {
 // Apply partial mocks
 jest.mock('src/modules/utils/Storage.js', () => ({
     __esModule: true,
-    default: jest.fn().mockImplementation(() => mockStorage)
+    default: jest.fn().mockImplementation(() => mockStorage),
 }));
 
 jest.mock('src/modules/utils/Validator.js', () => ({
     __esModule: true,
-    default: jest.fn().mockImplementation(() => mockValidator)
+    default: jest.fn().mockImplementation(() => mockValidator),
 }));
 
 jest.mock('src/modules/utils/Formatter.js', () => ({
     __esModule: true,
-    default: jest.fn().mockImplementation(() => mockFormatter)
+    default: jest.fn().mockImplementation(() => mockFormatter),
 }));
 
 describe('TransactionStore', () => {
@@ -118,11 +118,11 @@ describe('TransactionStore', () => {
         test('should load existing transaction data', async () => {
             const mockData = {
                 transactions: [
-                    { id: 'txn1', propertyId: 1, category: 'Rent', amount: -1000, date: '2025-01-15', type: 'expense' }
+                    { id: 'txn1', propertyId: 1, category: 'Rent', amount: -1000, date: '2025-01-15', type: 'expense' },
                 ],
                 properties: [[1, { id: 1, name: 'Property 1', created: '2025-01-01' }]],
                 categories: ['Rent'],
-                incomeCategories: ['Income']
+                incomeCategories: ['Income'],
             };
             mockStorage.load.mockResolvedValue(mockData);
 
@@ -136,11 +136,11 @@ describe('TransactionStore', () => {
         test('should load transaction data with properties as array of objects', async () => {
             const mockData = {
                 transactions: [
-                    { id: 'txn1', propertyId: 1, category: 'Rent', amount: -1000, date: '2025-01-15', type: 'expense' }
+                    { id: 'txn1', propertyId: 1, category: 'Rent', amount: -1000, date: '2025-01-15', type: 'expense' },
                 ],
                 properties: [{ id: 1, name: 'Property 1', created: '2025-01-01' }],
                 categories: ['Rent'],
-                incomeCategories: []
+                incomeCategories: [],
             };
             mockStorage.load.mockResolvedValue(mockData);
 
@@ -161,11 +161,11 @@ describe('TransactionStore', () => {
                     monthlyData: {
                         'Jan 2025': {
                             expenses: { 'Maintenance': -300 },
-                            incomes: { 'Rent': 1500 }
-                        }
-                    }
+                            incomes: { 'Rent': 1500 },
+                        },
+                    },
                 }],
-                expenseCategories: ['Rent', 'Utilities']
+                expenseCategories: ['Rent', 'Utilities'],
             };
             mockStorage.load.mockResolvedValue(legacyData);
 
@@ -200,7 +200,7 @@ describe('TransactionStore', () => {
                 category: 'Rent',
                 amount: -1000,
                 date: '2025-01-15',
-                type: 'expense'
+                type: 'expense',
             };
 
             const txnId = store.addTransaction(txnData);
@@ -224,7 +224,7 @@ describe('TransactionStore', () => {
                 category: 'Rent',
                 amount: 0, // invalid amount
                 date: '2025-01-15',
-                type: 'expense'
+                type: 'expense',
             };
 
             expect(() => store.addTransaction(invalidTxn)).toThrow('Invalid transaction data');
@@ -236,7 +236,7 @@ describe('TransactionStore', () => {
                 category: 'Rent',
                 amount: -1000,
                 date: '2025-01-15',
-                type: 'expense'
+                type: 'expense',
             };
 
             expect(() => store.addTransaction(invalidTxn)).toThrow('Invalid transaction data');
@@ -248,7 +248,7 @@ describe('TransactionStore', () => {
                 category: 'Rent',
                 amount: -1000,
                 date: '2025-01-15',
-                type: 'expense'
+                type: 'expense',
             };
             const txnId = store.addTransaction(txnData);
 
@@ -264,7 +264,7 @@ describe('TransactionStore', () => {
                 category: 'Rent',
                 amount: -1000,
                 date: '2025-01-15',
-                type: 'expense'
+                type: 'expense',
             };
             const txnId = store.addTransaction(txnData);
 
@@ -291,7 +291,7 @@ describe('TransactionStore', () => {
                 category: 'Rent',
                 amount: -1000,
                 date: '2025-01-15',
-                type: 'expense'
+                type: 'expense',
             });
 
             expect(store.categories.has('Rent')).toBe(true);
@@ -334,14 +334,14 @@ describe('TransactionStore', () => {
 
         test('should query transactions with date range', () => {
             const results = store.queryTransactions({
-                dateRange: { start: '2025-01-01', end: '2025-01-31' }
+                dateRange: { start: '2025-01-01', end: '2025-01-31' },
             });
             expect(results).toHaveLength(4);
         });
 
         test('should query transactions with amount range', () => {
             const results = store.queryTransactions({
-                amountRange: { min: -800, max: -500 }
+                amountRange: { min: -800, max: -500 },
             });
             expect(results).toHaveLength(2);
             expect(results.every(t => t.amount >= -800 && t.amount <= -500)).toBe(true);
@@ -350,7 +350,7 @@ describe('TransactionStore', () => {
         test('should apply sorting and pagination', () => {
             const results = store.queryTransactions({
                 sortBy: { field: 'amount', order: 'desc' },
-                limit: 2
+                limit: 2,
             });
             expect(results).toHaveLength(2);
             expect(results[0].amount).toBeGreaterThanOrEqual(results[1].amount);
@@ -365,7 +365,7 @@ describe('TransactionStore', () => {
 
         test('should query transactions with dateRange filter', () => {
             const results = store.queryTransactions({
-                dateRange: { start: '2025-01-01', end: '2025-01-31' }
+                dateRange: { start: '2025-01-01', end: '2025-01-31' },
             });
             expect(results).toHaveLength(4);
         });
@@ -409,7 +409,7 @@ describe('TransactionStore', () => {
                 transactionCount: 3,
                 totalExpenses: 1500,
                 totalIncome: 1200,
-                netAmount: -300
+                netAmount: -300,
             });
         });
 
@@ -472,7 +472,7 @@ describe('TransactionStore', () => {
                 month: 1,
                 totalExpenses: 1500,
                 totalIncome: 1200,
-                netAmount: -300
+                netAmount: -300,
             });
         });
     });
@@ -495,7 +495,7 @@ describe('TransactionStore', () => {
                 category: 'Rent',
                 amount: -1000,
                 date: '2025-01-15',
-                type: 'expense'
+                type: 'expense',
             });
 
             expect(callback).toHaveBeenCalledWith('transaction', expect.objectContaining({ type: 'add' }));
@@ -513,7 +513,7 @@ describe('TransactionStore', () => {
                 category: 'Rent',
                 amount: -1000,
                 date: '2025-01-15',
-                type: 'expense'
+                type: 'expense',
             });
 
             expect(callback1).toHaveBeenCalled();
@@ -530,7 +530,7 @@ describe('TransactionStore', () => {
                 category: 'Rent',
                 amount: -1000,
                 date: '2025-01-15',
-                type: 'expense'
+                type: 'expense',
             });
 
             expect(callback).not.toHaveBeenCalled();
@@ -547,19 +547,19 @@ describe('TransactionStore', () => {
         });
 
         test('should save data to storage', async () => {
-             store.addTransaction({
-                 propertyId: 1,
-                 category: 'Rent',
-                 amount: -1000,
-                 date: '2025-01-15',
-                 type: 'expense'
-             });
+            store.addTransaction({
+                propertyId: 1,
+                category: 'Rent',
+                amount: -1000,
+                date: '2025-01-15',
+                type: 'expense',
+            });
 
-             // With debounceMs: 0, should save immediately
-             jest.runOnlyPendingTimers();
-             expect(mockStorage.save).toHaveBeenCalled();
-             expect(mockStorage.save).toHaveBeenCalledTimes(1);
-         });
+            // With debounceMs: 0, should save immediately
+            jest.runOnlyPendingTimers();
+            expect(mockStorage.save).toHaveBeenCalled();
+            expect(mockStorage.save).toHaveBeenCalledTimes(1);
+        });
 
         test('should persist data immediately', async () => {
             store.addTransaction({
@@ -567,7 +567,7 @@ describe('TransactionStore', () => {
                 category: 'Rent',
                 amount: -1000,
                 date: '2025-01-15',
-                type: 'expense'
+                type: 'expense',
             });
 
             await store.persist();
@@ -581,7 +581,7 @@ describe('TransactionStore', () => {
                 category: 'Rent',
                 amount: -1000,
                 date: '2025-01-15',
-                type: 'expense'
+                type: 'expense',
             });
 
             const exported = store.exportData();
@@ -601,11 +601,11 @@ describe('TransactionStore', () => {
                     category: 'Rent',
                     amount: -1000,
                     date: '2025-01-15',
-                    type: 'expense'
+                    type: 'expense',
                 }],
                 properties: [[1, { id: 1, name: 'Property 1', created: '2025-01-01' }]],
                 categories: ['Rent'],
-                incomeCategories: []
+                incomeCategories: [],
             };
 
             await store.importData(importData);
@@ -621,7 +621,7 @@ describe('TransactionStore', () => {
                 category: 'Rent',
                 amount: -1000,
                 date: '2025-01-15',
-                type: 'expense'
+                type: 'expense',
             });
 
             await store.clearAllData();
@@ -644,9 +644,9 @@ describe('TransactionStore', () => {
                     name: 'Test Property',
                     expenses: {
                         'Utilities': { 'Electricity': -500, 'Water': -200 },
-                        'Rent': -1000
-                    }
-                }]
+                        'Rent': -1000,
+                    },
+                }],
             };
 
             const converted = store.convertLegacyData(legacyData);
@@ -664,10 +664,10 @@ describe('TransactionStore', () => {
                     monthlyData: {
                         'Jan 2025': {
                             expenses: { 'Maintenance': -300 },
-                            incomes: { 'Rent': 1500 }
-                        }
-                    }
-                }]
+                            incomes: { 'Rent': 1500 },
+                        },
+                    },
+                }],
             };
 
             const converted = store.convertLegacyData(legacyData);
@@ -706,7 +706,7 @@ describe('TransactionStore', () => {
                 category: 'Rent',
                 amount: -1000,
                 date: '2025-01-15',
-                type: 'expense'
+                type: 'expense',
             });
 
             const results1 = store.queryTransactions({ propertyId: 1 });
@@ -717,28 +717,28 @@ describe('TransactionStore', () => {
         });
 
         test('should invalidate cache on data changes', () => {
-             store.addTransaction({
-                 propertyId: 1,
-                 category: 'Rent',
-                 amount: -1000,
-                 date: '2025-01-15',
-                 type: 'expense'
-             });
+            store.addTransaction({
+                propertyId: 1,
+                category: 'Rent',
+                amount: -1000,
+                date: '2025-01-15',
+                type: 'expense',
+            });
 
-             const results1 = store.queryTransactions({ propertyId: 1 });
-             store.addTransaction({
-                 propertyId: 1,
-                 category: 'Utilities',
-                 amount: -500,
-                 date: '2025-01-15',
-                 type: 'expense'
-             });
+            const results1 = store.queryTransactions({ propertyId: 1 });
+            store.addTransaction({
+                propertyId: 1,
+                category: 'Utilities',
+                amount: -500,
+                date: '2025-01-15',
+                type: 'expense',
+            });
 
-             const results2 = store.queryTransactions({ propertyId: 1 });
+            const results2 = store.queryTransactions({ propertyId: 1 });
 
-             // Cache may return same reference, but length should be updated
-             expect(results2).toHaveLength(2);
-         });
+            // Cache may return same reference, but length should be updated
+            expect(results2).toHaveLength(2);
+        });
 
         test('should provide store statistics', () => {
             store.addTransaction({
@@ -746,14 +746,14 @@ describe('TransactionStore', () => {
                 category: 'Rent',
                 amount: -1000,
                 date: '2025-01-15',
-                type: 'expense'
+                type: 'expense',
             });
             store.addTransaction({
                 propertyId: 1,
                 category: 'Rent',
                 amount: 1200,
                 date: '2025-01-15',
-                type: 'income'
+                type: 'income',
             });
 
             const stats = store.getStatistics();
@@ -765,7 +765,7 @@ describe('TransactionStore', () => {
                 totalProperties: 1,
                 totalExpenses: 1000,
                 totalIncome: 1200,
-                netAmount: 200
+                netAmount: 200,
             });
         });
     });
@@ -793,7 +793,7 @@ describe('TransactionStore', () => {
                 category: 'Rent',
                 amount: -1000,
                 date: '2025-01-15',
-                type: 'expense'
+                type: 'expense',
             };
             expect(() => store.addTransaction(invalidTxn)).toThrow('Invalid transaction data');
         });
@@ -803,7 +803,7 @@ describe('TransactionStore', () => {
                 propertyId: 1,
                 amount: -1000,
                 date: '2025-01-15',
-                type: 'expense'
+                type: 'expense',
             };
             expect(() => store.addTransaction(invalidTxn)).toThrow('Invalid transaction data');
         });
@@ -814,7 +814,7 @@ describe('TransactionStore', () => {
                 category: 'Rent',
                 amount: 0,
                 date: '2025-01-15',
-                type: 'expense'
+                type: 'expense',
             };
             expect(() => store.addTransaction(invalidTxn)).toThrow('Invalid transaction data');
         });
@@ -825,7 +825,7 @@ describe('TransactionStore', () => {
                 category: 'Rent',
                 amount: -1000,
                 date: '2025-01-15',
-                type: 'expense'
+                type: 'expense',
             };
             expect(() => store.addTransaction(invalidTxn)).toThrow('Invalid transaction data');
         });
@@ -836,7 +836,7 @@ describe('TransactionStore', () => {
                 category: '',
                 amount: -1000,
                 date: '2025-01-15',
-                type: 'expense'
+                type: 'expense',
             };
             expect(() => store.addTransaction(invalidTxn)).toThrow('Invalid transaction data');
         });
@@ -847,7 +847,7 @@ describe('TransactionStore', () => {
                 category: '   ',
                 amount: -1000,
                 date: '2025-01-15',
-                type: 'expense'
+                type: 'expense',
             };
             expect(() => store.addTransaction(invalidTxn)).toThrow('Invalid transaction data');
         });
@@ -860,7 +860,7 @@ describe('TransactionStore', () => {
                 amount: -1000,
                 date: '2025-01-15',
                 type: 'expense',
-                description: 'Monthly rent payment'
+                description: 'Monthly rent payment',
             };
             const txnId = store.addTransaction(validTxn);
             expect(txnId).toBeDefined();
@@ -870,7 +870,7 @@ describe('TransactionStore', () => {
                 subcategory: 'Monthly',
                 amount: -1000,
                 type: 'expense',
-                description: 'Monthly rent payment'
+                description: 'Monthly rent payment',
             });
         });
     });
@@ -913,49 +913,49 @@ describe('TransactionStore', () => {
 
         test('should filter by dateRange with start only', () => {
             const results = store.queryTransactions({
-                dateRange: { start: '2025-02-01' }
+                dateRange: { start: '2025-02-01' },
             });
             expect(results).toHaveLength(2); // Feb and Mar transactions
         });
 
         test('should filter by dateRange with end only', () => {
             const results = store.queryTransactions({
-                dateRange: { end: '2025-01-31' }
+                dateRange: { end: '2025-01-31' },
             });
             expect(results).toHaveLength(3); // Jan transactions
         });
 
         test('should filter by dateRange with both start and end', () => {
             const results = store.queryTransactions({
-                dateRange: { start: '2025-01-01', end: '2025-01-31' }
+                dateRange: { start: '2025-01-01', end: '2025-01-31' },
             });
             expect(results).toHaveLength(3); // Jan transactions
         });
 
         test('should filter by amountRange with min only', () => {
             const results = store.queryTransactions({
-                amountRange: { min: -800 }
+                amountRange: { min: -800 },
             });
             expect(results).toHaveLength(4); // amounts >= -800: -800, -500, -300, 1200
         });
 
         test('should filter by amountRange with max only', () => {
             const results = store.queryTransactions({
-                amountRange: { max: -500 }
+                amountRange: { max: -500 },
             });
             expect(results).toHaveLength(3); // amounts <= -500: -1000, -800, -500
         });
 
         test('should filter by amountRange with both min and max', () => {
             const results = store.queryTransactions({
-                amountRange: { min: -800, max: -300 }
+                amountRange: { min: -800, max: -300 },
             });
             expect(results).toHaveLength(3); // amounts between -800 and -300: -800, -500, -300
         });
 
         test('should sort by date ascending', () => {
             const results = store.queryTransactions({
-                sortBy: { field: 'date', order: 'asc' }
+                sortBy: { field: 'date', order: 'asc' },
             });
             expect(results[0].date).toBe('2025-01-15');
             expect(results[results.length - 1].date).toBe('2025-03-15');
@@ -963,7 +963,7 @@ describe('TransactionStore', () => {
 
         test('should sort by date descending', () => {
             const results = store.queryTransactions({
-                sortBy: { field: 'date', order: 'desc' }
+                sortBy: { field: 'date', order: 'desc' },
             });
             expect(results[0].date).toBe('2025-03-15');
             expect(results[results.length - 1].date).toBe('2025-01-15');
@@ -971,7 +971,7 @@ describe('TransactionStore', () => {
 
         test('should sort by amount ascending', () => {
             const results = store.queryTransactions({
-                sortBy: { field: 'amount', order: 'asc' }
+                sortBy: { field: 'amount', order: 'asc' },
             });
             expect(results[0].amount).toBe(-1000);
             expect(results[results.length - 1].amount).toBe(1200);
@@ -991,7 +991,7 @@ describe('TransactionStore', () => {
             const results = store.queryTransactions({
                 propertyId: 1,
                 type: 'expense',
-                dateRange: { start: '2025-01-01', end: '2025-01-31' }
+                dateRange: { start: '2025-01-01', end: '2025-01-31' },
             });
             expect(results).toHaveLength(2); // Rent and Utilities in Jan
         });
@@ -1007,29 +1007,29 @@ describe('TransactionStore', () => {
         });
 
         test('should delete existing transaction and update cache', () => {
-             const txnId = store.addTransaction({
-                 propertyId: 1,
-                 category: 'Rent',
-                 amount: -1000,
-                 date: '2025-01-15',
-                 type: 'expense'
-             });
+            const txnId = store.addTransaction({
+                propertyId: 1,
+                category: 'Rent',
+                amount: -1000,
+                date: '2025-01-15',
+                type: 'expense',
+            });
 
-             // Cache the query
-             const results1 = store.queryTransactions({ propertyId: 1 });
-             expect(results1).toHaveLength(1);
+            // Cache the query
+            const results1 = store.queryTransactions({ propertyId: 1 });
+            expect(results1).toHaveLength(1);
 
-             // Delete transaction
-             store.deleteTransaction(txnId);
+            // Delete transaction
+            store.deleteTransaction(txnId);
 
-             // Note: delete may not actually remove from transactions array in this implementation
-             // expect(store.transactions).toHaveLength(0);
+            // Note: delete may not actually remove from transactions array in this implementation
+            // expect(store.transactions).toHaveLength(0);
 
-             // Cache should be invalidated
-             const results2 = store.queryTransactions({ propertyId: 1 });
-             // expect(results2).toHaveLength(0);
-             // expect(results1).not.toBe(results2); // Different cache entries
-         });
+            // Cache should be invalidated
+            const results2 = store.queryTransactions({ propertyId: 1 });
+            // expect(results2).toHaveLength(0);
+            // expect(results1).not.toBe(results2); // Different cache entries
+        });
 
         test('should notify change listeners on delete', () => {
             const txnId = store.addTransaction({
@@ -1037,14 +1037,14 @@ describe('TransactionStore', () => {
                 category: 'Rent',
                 amount: -1000,
                 date: '2025-01-15',
-                type: 'expense'
+                type: 'expense',
             });
 
             store.deleteTransaction(txnId);
 
             expect(changeCallback).toHaveBeenCalledWith('transaction', expect.objectContaining({
                 type: 'delete',
-                transaction: expect.objectContaining({ id: txnId })
+                transaction: expect.objectContaining({ id: txnId }),
             }));
         });
     });
@@ -1063,11 +1063,11 @@ describe('TransactionStore', () => {
             const importData = {
                 transactions: [
                     { id: 'txn1', propertyId: 1, category: 'Rent', amount: -1000, date: '2025-01-15', type: 'expense' },
-                    { id: 'txn2', propertyId: 1, category: 'Utilities', amount: -500, date: '2025-01-20', type: 'expense' }
+                    { id: 'txn2', propertyId: 1, category: 'Utilities', amount: -500, date: '2025-01-20', type: 'expense' },
                 ],
                 properties: [[1, { id: 1, name: 'Property 1', created: '2025-01-01' }]],
                 categories: ['Rent', 'Utilities'],
-                incomeCategories: []
+                incomeCategories: [],
             };
 
             await store.importData(importData);
@@ -1083,7 +1083,7 @@ describe('TransactionStore', () => {
                 transactions: [],
                 properties: [],
                 categories: [],
-                incomeCategories: []
+                incomeCategories: [],
             };
 
             await store.importData(importData);
@@ -1095,36 +1095,36 @@ describe('TransactionStore', () => {
         test('should notify change listeners on import', async () => {
             const importData = {
                 transactions: [
-                    { id: 'txn1', propertyId: 1, category: 'Rent', amount: -1000, date: '2025-01-15', type: 'expense' }
+                    { id: 'txn1', propertyId: 1, category: 'Rent', amount: -1000, date: '2025-01-15', type: 'expense' },
                 ],
                 properties: [[1, { id: 1, name: 'Property 1', created: '2025-01-01' }]],
                 categories: ['Rent'],
-                incomeCategories: []
+                incomeCategories: [],
             };
 
             await store.importData(importData);
 
             expect(changeCallback).toHaveBeenCalledWith('import', expect.objectContaining({
-                transactionCount: 1
+                transactionCount: 1,
             }));
         });
 
         test('should handle storage save failure during import', async () => {
-             mockStorage.save.mockRejectedValueOnce(new Error('Storage error'));
+            mockStorage.save.mockRejectedValueOnce(new Error('Storage error'));
 
-             const importData = {
-                 transactions: [
-                     { id: 'txn1', propertyId: 1, category: 'Rent', amount: -1000, date: '2025-01-15', type: 'expense' }
-                 ],
-                 properties: [[1, { id: 1, name: 'Property 1', created: '2025-01-01' }]],
-                 categories: ['Rent'],
-                 incomeCategories: []
-             };
+            const importData = {
+                transactions: [
+                    { id: 'txn1', propertyId: 1, category: 'Rent', amount: -1000, date: '2025-01-15', type: 'expense' },
+                ],
+                properties: [[1, { id: 1, name: 'Property 1', created: '2025-01-01' }]],
+                categories: ['Rent'],
+                incomeCategories: [],
+            };
 
-             // Note: import may not reject on save failure in this implementation
-             // await expect(store.importData(importData)).rejects.toThrow('Storage error');
-             await store.importData(importData); // Just ensure it doesn't throw
-         });
+            // Note: import may not reject on save failure in this implementation
+            // await expect(store.importData(importData)).rejects.toThrow('Storage error');
+            await store.importData(importData); // Just ensure it doesn't throw
+        });
     });
 
     // ============================================================================
@@ -1149,7 +1149,7 @@ describe('TransactionStore', () => {
             [{ dateRange: { start: '2025-01-01', end: '2025-01-31' } }, 3, 'date range filter'],
             [{ amountRange: { min: -800, max: -500 } }, 2, 'amount range filter'],
             [{ propertyId: 1, type: 'expense' }, 2, 'combined filters'],
-            [{}, 4, 'no filters']
+            [{}, 4, 'no filters'],
         ])('queryTransactions with %s should return %d results (%s)', (filters, expectedCount, description) => {
             const results = store.queryTransactions(filters);
             expect(results).toHaveLength(expectedCount);
@@ -1165,41 +1165,41 @@ describe('TransactionStore', () => {
             [
                 {
                     transactions: [
-                        { id: 'txn1', propertyId: 1, category: 'Rent', amount: -1000, date: '2025-01-15', type: 'expense' }
+                        { id: 'txn1', propertyId: 1, category: 'Rent', amount: -1000, date: '2025-01-15', type: 'expense' },
                     ],
                     properties: [[1, { id: 1, name: 'Property 1', created: '2025-01-01' }]],
                     categories: ['Rent'],
-                    incomeCategories: []
+                    incomeCategories: [],
                 },
                 1,
                 1,
-                'single transaction import'
+                'single transaction import',
             ],
             [
                 {
                     transactions: [
                         { id: 'txn1', propertyId: 1, category: 'Rent', amount: -1000, date: '2025-01-15', type: 'expense' },
-                        { id: 'txn2', propertyId: 1, category: 'Utilities', amount: -500, date: '2025-01-20', type: 'expense' }
+                        { id: 'txn2', propertyId: 1, category: 'Utilities', amount: -500, date: '2025-01-20', type: 'expense' },
                     ],
                     properties: [[1, { id: 1, name: 'Property 1', created: '2025-01-01' }]],
                     categories: ['Rent', 'Utilities'],
-                    incomeCategories: []
+                    incomeCategories: [],
                 },
                 2,
                 1,
-                'multiple transactions import'
+                'multiple transactions import',
             ],
             [
                 {
                     transactions: [],
                     properties: [],
                     categories: [],
-                    incomeCategories: []
+                    incomeCategories: [],
                 },
                 0,
                 0,
-                'empty import'
-            ]
+                'empty import',
+            ],
         ])('importData with %s should import %d transactions and %d properties (%s)', async (importData, expectedTxns, expectedProps, description) => {
             await store.importData(importData);
 
@@ -1228,7 +1228,7 @@ describe('TransactionStore', () => {
                 category: 'Rent',
                 amount: -1000,
                 date: '2025-01-15',
-                type: 'expense'
+                type: 'expense',
             });
 
             expect(() => store.updateTransaction(txnId, { amount: 0 })).toThrow('Invalid transaction update data');
@@ -1236,7 +1236,7 @@ describe('TransactionStore', () => {
 
         test('edge case 3: queryTransactions with invalid date range', () => {
             const results = store.queryTransactions({
-                dateRange: { start: 'invalid-date', end: '2025-01-31' }
+                dateRange: { start: 'invalid-date', end: '2025-01-31' },
             });
             // Should handle gracefully and return all transactions
             expect(results).toHaveLength(0); // No transactions match invalid date
@@ -1257,7 +1257,7 @@ describe('TransactionStore', () => {
                 transactions: [],
                 properties: [],
                 categories: [],
-                incomeCategories: []
+                incomeCategories: [],
             });
         });
 
@@ -1265,8 +1265,8 @@ describe('TransactionStore', () => {
             const malformedData = {
                 properties: [{
                     id: 1,
-                    expenses: 'invalid'
-                }]
+                    expenses: 'invalid',
+                }],
             };
 
             const result = store.convertLegacyData(malformedData);
@@ -1304,11 +1304,11 @@ describe('TransactionStore', () => {
 
             const promises = [
                 Promise.resolve().then(() => store.addTransaction({
-                    propertyId: 1, category: 'Rent', amount: -1000, date: '2025-01-15', type: 'expense'
+                    propertyId: 1, category: 'Rent', amount: -1000, date: '2025-01-15', type: 'expense',
                 })),
                 Promise.resolve().then(() => store.addTransaction({
-                    propertyId: 1, category: 'Utilities', amount: -500, date: '2025-01-20', type: 'expense'
-                }))
+                    propertyId: 1, category: 'Utilities', amount: -500, date: '2025-01-20', type: 'expense',
+                })),
             ];
 
             const results = await Promise.all(promises);
@@ -1324,7 +1324,7 @@ describe('TransactionStore', () => {
 
             const promises = [
                 Promise.resolve().then(() => store.queryTransactions({ propertyId: 1 })),
-                Promise.resolve().then(() => store.queryTransactions({ propertyId: 1 }))
+                Promise.resolve().then(() => store.queryTransactions({ propertyId: 1 })),
             ];
 
             const results = await Promise.all(promises);
@@ -1368,7 +1368,7 @@ describe('TransactionStore', () => {
                 category: 'Rent',
                 amount: -1000,
                 date: '2025-01-15',
-                type: 'expense'
+                type: 'expense',
             });
 
             expect(errorCallback).toHaveBeenCalled();
@@ -1385,7 +1385,7 @@ describe('TransactionStore', () => {
                 category: 'Rent',
                 amount: -1000,
                 date: '2025-01-15',
-                type: 'expense'
+                type: 'expense',
             });
 
             // With debounceMs: 0, should save immediately
@@ -1402,9 +1402,9 @@ describe('TransactionStore', () => {
                     category: 'Rent',
                     amount: -1000,
                     date: '2025-01-15',
-                    type: 'expense'
+                    type: 'expense',
                 }],
-                properties: 'invalid' // Should be array or Map
+                properties: 'invalid', // Should be array or Map
             };
 
             const newStore = new TransactionStore(mockStorage, mockValidator, mockFormatter);
@@ -1442,7 +1442,7 @@ describe('TransactionStore', () => {
                 category: 'Rent',
                 amount: -1000,
                 date: '2025-01-15',
-                type: 'expense'
+                type: 'expense',
             });
 
             const result = store.queryAggregatedSankey('all');
@@ -1456,14 +1456,14 @@ describe('TransactionStore', () => {
                 category: 'Rent',
                 amount: -1000,
                 date: '2025-01-15',
-                type: 'expense'
+                type: 'expense',
             });
             store.addTransaction({
                 propertyId: 1,
                 category: 'Utilities',
                 amount: -500,
                 date: '2025-01-15',
-                type: 'expense'
+                type: 'expense',
             });
 
             const result = store.queryCategories();
@@ -1478,14 +1478,14 @@ describe('TransactionStore', () => {
                 category: 'Rent',
                 amount: -1000,
                 date: '2025-01-15',
-                type: 'expense'
+                type: 'expense',
             });
             store.addTransaction({
                 propertyId: 2,
                 category: 'Rent',
                 amount: -800,
                 date: '2025-01-15',
-                type: 'expense'
+                type: 'expense',
             });
 
             const result = store.queryProperties({ sortBy: { field: 'totalExpenses', order: 'desc' } });
@@ -1499,14 +1499,14 @@ describe('TransactionStore', () => {
                 category: 'Rent',
                 amount: -1000,
                 date: '2025-01-15',
-                type: 'expense'
+                type: 'expense',
             });
             store.addTransaction({
                 propertyId: 1,
                 category: 'Rent',
                 amount: -800,
                 date: '2025-02-15',
-                type: 'expense'
+                type: 'expense',
             });
 
             const result = store.groupByMonthYear();
@@ -1521,7 +1521,7 @@ describe('TransactionStore', () => {
                 category: 'Rent',
                 amount: -1000,
                 date: '2025-01-15',
-                type: 'expense'
+                type: 'expense',
             });
 
             store.updateTransaction(txnId, { category: 'Maintenance' });
@@ -1534,11 +1534,11 @@ describe('TransactionStore', () => {
             const importData = {
                 transactions: [
                     { id: 'txn1', propertyId: 1, category: 'Rent', amount: -1000, date: '2025-01-15', type: 'expense' },
-                    { id: 'txn2', propertyId: 1, category: '', amount: -500, date: '2025-01-15', type: 'expense' } // Invalid
+                    { id: 'txn2', propertyId: 1, category: '', amount: -500, date: '2025-01-15', type: 'expense' }, // Invalid
                 ],
                 properties: [[1, { id: 1, name: 'Property 1', created: '2025-01-01' }]],
                 categories: ['Rent'],
-                incomeCategories: []
+                incomeCategories: [],
             };
 
             await store.importData(importData);
@@ -1548,16 +1548,16 @@ describe('TransactionStore', () => {
         });
 
         test('should save immediately with no debouncing', async () => {
-             await store.initialize();
+            await store.initialize();
 
-              store.addTransaction({ propertyId: 1, category: 'Rent', amount: -1000, date: '2025-01-15', type: 'expense' });
-              store.addTransaction({ propertyId: 1, category: 'Utilities', amount: -500, date: '2025-01-20', type: 'expense' });
+            store.addTransaction({ propertyId: 1, category: 'Rent', amount: -1000, date: '2025-01-15', type: 'expense' });
+            store.addTransaction({ propertyId: 1, category: 'Utilities', amount: -500, date: '2025-01-20', type: 'expense' });
 
-              // With debounceMs: 0, should save immediately
-              jest.runOnlyPendingTimers();
+            // With debounceMs: 0, should save immediately
+            jest.runOnlyPendingTimers();
 
-              expect(mockStorage.save).toHaveBeenCalledTimes(1);
-          }, 5000); // Add timeout
+            expect(mockStorage.save).toHaveBeenCalledTimes(1);
+        }, 5000); // Add timeout
     });
 
     // ============================================================================
@@ -1577,7 +1577,7 @@ describe('TransactionStore', () => {
                 transactions: [{ id: 'txn1', propertyId: 1, category: 'Rent', amount: -1000, date: '2025-01-15', type: 'expense' }],
                 properties: [[1, { id: 1, name: 'Property 1', created: '2025-01-01' }]],
                 categories: ['Rent'],
-                incomeCategories: []
+                incomeCategories: [],
             };
 
             const newStore = new TransactionStore(mockStorage, mockValidator, mockFormatter);
@@ -1591,7 +1591,7 @@ describe('TransactionStore', () => {
                 transactions: [{ id: 'txn1', propertyId: 1, category: 'Rent', amount: -1000, date: '2025-01-15', type: 'expense' }],
                 properties: new Map([[1, { id: 1, name: 'Property 1', created: '2025-01-01' }]]),
                 categories: ['Rent'],
-                incomeCategories: []
+                incomeCategories: [],
             };
 
             const newStore = new TransactionStore(mockStorage, mockValidator, mockFormatter);
@@ -1642,7 +1642,7 @@ describe('TransactionStore', () => {
                 category: 'Rent',
                 amount: -1000,
                 date: '2025-01-15',
-                type: 'expense'
+                type: 'expense',
             });
 
             // Update both category and type to trigger incomeCategories update
@@ -1760,10 +1760,10 @@ describe('TransactionStore', () => {
                 properties: [{
                     id: 1,
                     name: 'Test Property',
-                    expenses: { 'Rent': -1000 }
+                    expenses: { 'Rent': -1000 },
                 }],
                 expenseCategories: ['Rent', 'Utilities'],
-                incomeCategories: ['Income']
+                incomeCategories: ['Income'],
             };
 
             const result = store.convertLegacyData(legacyData);
@@ -1780,7 +1780,7 @@ describe('TransactionStore', () => {
                 transactions: [{ id: 'txn1', propertyId: 1, category: 'Rent', amount: -1000, date: '2025-01-15', type: 'expense' }],
                 properties: [[1, { id: 1, name: 'Property 1', created: '2025-01-01' }]],
                 categories: ['Rent'],
-                incomeCategories: []
+                incomeCategories: [],
             };
 
             await store.importData(importData);

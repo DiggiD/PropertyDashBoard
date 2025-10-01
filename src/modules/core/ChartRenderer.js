@@ -153,6 +153,7 @@ class ChartRenderer {
      * Initialize chart renderer
      */
     async initialize() {
+        console.log('[CHART] Initializing chart renderer...');
         if (this.isInitialized) {
             console.log('[CHART] Already initialized, skipping');
             return;
@@ -162,11 +163,14 @@ class ChartRenderer {
         d3.select('#overviewChartContent svg').remove();  // Clear old SVG
         this.isInitialized = true;
 
+        console.log('[CHART] Ensuring chart container is ready...');
         await this.uiManager.getElement('chart-container'); // Ensures ready before setupChartContainers
+        console.log('[CHART] Creating tooltip...');
         this.createTooltip();
+        console.log('[CHART] Setting up chart containers...');
         this.setupChartContainers();
 
-        console.log('[CHART] Chart renderer initialized');
+        console.log('[CHART] Chart renderer initialized successfully');
     }
 
     /**
@@ -199,17 +203,17 @@ class ChartRenderer {
     setupChartContainers() {
         try {
             const container = this.uiManager.getElement('chart-container');
-            if (!container) throw new Error('Chart container not found');
+            if (!container) {throw new Error('Chart container not found');}
             this.chartContainer = container; // Same for tooltip, etc.
             const ids = ['chart-container', 'tooltip'];
             ids.forEach(id => {
                 const el = this.uiManager.getElement(id);
-                if (el) this[id] = el;
+                if (el) {this[id] = el;}
             });
 
             // Setup chart containers for different views
             const containers = [
-                'overviewChartContent'
+                'overviewChartContent',
             ];
 
             containers.forEach(containerId => {
@@ -233,7 +237,7 @@ class ChartRenderer {
      * Render overview sankey diagram
      */
     async renderOverviewSankey() {
-        if (this.isRendering) return;
+        if (this.isRendering) {return;}
         this.isRendering = true;
 
         const container = this.uiManager.getElement('overviewChartContent');
@@ -318,45 +322,45 @@ class ChartRenderer {
         const validProperties = properties.filter(p => p && typeof p.id === 'number');
         const nodes = [];
         const links = [];
-        
+
         // L0-1: Income (if any)
         if (hasIncome) {
-          let sortKey = 0;
-          Object.entries(sources).sort(([,a], [,b]) => b - a).forEach(([source, total]) => {
-            if (total > 0) {
-              const id = `income-${source}`;
-              nodes.push({ id, name: source.toUpperCase(), type: 'income-source', level: 0, sortKey: sortKey++, color: this.getColor('categories', sortKey), total });
-            }
-          });
-          nodes.push({ id: 'earnings', name: 'EARNINGS', type: 'earnings', level: 1, sortKey: 0, color: '#059669', widthFactor: 2 });
-          Object.entries(sources).forEach(([source, total]) => {
-            if (total > 0) links.push({ source: `income-${source}`, target: 'earnings', value: total, type: 'income-to-earnings' });
-          });
+            let sortKey = 0;
+            Object.entries(sources).sort(([,a], [,b]) => b - a).forEach(([source, total]) => {
+                if (total > 0) {
+                    const id = `income-${source}`;
+                    nodes.push({ id, name: source.toUpperCase(), type: 'income-source', level: 0, sortKey: sortKey++, color: this.getColor('categories', sortKey), total });
+                }
+            });
+            nodes.push({ id: 'earnings', name: 'EARNINGS', type: 'earnings', level: 1, sortKey: 0, color: '#059669', widthFactor: 2 });
+            Object.entries(sources).forEach(([source, total]) => {
+                if (total > 0) {links.push({ source: `income-${source}`, target: 'earnings', value: total, type: 'income-to-earnings' });}
+            });
         } else {
-          nodes.push({ id: 'dummy-source', name: '', type: 'dummy', level: 0, sortKey: -1, color: 'transparent', isDummy: true });
+            nodes.push({ id: 'dummy-source', name: '', type: 'dummy', level: 0, sortKey: -1, color: 'transparent', isDummy: true });
         }
-        
+
         // L2: Properties (sorted by expense)
         const sortedProps = validProperties.sort((a, b) => propExpenses.get(b.id) - propExpenses.get(a.id));
         let propKey = 0;
         sortedProps.forEach(prop => {
-          const id = `prop-${prop.id}`;
-          const total = propExpenses.get(prop.id);
-          nodes.push({ id, name: (prop.name || 'Unknown').toUpperCase(), type: 'property', level: levelOffset, sortKey: propKey++, color: this.getColor('properties', propKey), total, propData: prop });
-          const src = hasIncome ? 'earnings' : 'dummy-source';
-          links.push({ source: src, target: id, value: Math.max(1, propIncomes.get(prop.id) || 0), type: 'earnings-to-prop', property: prop.name });
+            const id = `prop-${prop.id}`;
+            const total = propExpenses.get(prop.id);
+            nodes.push({ id, name: (prop.name || 'Unknown').toUpperCase(), type: 'property', level: levelOffset, sortKey: propKey++, color: this.getColor('properties', propKey), total, propData: prop });
+            const src = hasIncome ? 'earnings' : 'dummy-source';
+            links.push({ source: src, target: id, value: Math.max(1, propIncomes.get(prop.id) || 0), type: 'earnings-to-prop', property: prop.name });
         });
-        
+
         // L3: Expenses/Profit (wide)
         nodes.push({ id: 'expenses', name: 'EXPENSES', type: 'expenses', level: levelOffset + 1, sortKey: 0, color: '#DC2626', widthFactor: 2 });
-        if (hasIncome) nodes.push({ id: 'profit', name: 'PROFIT', type: 'profit', level: levelOffset + 1, sortKey: 1, color: '#059669', widthFactor: 2 });
+        if (hasIncome) {nodes.push({ id: 'profit', name: 'PROFIT', type: 'profit', level: levelOffset + 1, sortKey: 1, color: '#059669', widthFactor: 2 });}
         sortedProps.forEach(prop => {
-          const id = `prop-${prop.id}`;
-          const exp = propExpenses.get(prop.id);
-          const inc = propIncomes.get(prop.id) || 0;
-          const profit = Math.max(0, inc - exp);
-          links.push({ source: id, target: 'expenses', value: exp, type: 'prop-to-expenses', property: prop.name });
-          if (hasIncome && profit > 0) links.push({ source: id, target: 'profit', value: profit, type: 'prop-to-profit', property: prop.name });
+            const id = `prop-${prop.id}`;
+            const exp = propExpenses.get(prop.id);
+            const inc = propIncomes.get(prop.id) || 0;
+            const profit = Math.max(0, inc - exp);
+            links.push({ source: id, target: 'expenses', value: exp, type: 'prop-to-expenses', property: prop.name });
+            if (hasIncome && profit > 0) {links.push({ source: id, target: 'profit', value: profit, type: 'prop-to-profit', property: prop.name });}
         });
 
         // L4-5: Cats/Subs via D3 stratify (use pre-computed totals)
@@ -409,7 +413,7 @@ class ChartRenderer {
                     sortKey,
                     color,
                     total: d.data.value,
-                    depth: d.depth
+                    depth: d.depth,
                 });
             }
         });
@@ -421,7 +425,7 @@ class ChartRenderer {
                     source: 'expenses',
                     target: l.target.data.name,
                     value: l.target.data.value,
-                    type: 'expenses-to-cat'
+                    type: 'expenses-to-cat',
                 });
             } else {
                 links.push({
@@ -429,7 +433,7 @@ class ChartRenderer {
                     target: l.target.data.name,
                     value: l.target.data.value,
                     type: 'cat-to-sub',
-                    category: l.source.data.name
+                    category: l.source.data.name,
                 });
             }
         });
@@ -474,7 +478,7 @@ class ChartRenderer {
         const { width, height } = this.getDimensions(container);
         const svg = d3.select(container).append('svg')
             .attr('width', width).attr('height', height).attr('viewBox', `0 0 ${width} ${height}`)
-            .on('click', (e) => { if (e.target.tagName === 'svg') this.clearSelection(); });
+            .on('click', (e) => { if (e.target.tagName === 'svg') {this.clearSelection();} });
 
         this.zoomBehavior = d3.zoom();
         svg.call(this.zoomBehavior);
@@ -506,11 +510,11 @@ class ChartRenderer {
                 .attr('data-type', d => d.type)
                 .each(function(d) { d.pathLength = this.getTotalLength(); })
                 .on('mouseover', this.throttle((e, d) => {
-                    if (this.hoverTimeout) clearTimeout(this.hoverTimeout);
+                    if (this.hoverTimeout) {clearTimeout(this.hoverTimeout);}
                     this.hoverTimeout = setTimeout(() => this.handleInteraction(e, d, 'link', false), 100);
                 }, 50))
                 .on('mouseout', this.throttle(() => {
-                    if (this.hoverTimeout) clearTimeout(this.hoverTimeout);
+                    if (this.hoverTimeout) {clearTimeout(this.hoverTimeout);}
                     this.hoverTimeout = setTimeout(() => this.onHoverOut(), 100);
                 }, 50))
                 .on('click', this.throttle((e, d) => this.handleInteraction(e, d, 'link', true), 100))
@@ -527,11 +531,11 @@ class ChartRenderer {
                 .classed('node', true)
                 .attr('data-type', d => d.type)
                 .on('mouseover', this.throttle((e, d) => {
-                    if (this.hoverTimeout) clearTimeout(this.hoverTimeout);
+                    if (this.hoverTimeout) {clearTimeout(this.hoverTimeout);}
                     this.hoverTimeout = setTimeout(() => this.handleInteraction(e, d, 'node', false), 100);
                 }, 50))
                 .on('mouseout', this.throttle(() => {
-                    if (this.hoverTimeout) clearTimeout(this.hoverTimeout);
+                    if (this.hoverTimeout) {clearTimeout(this.hoverTimeout);}
                     this.hoverTimeout = setTimeout(() => this.onHoverOut(), 100);
                 }, 50))
                 .on('click', this.throttle((e, d) => this.handleInteraction(e, d, 'node', true), 100))
@@ -553,7 +557,7 @@ class ChartRenderer {
                 .force('link', d3.forceLink(data.links).id(d => d.index).distance(30))
                 .force('charge', d3.forceManyBody().strength(-50))
                 .force('center', d3.forceCenter(width / 2, height / 2))
-                .stop() // Precompute positions for queries
+                .stop(), // Precompute positions for queries
         };
         this.state = { selected: null, highlighted: null };
 
@@ -572,7 +576,7 @@ class ChartRenderer {
         data.links.forEach(link => {
             const keys = [link.source.name, link.target.name, link.property, link.category].filter(Boolean);
             keys.forEach(key => {
-                if (!this.sankeyData.relationIndex.has(key)) this.sankeyData.relationIndex.set(key, new Set());
+                if (!this.sankeyData.relationIndex.has(key)) {this.sankeyData.relationIndex.set(key, new Set());}
                 this.sankeyData.relationIndex.get(key).add(link.source.id);
                 this.sankeyData.relationIndex.get(key).add(link.target.id);
             });
@@ -582,7 +586,7 @@ class ChartRenderer {
         if (data.hasIncome) {
             Object.keys(data.sources).forEach(sourceName => {
                 const key = sourceName.toUpperCase();
-                if (!this.sankeyData.relationIndex.has(key)) this.sankeyData.relationIndex.set(key, new Set());
+                if (!this.sankeyData.relationIndex.has(key)) {this.sankeyData.relationIndex.set(key, new Set());}
                 // Add all nodes connected to income sources
                 data.links.filter(l => l.source.name === sourceName.toUpperCase() || l.target.name === sourceName.toUpperCase())
                     .forEach(l => {
@@ -603,7 +607,7 @@ class ChartRenderer {
 
     // Unified interaction handler
     handleInteraction(event, item, type, isClick = false) {
-        if (!this.sankeyData?.sim) return;
+        if (!this.sankeyData?.sim) {return;}
         const sim = this.sankeyData.sim;
         const nodes = sim.nodes();
         const links = this.sankeyData.links;
@@ -633,7 +637,7 @@ class ChartRenderer {
         // For clicks, enable full sim
         if (isClick) {
             sim.force('path', forces.path).force('filter', forces.filter).force('ripple', forces.ripple)
-               .alpha(0.3).alphaDecay(0.05).restart();
+                .alpha(0.3).alphaDecay(0.05).restart();
         }
 
         // Update visuals
@@ -698,143 +702,143 @@ class ChartRenderer {
         sim.force('path', null).force('filter', null).force('ripple', null).alpha(0.1);
         this.updateRippleVisuals(sim.nodes(), this.sankeyData.links, null, null, true);
         this.hideTooltip();
-        if (this.sankeyData.svg.call) this.sankeyData.svg.call(this.zoomBehavior?.transform, d3.zoomIdentity); // Reset zoom
+        if (this.sankeyData.svg.call) {this.sankeyData.svg.call(this.zoomBehavior?.transform, d3.zoomIdentity);} // Reset zoom
     }
 
     // Add helper method for tooltip content (similar to current DOM formatting)
-formatTooltipContent(item, type) {
-    const lines = [];
-    if (type === 'node') {
-        lines.push(item.name);
-        if (item.total !== undefined) {
-            lines.push(`${this.formatter.formatCurrency(item.total)}`);
+    formatTooltipContent(item, type) {
+        const lines = [];
+        if (type === 'node') {
+            lines.push(item.name);
+            if (item.total !== undefined) {
+                lines.push(`${this.formatter.formatCurrency(item.total)}`);
+            }
+            if (item.type === 'property' && item.propData) {
+                lines.push(`Property: ${item.propData.address || 'N/A'}`);
+            } else if (item.type === 'category' || item.type === 'subcategory') {
+                lines.push(`Category: ${item.type.toUpperCase()}`);
+            }
+        } else if (type === 'link') {
+            lines.push(`${item.source?.name || 'Source'} → ${item.target?.name || 'Target'}`);
+            lines.push(`${this.formatter.formatCurrency(item.value)} flow`);
+            if (item.property) {lines.push(`Property: ${item.property}`);}
+            if (item.category) {lines.push(`Category: ${item.category}`);}
         }
-        if (item.type === 'property' && item.propData) {
-            lines.push(`Property: ${item.propData.address || 'N/A'}`);
-        } else if (item.type === 'category' || item.type === 'subcategory') {
-            lines.push(`Category: ${item.type.toUpperCase()}`);
-        }
-    } else if (type === 'link') {
-        lines.push(`${item.source?.name || 'Source'} → ${item.target?.name || 'Target'}`);
-        lines.push(`${this.formatter.formatCurrency(item.value)} flow`);
-        if (item.property) lines.push(`Property: ${item.property}`);
-        if (item.category) lines.push(`Category: ${item.category}`);
+        return lines.map(line => ({ text: line, bold: line === lines[0] })); // First line bold
     }
-    return lines.map(line => ({ text: line, bold: line === lines[0] })); // First line bold
-}
 
-// Enhanced tooltip as SVG (sleek, no DOM jumps) - replace placeholder
-showRippleTooltip(event, item, type, persistent) {
+    // Enhanced tooltip as SVG (sleek, no DOM jumps) - replace placeholder
+    showRippleTooltip(event, item, type, persistent) {
     // Remove old
-    this.sankeyData.svg.select('.ripple-tooltip').remove();
-    
-    const tooltipG = this.sankeyData.svg.append('g')
-        .attr('class', 'ripple-tooltip')
-        .style('pointer-events', 'none')
-        .style('opacity', 0)
-        .attr('transform', 'scale(0.5)'); // Start scaled for animation
-    
-    // Background rect (similar to current div styles)
-    const bgRect = tooltipG.append('rect')
-        .attr('fill', 'var(--color-surface)')
-        .attr('stroke', 'var(--color-border)')
-        .attr('stroke-width', 1)
-        .attr('rx', 'var(--radius-base, 4)')
-        .attr('filter', persistent ? 'url(#glow)' : null); // Creative glow on persistent
-    
-    // Add glow filter if persistent (in defs if not exists)
-    if (persistent) {
-        const defs = this.sankeyData.svg.select('defs');
-        if (defs.select('#glow').empty()) {
-            const glow = defs.append('filter').attr('id', 'glow').attr('x', '-50%').attr('y', '-50%').attr('width', '200%').attr('height', '200%');
-            glow.append('feGaussianBlur').attr('stdDeviation', 3).attr('result', 'coloredBlur');
-            const feMerge = glow.append('feMerge');
-            feMerge.append('feMergeNode').attr('in', 'coloredBlur');
-            feMerge.append('feMergeNode').attr('in', 'SourceGraphic');
-        }
-    }
-    
-    // Foreign object for text with max-width (SVG text doesn't support max-width)
-    const foreignObject = tooltipG.append('foreignObject')
-        .attr('x', 12)
-        .attr('y', 8)
-        .attr('width', 280)
-        .attr('height', 100); // Estimate height
+        this.sankeyData.svg.select('.ripple-tooltip').remove();
 
-    const div = foreignObject.append('xhtml:div')
-        .style('max-width', '280px')
-        .style('font-size', 'var(--font-size-sm, 12px)')
-        .style('font-family', 'var(--font-family, sans-serif)')
-        .style('color', 'var(--color-text)')
-        .style('line-height', '1.2em')
-        .style('word-wrap', 'break-word');
+        const tooltipG = this.sankeyData.svg.append('g')
+            .attr('class', 'ripple-tooltip')
+            .style('pointer-events', 'none')
+            .style('opacity', 0)
+            .attr('transform', 'scale(0.5)'); // Start scaled for animation
 
-    // Generate content
-    const contentLines = this.formatTooltipContent(item, type);
-    const htmlContent = contentLines.map(line => line.bold ? `<b>${line.text}</b>` : line.text).join('<br>');
-    div.html(htmlContent);
+        // Background rect (similar to current div styles)
+        const bgRect = tooltipG.append('rect')
+            .attr('fill', 'var(--color-surface)')
+            .attr('stroke', 'var(--color-border)')
+            .attr('stroke-width', 1)
+            .attr('rx', 'var(--radius-base, 4)')
+            .attr('filter', persistent ? 'url(#glow)' : null); // Creative glow on persistent
 
-    // Size rect to fit (use estimated size)
-    bgRect.attr('x', 4).attr('y', 4)
-          .attr('width', 280 + 16).attr('height', contentLines.length * 16 + 8)
-          .attr('box-shadow', 'var(--shadow-lg)'); // Note: SVG shadow via CSS or filter
-    
-    // Position near pointer (similar to current absolute pos)
-    const [x, y] = d3.pointer(event, this.sankeyData.svg.node());
-    const anchorX = x + 10;
-    const anchorY = y - 10;
-    tooltipG.attr('transform', `translate(${anchorX}, ${anchorY})`);
-    
-    // Animate in (sleek scale + opacity, like current fade)
-    tooltipG.transition()
-        .duration(200)
-        .ease(d3.easeBackOut)
-        .style('opacity', 1)
-        .attr('transform', `translate(${anchorX}, ${anchorY}) scale(1)`);
-    
-    if (persistent) {
-        this.persistentTooltip = tooltipG;
-        this.persistentPos = [anchorX, anchorY];
-    }
-}
-
-// Update hideTooltip to handle SVG (add after clearRipple)
-hideTooltip() {
-    if (this.tooltip) {
-        this.tooltip.style('opacity', 0);
-    }
-    if (this.persistentTooltip) {
-        try {
-            this.persistentTooltip.transition().duration(200).style('opacity', 0).remove();
-        } catch (error) {
-            // Fallback for mock environments where transition methods may not be fully implemented
-            try {
-                this.persistentTooltip.style('opacity', 0).remove();
-            } catch (fallbackError) {
-                // Last resort fallback - just null out the tooltip
-                console.warn('[CHART] Could not properly hide persistent tooltip, clearing reference');
+        // Add glow filter if persistent (in defs if not exists)
+        if (persistent) {
+            const defs = this.sankeyData.svg.select('defs');
+            if (defs.select('#glow').empty()) {
+                const glow = defs.append('filter').attr('id', 'glow').attr('x', '-50%').attr('y', '-50%').attr('width', '200%').attr('height', '200%');
+                glow.append('feGaussianBlur').attr('stdDeviation', 3).attr('result', 'coloredBlur');
+                const feMerge = glow.append('feMerge');
+                feMerge.append('feMergeNode').attr('in', 'coloredBlur');
+                feMerge.append('feMergeNode').attr('in', 'SourceGraphic');
             }
         }
-        this.persistentTooltip = null;
-        this.persistentPos = null;
-    }
-}
 
-// Update repositionPersistentTooltip (if exists, or add) to handle SVG
-repositionPersistentTooltip() {
-    if (this.persistentTooltip && this.persistentPos) {
-        const [x, y] = this.persistentPos;
-        this.persistentTooltip.transition().duration(150)
-            .attr('transform', `translate(${x}, ${y}) scale(1)`);
+        // Foreign object for text with max-width (SVG text doesn't support max-width)
+        const foreignObject = tooltipG.append('foreignObject')
+            .attr('x', 12)
+            .attr('y', 8)
+            .attr('width', 280)
+            .attr('height', 100); // Estimate height
+
+        const div = foreignObject.append('xhtml:div')
+            .style('max-width', '280px')
+            .style('font-size', 'var(--font-size-sm, 12px)')
+            .style('font-family', 'var(--font-family, sans-serif)')
+            .style('color', 'var(--color-text)')
+            .style('line-height', '1.2em')
+            .style('word-wrap', 'break-word');
+
+        // Generate content
+        const contentLines = this.formatTooltipContent(item, type);
+        const htmlContent = contentLines.map(line => line.bold ? `<b>${line.text}</b>` : line.text).join('<br>');
+        div.html(htmlContent);
+
+        // Size rect to fit (use estimated size)
+        bgRect.attr('x', 4).attr('y', 4)
+            .attr('width', 280 + 16).attr('height', contentLines.length * 16 + 8)
+            .attr('box-shadow', 'var(--shadow-lg)'); // Note: SVG shadow via CSS or filter
+
+        // Position near pointer (similar to current absolute pos)
+        const [x, y] = d3.pointer(event, this.sankeyData.svg.node());
+        const anchorX = x + 10;
+        const anchorY = y - 10;
+        tooltipG.attr('transform', `translate(${anchorX}, ${anchorY})`);
+
+        // Animate in (sleek scale + opacity, like current fade)
+        tooltipG.transition()
+            .duration(200)
+            .ease(d3.easeBackOut)
+            .style('opacity', 1)
+            .attr('transform', `translate(${anchorX}, ${anchorY}) scale(1)`);
+
+        if (persistent) {
+            this.persistentTooltip = tooltipG;
+            this.persistentPos = [anchorX, anchorY];
+        }
     }
-}
+
+    // Update hideTooltip to handle SVG (add after clearRipple)
+    hideTooltip() {
+        if (this.tooltip) {
+            this.tooltip.style('opacity', 0);
+        }
+        if (this.persistentTooltip) {
+            try {
+                this.persistentTooltip.transition().duration(200).style('opacity', 0).remove();
+            } catch (error) {
+            // Fallback for mock environments where transition methods may not be fully implemented
+                try {
+                    this.persistentTooltip.style('opacity', 0).remove();
+                } catch (fallbackError) {
+                // Last resort fallback - just null out the tooltip
+                    console.warn('[CHART] Could not properly hide persistent tooltip, clearing reference');
+                }
+            }
+            this.persistentTooltip = null;
+            this.persistentPos = null;
+        }
+    }
+
+    // Update repositionPersistentTooltip (if exists, or add) to handle SVG
+    repositionPersistentTooltip() {
+        if (this.persistentTooltip && this.persistentPos) {
+            const [x, y] = this.persistentPos;
+            this.persistentTooltip.transition().duration(150)
+                .attr('transform', `translate(${x}, ${y}) scale(1)`);
+        }
+    }
 
     // In createSankey defs, ensure vars are accessible (SVG supports CSS vars via style)
 
     // Zoom to bbox (add D3.zoom)
     zoomToBbox(bbox) {
         const k = Math.min(this.sankeyData.svg.attr('width') / (bbox[1][0] - bbox[0][0]),
-                           this.sankeyData.svg.attr('height') / (bbox[1][1] - bbox[0][1]));
+            this.sankeyData.svg.attr('height') / (bbox[1][1] - bbox[0][1]));
         const tx = (this.sankeyData.svg.attr('width') - k * (bbox[1][0] + bbox[0][0])) / 2;
         const ty = (this.sankeyData.svg.attr('height') - k * (bbox[1][1] + bbox[0][1])) / 2;
 
@@ -866,7 +870,7 @@ repositionPersistentTooltip() {
      */
     getTypeColor(type, position) {
         const baseColor = this.getColor('categories', 0);
-        if (position === 'start') return baseColor;
+        if (position === 'start') {return baseColor;}
         return this.adjustColorBrightness(baseColor, -0.2);
     }
 
@@ -879,7 +883,7 @@ repositionPersistentTooltip() {
         const rect = container.getBoundingClientRect();
         return {
             width: rect.width || 800,
-            height: rect.height || 600
+            height: rect.height || 600,
         };
     }
 
@@ -909,12 +913,12 @@ repositionPersistentTooltip() {
      * @returns {Array} Bounding box [[x0,y0], [x1,y1]]
      */
     computeRippleBbox(nodes) {
-        if (!nodes.length) return [[0,0], [100,100]];
+        if (!nodes.length) {return [[0,0], [100,100]];}
         const x0 = d3.min(nodes, d => d.x0);
         const y0 = d3.min(nodes, d => d.y0);
         const x1 = d3.max(nodes, d => d.x1);
         const y1 = d3.max(nodes, d => d.y1);
-        if (isNaN(x0) || isNaN(y0) || isNaN(x1) || isNaN(y1)) return [[0,0], [100,100]];
+        if (isNaN(x0) || isNaN(y0) || isNaN(x1) || isNaN(y1)) {return [[0,0], [100,100]];}
         return [[x0, y0], [x1, y1]];
     }
 
@@ -1043,7 +1047,7 @@ repositionPersistentTooltip() {
 
         // Adjust brightness
         const adjust = (component) => {
-            let val = component * (1 + factor);
+            const val = component * (1 + factor);
             return Math.min(255, Math.max(0, Math.round(val)));
         };
 

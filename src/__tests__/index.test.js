@@ -27,7 +27,7 @@ const mockWindow = {
         }
         this._listeners[event].push(handler);
     }),
-    dispatchEvent: function(event) {
+    dispatchEvent(event) {
         const eventType = event.type;
         const listeners = this._listeners[eventType] || [];
         listeners.forEach(handler => handler(event));
@@ -43,7 +43,7 @@ const mockDocument = {
         }
         this._listeners[event].push(handler);
     }),
-    dispatchEvent: function(event) {
+    dispatchEvent(event) {
         const eventType = event.type;
         const listeners = this._listeners[eventType] || [];
         listeners.forEach(handler => handler(event));
@@ -243,7 +243,8 @@ describe('index.js', () => {
             await expect(initializeApplication()).resolves.not.toThrow();
 
             // Verify error was logged
-            expect(consoleErrorSpy).toHaveBeenCalledWith('Init failed:', expect.any(Error));
+            expect(consoleErrorSpy).toHaveBeenCalledWith('[INDEX] Initialization failed:', expect.any(Error));
+            expect(consoleErrorSpy).toHaveBeenCalledWith('[INDEX] Error stack:', expect.any(String));
 
             consoleErrorSpy.mockRestore();
 

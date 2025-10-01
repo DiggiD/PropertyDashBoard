@@ -13,7 +13,7 @@ jest.mock('d3', () => ({
             }
             return {
                 nodes: data.nodes.map(n => ({ ...n, x0: n.x0 || 0, y0: n.y0 || 0, x1: n.x1 || 15, y1: n.y1 || 20 })),
-                links: data.links.map(l => ({ ...l, width: l.width || 1, path: 'M0,0L10,10' }))
+                links: data.links.map(l => ({ ...l, width: l.width || 1, path: 'M0,0L10,10' })),
             };
         });
 
@@ -29,7 +29,7 @@ jest.mock('d3', () => ({
         const mockStratifyResult = {
             descendants: jest.fn().mockReturnValue([]),
             sort: jest.fn().mockReturnThis(),
-            links: jest.fn().mockReturnValue([])
+            links: jest.fn().mockReturnValue([]),
         };
 
         const mockStratifyFn = jest.fn().mockReturnValue(mockStratifyResult);
@@ -47,37 +47,37 @@ jest.mock('d3', () => ({
             alphaDecay: jest.fn().mockReturnValue(sim),
             restart: jest.fn().mockReturnValue(sim),
             nodes: jest.fn().mockReturnValue([]),
-            stop: jest.fn().mockReturnValue(sim)
+            stop: jest.fn().mockReturnValue(sim),
         };
         return sim;
     }),
     forceLink: jest.fn(() => ({
         id: jest.fn().mockReturnThis(),
         distance: jest.fn().mockReturnThis(),
-        strength: jest.fn().mockReturnThis()
+        strength: jest.fn().mockReturnThis(),
     })),
     forceManyBody: jest.fn(() => ({
-        strength: jest.fn().mockReturnThis()
+        strength: jest.fn().mockReturnThis(),
     })),
     forceCenter: jest.fn(),
     forceRadial: jest.fn(() => ({
-        strength: jest.fn().mockReturnThis()
+        strength: jest.fn().mockReturnThis(),
     })),
     zoom: jest.fn(() => ({
         transform: jest.fn().mockReturnValue({
             translate: jest.fn().mockReturnThis(),
-            scale: jest.fn().mockReturnThis()
-        })
+            scale: jest.fn().mockReturnThis(),
+        }),
     })),
     zoomIdentity: {
         translate: jest.fn().mockReturnThis(),
-        scale: jest.fn().mockReturnThis()
+        scale: jest.fn().mockReturnThis(),
     },
     pointer: jest.fn(),
     sankeyLinkHorizontal: jest.fn(() => jest.fn(() => 'M0,0L10,10')),
     select: jest.fn(() => ({
         select: jest.fn(() => ({
-            remove: jest.fn()
+            remove: jest.fn(),
         })),
         remove: jest.fn(),
         selectAll: jest.fn(() => ({
@@ -95,13 +95,13 @@ jest.mock('d3', () => ({
                                 ease: jest.fn().mockReturnValue(transitionObj),
                                 style: jest.fn().mockReturnValue(transitionObj),
                                 attr: jest.fn().mockReturnValue(transitionObj),
-                                attrTween: jest.fn().mockReturnValue(transitionObj)
+                                attrTween: jest.fn().mockReturnValue(transitionObj),
                             };
                             return transitionObj;
-                        })
-                    }))
-                }))
-            }))
+                        }),
+                    })),
+                })),
+            })),
         })),
         append: jest.fn(() => ({
             attr: jest.fn().mockReturnThis(),
@@ -116,10 +116,10 @@ jest.mock('d3', () => ({
                     style: jest.fn().mockReturnValue(transitionObj),
                     attr: jest.fn().mockReturnValue(transitionObj),
                     attrTween: jest.fn().mockReturnValue(transitionObj),
-                    call: jest.fn().mockReturnValue(transitionObj)
+                    call: jest.fn().mockReturnValue(transitionObj),
                 };
                 return transitionObj;
-            })
+            }),
         })),
         call: jest.fn().mockReturnThis(),
         transition: jest.fn(() => {
@@ -129,7 +129,7 @@ jest.mock('d3', () => ({
                 style: jest.fn().mockReturnValue(transitionObj),
                 attr: jest.fn().mockReturnValue(transitionObj),
                 attrTween: jest.fn().mockReturnValue(transitionObj),
-                call: jest.fn().mockReturnValue(transitionObj)
+                call: jest.fn().mockReturnValue(transitionObj),
             };
             return transitionObj;
         }),
@@ -140,7 +140,7 @@ jest.mock('d3', () => ({
         data: jest.fn().mockReturnThis(),
         enter: jest.fn().mockReturnThis(),
         selectAll: jest.fn().mockReturnThis(),
-        remove: jest.fn().mockReturnThis()
+        remove: jest.fn().mockReturnThis(),
     })),
     selectAll: jest.fn(() => ({
         data: jest.fn(() => ({
@@ -157,12 +157,12 @@ jest.mock('d3', () => ({
                             ease: jest.fn().mockReturnValue(transitionObj),
                             style: jest.fn().mockReturnValue(transitionObj),
                             attr: jest.fn().mockReturnValue(transitionObj),
-                            attrTween: jest.fn().mockReturnValue(transitionObj)
+                            attrTween: jest.fn().mockReturnValue(transitionObj),
                         };
                         return transitionObj;
-                    })
-                }))
-            }))
+                    }),
+                })),
+            })),
         })),
         transition: jest.fn(() => {
             const transitionObj = {
@@ -171,7 +171,7 @@ jest.mock('d3', () => ({
                 style: jest.fn().mockReturnValue(transitionObj),
                 attr: jest.fn().mockReturnValue(transitionObj),
                 attrTween: jest.fn().mockReturnValue(transitionObj),
-                call: jest.fn().mockReturnValue(transitionObj)
+                call: jest.fn().mockReturnValue(transitionObj),
             };
             return transitionObj;
         }),
@@ -182,7 +182,7 @@ jest.mock('d3', () => ({
         data: jest.fn().mockReturnThis(),
         enter: jest.fn().mockReturnThis(),
         selectAll: jest.fn().mockReturnThis(),
-        remove: jest.fn().mockReturnThis()
+        remove: jest.fn().mockReturnThis(),
     })),
     data: jest.fn(),
     enter: jest.fn(),
@@ -198,7 +198,7 @@ jest.mock('d3', () => ({
             style: jest.fn().mockReturnValue(mockTransition),
             attr: jest.fn().mockReturnValue(mockTransition),
             attrTween: jest.fn().mockReturnValue(mockTransition),
-            call: jest.fn().mockReturnValue(mockTransition)
+            call: jest.fn().mockReturnValue(mockTransition),
         };
         return mockTransition;
     }),
@@ -223,11 +223,11 @@ const mockD3 = global.d3;
 global.document = {
     documentElement: {
         style: {
-            setProperty: jest.fn()
-        }
+            setProperty: jest.fn(),
+        },
     },
     addEventListener: jest.fn(),
-    _colorThemeListenerAdded: false
+    _colorThemeListenerAdded: false,
 };
 
 // Mock DOM elements for jsdom
@@ -241,14 +241,14 @@ const mockContainer = {
     setAttribute: jest.fn(),
     classList: {
         add: jest.fn(),
-        remove: jest.fn()
-    }
+        remove: jest.fn(),
+    },
 };
 
 // Mock ResizeObserver
 global.ResizeObserver = jest.fn(() => ({
     observe: jest.fn(),
-    disconnect: jest.fn()
+    disconnect: jest.fn(),
 }));
 
 // Import modules after mocking
@@ -262,18 +262,18 @@ const mockValidator = {
     validatePropertyName: jest.fn(),
     validateCategoryName: jest.fn(),
     validateAmount: jest.fn(),
-    validateDashboardData: jest.fn()
+    validateDashboardData: jest.fn(),
 };
 
 const mockFormatter = {
     formatCurrency: jest.fn(),
-    formatNumber: jest.fn()
+    formatNumber: jest.fn(),
 };
 
 const mockUIManager = {
     getElement: jest.fn(() => mockContainer),
     showLoadingState: jest.fn(),
-    hideLoadingState: jest.fn()
+    hideLoadingState: jest.fn(),
 };
 
 // Mock DataManager
@@ -296,14 +296,14 @@ function createChartRenderer() {
     const mockTheme = {
         getChartColors: jest.fn(() => ({
             categories: ['#5D878F', '#DB4545', '#D2BA4C', '#964325', '#944454'],
-            trends: { increasing: '#10B981', decreasing: '#EF4444', stable: '#6B7280' }
+            trends: { increasing: '#10B981', decreasing: '#EF4444', stable: '#6B7280' },
         })),
         getCurrentColorTheme: jest.fn(() => 'light'),
         getColorTheme: jest.fn(() => ({
             properties: ['#5D878F', '#DB4545', '#D2BA4C', '#964325', '#944454'],
             categories: ['#5D878F', '#DB4545', '#D2BA4C', '#964325', '#944454'],
-            trends: { increasing: '#10B981', decreasing: '#EF4444', stable: '#6B7280' }
-        }))
+            trends: { increasing: '#10B981', decreasing: '#EF4444', stable: '#6B7280' },
+        })),
     };
     return new ChartRenderer(mockDataManager, mockUIManager, mockFormatter, mockTheme);
 }
@@ -322,10 +322,10 @@ function createMockData(hasIncome = true, numProperties = 2) {
             monthlyData: {
                 'Jan 2025': {
                     expenses: { 'Maintenance': -(1000 + i * 500), 'Utilities': -(200 + i * 100) },
-                    incomes: hasIncome ? { 'Rent': 2000 + i * 500, 'Parking': i * 100 } : {}
-                }
+                    incomes: hasIncome ? { 'Rent': 2000 + i * 500, 'Parking': i * 100 } : {},
+                },
             },
-            incomes: hasIncome ? { 'Rent': 2000 + i * 500, 'Parking': i * 100 } : {}
+            incomes: hasIncome ? { 'Rent': 2000 + i * 500, 'Parking': i * 100 } : {},
         });
     }
 
@@ -337,7 +337,7 @@ function createMockData(hasIncome = true, numProperties = 2) {
         currentTimePeriod: 'month',
         currentView: 'overview',
         selectedYear: '2025',
-        selectedMonth: '1'
+        selectedMonth: '1',
     };
 }
 
@@ -366,7 +366,7 @@ describe.only('Master Sankey Test Suite', () => {
             currentTimePeriod: 'month',
             currentView: 'overview',
             selectedYear: '2025',
-            selectedMonth: '1'
+            selectedMonth: '1',
         });
 
         // Create DataManager instance
@@ -396,7 +396,7 @@ describe.only('Master Sankey Test Suite', () => {
                 currentTimePeriod: 'month',
                 currentView: 'overview',
                 selectedYear: '2025',
-                selectedMonth: '1'
+                selectedMonth: '1',
             };
             dataManager._initialized = true;
         });
@@ -410,7 +410,7 @@ describe.only('Master Sankey Test Suite', () => {
                     { id: '3', propertyId: 1, category: 'Rent', amount: 5000, date: '2025-01-15', type: 'income' },
                     { id: '4', propertyId: 2, category: 'Maintenance', amount: -1500, date: '2025-01-15', type: 'expense' },
                     { id: '5', propertyId: 2, category: 'Utilities', amount: -300, date: '2025-01-15', type: 'expense' },
-                    { id: '6', propertyId: 2, category: 'Sales', amount: 3000, date: '2025-01-15', type: 'income' }
+                    { id: '6', propertyId: 2, category: 'Sales', amount: 3000, date: '2025-01-15', type: 'income' },
                 ];
 
                 // Setup property metadata
@@ -425,7 +425,7 @@ describe.only('Master Sankey Test Suite', () => {
                 // Assert sources contain correct income totals
                 expect(Object.fromEntries(result.sources)).toEqual({
                     'Rent': 5000,
-                    'Sales': 3000
+                    'Sales': 3000,
                 });
 
                 // Assert property incomes match
@@ -447,7 +447,7 @@ describe.only('Master Sankey Test Suite', () => {
                     { id: '1', propertyId: 1, category: 'Maintenance', amount: -2000, date: '2025-01-15', type: 'expense' },
                     { id: '2', propertyId: 1, category: 'Utilities', amount: -500, date: '2025-01-15', type: 'expense' },
                     { id: '3', propertyId: 2, category: 'Maintenance', amount: -1500, date: '2025-01-15', type: 'expense' },
-                    { id: '4', propertyId: 2, category: 'Utilities', amount: -300, date: '2025-01-15', type: 'expense' }
+                    { id: '4', propertyId: 2, category: 'Utilities', amount: -300, date: '2025-01-15', type: 'expense' },
                 ];
 
                 // Setup property metadata
@@ -477,7 +477,7 @@ describe.only('Master Sankey Test Suite', () => {
                     { id: '1', propertyId: 1, category: 'Maintenance', amount: -1000, date: '2025-01-15', type: 'expense' },
                     { id: '2', propertyId: 1, category: 'Rent', amount: 2000, date: '2025-01-15', type: 'income' },
                     { id: '3', propertyId: 1, category: 'Maintenance', amount: -1500, date: '2025-02-15', type: 'expense' },
-                    { id: '4', propertyId: 1, category: 'Rent', amount: 2500, date: '2025-02-15', type: 'income' }
+                    { id: '4', propertyId: 1, category: 'Rent', amount: 2500, date: '2025-02-15', type: 'income' },
                 ];
 
                 // Setup property metadata
@@ -497,7 +497,7 @@ describe.only('Master Sankey Test Suite', () => {
                     { id: '1', propertyId: 1, category: 'Maintenance', amount: -1000, date: '2025-01-15', type: 'expense' },
                     { id: '2', propertyId: 1, category: 'Rent', amount: 2000, date: '2025-01-15', type: 'income' },
                     { id: '3', propertyId: 1, category: 'Maintenance', amount: -1500, date: '2025-02-15', type: 'expense' },
-                    { id: '4', propertyId: 1, category: 'Rent', amount: 2500, date: '2025-02-15', type: 'income' }
+                    { id: '4', propertyId: 1, category: 'Rent', amount: 2500, date: '2025-02-15', type: 'income' },
                 ];
 
                 // Setup property metadata
@@ -523,7 +523,7 @@ describe.only('Master Sankey Test Suite', () => {
                     { id: '5', propertyId: 2, category: 'Maintenance', subcategory: 'Repairs', amount: -800, date: '2025-01-15', type: 'expense' },
                     { id: '6', propertyId: 2, category: 'Maintenance', subcategory: 'Cleaning', amount: -400, date: '2025-01-15', type: 'expense' },
                     { id: '7', propertyId: 2, category: 'Utilities', amount: -200, date: '2025-01-15', type: 'expense' },
-                    { id: '8', propertyId: 2, category: 'Sales', amount: 1500, date: '2025-01-15', type: 'income' }
+                    { id: '8', propertyId: 2, category: 'Sales', amount: 1500, date: '2025-01-15', type: 'income' },
                 ];
 
                 // Setup property metadata
@@ -547,7 +547,7 @@ describe.only('Master Sankey Test Suite', () => {
                 // Setup mock transactions
                 dataManager.store.transactions = [
                     { id: '1', propertyId: 1, category: 'Rent', amount: 5000, date: '2025-01-15', type: 'income' },
-                    { id: '2', propertyId: 1, category: 'Parking', amount: 1000, date: '2025-01-15', type: 'income' }
+                    { id: '2', propertyId: 1, category: 'Parking', amount: 1000, date: '2025-01-15', type: 'income' },
                 ];
 
                 // Setup property metadata
@@ -559,7 +559,7 @@ describe.only('Master Sankey Test Suite', () => {
                 expect(result.total).toBe(6000);
                 expect(result.income).toEqual({
                     'Rent': 5000,
-                    'Parking': 1000
+                    'Parking': 1000,
                 });
             });
 
@@ -568,7 +568,7 @@ describe.only('Master Sankey Test Suite', () => {
                 dataManager.store.transactions = [
                     { id: '1', propertyId: 1, category: 'Maintenance', amount: -2000, date: '2025-01-15', type: 'expense' },
                     { id: '2', propertyId: 1, category: 'Utilities', amount: -500, date: '2025-01-15', type: 'expense' },
-                    { id: '3', propertyId: 1, category: 'Rent', amount: 3000, date: '2025-01-15', type: 'income' }
+                    { id: '3', propertyId: 1, category: 'Rent', amount: 3000, date: '2025-01-15', type: 'income' },
                 ];
 
                 // Setup property metadata
@@ -594,7 +594,7 @@ describe.only('Master Sankey Test Suite', () => {
                     { id: '1', propertyId: 1, category: 'Maintenance', amount: -1000, date: '2025-01-15', type: 'expense' },
                     { id: '2', propertyId: 1, category: 'Rent', amount: 2000, date: '2025-01-15', type: 'income' },
                     { id: '3', propertyId: 1, category: 'Maintenance', amount: -1500, date: '2025-02-15', type: 'expense' },
-                    { id: '4', propertyId: 1, category: 'Rent', amount: 2500, date: '2025-02-15', type: 'income' }
+                    { id: '4', propertyId: 1, category: 'Rent', amount: 2500, date: '2025-02-15', type: 'income' },
                 ];
 
                 // Setup property metadata
@@ -621,7 +621,7 @@ describe.only('Master Sankey Test Suite', () => {
             test('should handle missing monthly data gracefully', () => {
                 // Setup mock transactions
                 dataManager.store.transactions = [
-                    { id: '1', propertyId: 1, category: 'Rent', amount: 3000, date: '2025-01-15', type: 'income' }
+                    { id: '1', propertyId: 1, category: 'Rent', amount: 3000, date: '2025-01-15', type: 'income' },
                 ];
 
                 // Setup property metadata
@@ -640,7 +640,7 @@ describe.only('Master Sankey Test Suite', () => {
                 // Setup mock transactions
                 dataManager.store.transactions = [
                     { id: '1', propertyId: 1, category: 'Maintenance', amount: -1000, date: '2025-01-15', type: 'expense' },
-                    { id: '2', propertyId: 1, category: 'Rent', amount: 2000, date: '2025-01-15', type: 'income' }
+                    { id: '2', propertyId: 1, category: 'Rent', amount: 2000, date: '2025-01-15', type: 'income' },
                 ];
 
                 // Setup property metadata
@@ -660,7 +660,7 @@ describe.only('Master Sankey Test Suite', () => {
                 // Setup mock transactions
                 dataManager.store.transactions = [
                     { id: '1', propertyId: 1, category: 'Maintenance', amount: -1000, date: '2025-01-15', type: 'expense' },
-                    { id: '2', propertyId: 1, category: 'Rent', amount: 2000, date: '2025-01-15', type: 'income' }
+                    { id: '2', propertyId: 1, category: 'Rent', amount: 2000, date: '2025-01-15', type: 'income' },
                 ];
 
                 // Setup property metadata
@@ -679,7 +679,7 @@ describe.only('Master Sankey Test Suite', () => {
                 const result = dataManager.getAggregatedSankeyData('month', '2025');
                 expect(result.sources.get('Rent')).toBe(3000);
             });
-    
+
             describe('ChartRenderer interaction and tooltip tests', () => {
                 test('should handle node hover interactions correctly', () => {
                     const chartRenderer = createChartRenderer();
@@ -688,10 +688,10 @@ describe.only('Master Sankey Test Suite', () => {
                     const mockSankeyData = {
                         nodes: [
                             { id: 'prop-1', name: 'PROPERTY A', type: 'property', x0: 100, y0: 10, x1: 115, y1: 50, color: '#5D878F' },
-                            { id: 'expenses', name: 'EXPENSES', type: 'expenses', x0: 200, y0: 10, x1: 215, y1: 50, color: '#DC2626' }
+                            { id: 'expenses', name: 'EXPENSES', type: 'expenses', x0: 200, y0: 10, x1: 215, y1: 50, color: '#DC2626' },
                         ],
                         links: [
-                            { source: { id: 'prop-1' }, target: { id: 'expenses' }, value: 1000, type: 'prop-to-expenses' }
+                            { source: { id: 'prop-1' }, target: { id: 'expenses' }, value: 1000, type: 'prop-to-expenses' },
                         ],
                         svg: {
                             select: jest.fn().mockReturnValue({
@@ -702,7 +702,7 @@ describe.only('Master Sankey Test Suite', () => {
                                     append: jest.fn().mockReturnValue({
                                         attr: jest.fn().mockReturnThis(),
                                         style: jest.fn().mockReturnThis(),
-                                        text: jest.fn().mockReturnThis()
+                                        text: jest.fn().mockReturnThis(),
                                     }),
                                     transition: jest.fn(() => {
                                         const transitionObj = {
@@ -710,11 +710,11 @@ describe.only('Master Sankey Test Suite', () => {
                                             ease: jest.fn().mockReturnValue(transitionObj),
                                             style: jest.fn().mockReturnValue(transitionObj),
                                             attr: jest.fn().mockReturnValue(transitionObj),
-                                            attrTween: jest.fn().mockReturnValue(transitionObj)
+                                            attrTween: jest.fn().mockReturnValue(transitionObj),
                                         };
                                         return transitionObj;
-                                    })
-                                })
+                                    }),
+                                }),
                             }),
                             append: jest.fn().mockReturnValue({
                                 attr: jest.fn().mockReturnThis(),
@@ -727,8 +727,8 @@ describe.only('Master Sankey Test Suite', () => {
                                         attr: jest.fn().mockReturnThis(),
                                         style: jest.fn().mockReturnThis(),
                                         text: jest.fn().mockReturnThis(),
-                                        html: jest.fn().mockReturnThis()
-                                    })
+                                        html: jest.fn().mockReturnThis(),
+                                    }),
                                 }),
                                 transition: jest.fn(() => {
                                     const transitionObj = {};
@@ -738,7 +738,7 @@ describe.only('Master Sankey Test Suite', () => {
                                     transitionObj.attr = jest.fn().mockReturnValue(transitionObj);
                                     transitionObj.attrTween = jest.fn().mockReturnValue(transitionObj);
                                     return transitionObj;
-                                })
+                                }),
                             }),
                             transition: jest.fn(() => {
                                 const transitionObj = {};
@@ -762,23 +762,23 @@ describe.only('Master Sankey Test Suite', () => {
                                     return transitionObj;
                                 }),
                                 attr: jest.fn().mockReturnThis(),
-                                style: jest.fn().mockReturnThis()
+                                style: jest.fn().mockReturnThis(),
                             }),
                             node: jest.fn().mockReturnValue({
-                                getBoundingClientRect: jest.fn().mockReturnValue({ width: 800, height: 600 })
-                            })
+                                getBoundingClientRect: jest.fn().mockReturnValue({ width: 800, height: 600 }),
+                            }),
                         },
                         sim: {
                             nodes: jest.fn().mockReturnValue([
                                 { id: 'prop-1', x: 100, y: 30, index: 0 },
-                                { id: 'expenses', x: 200, y: 30, index: 1 }
+                                { id: 'expenses', x: 200, y: 30, index: 1 },
                             ]),
                             force: jest.fn().mockReturnThis(),
                             alpha: jest.fn().mockReturnThis(),
                             alphaDecay: jest.fn().mockReturnThis(),
-                            restart: jest.fn().mockReturnThis()
+                            restart: jest.fn().mockReturnThis(),
                         },
-                        relationIndex: new Map([['PROPERTY A', new Set(['prop-1', 'expenses'])]])
+                        relationIndex: new Map([['PROPERTY A', new Set(['prop-1', 'expenses'])]]),
                     };
 
                     chartRenderer.sankeyData = mockSankeyData;
@@ -786,13 +786,13 @@ describe.only('Master Sankey Test Suite', () => {
                     // Initialize rippleForces to avoid undefined errors
                     chartRenderer.rippleForces = new Map([
                         ['node', { filter: { strength: jest.fn().mockReturnThis() }, ripple: jest.fn() }],
-                        ['link', { filter: { strength: jest.fn().mockReturnThis() }, ripple: jest.fn() }]
+                        ['link', { filter: { strength: jest.fn().mockReturnThis() }, ripple: jest.fn() }],
                     ]);
 
                     // Mock event object
                     const mockEvent = {
                         clientX: 105,
-                        clientY: 30
+                        clientY: 30,
                     };
 
                     // Mock d3.pointer
@@ -809,28 +809,28 @@ describe.only('Master Sankey Test Suite', () => {
                     // Verify interaction state was set correctly
                     expect(chartRenderer.interactionState).toBe('RIPPLE_HOVER');
                 });
-    
+
                 test('should handle click interactions and zoom correctly', () => {
                     const chartRenderer = createChartRenderer();
 
                     // Mock sankey data
                     const mockSankeyData = {
                         nodes: [
-                            { id: 'prop-1', name: 'PROPERTY A', type: 'property', x0: 100, y0: 10, x1: 115, y1: 50, color: '#5D878F' }
+                            { id: 'prop-1', name: 'PROPERTY A', type: 'property', x0: 100, y0: 10, x1: 115, y1: 50, color: '#5D878F' },
                         ],
                         links: [],
                         svg: {
                             select: jest.fn().mockReturnValue({
                                 remove: jest.fn(),
                                 select: jest.fn().mockReturnValue({
-                                    empty: jest.fn().mockReturnValue(false)
+                                    empty: jest.fn().mockReturnValue(false),
                                 }),
                                 append: jest.fn().mockReturnValue({
                                     attr: jest.fn().mockReturnThis(),
                                     append: jest.fn().mockReturnValue({
-                                        attr: jest.fn().mockReturnThis()
-                                    })
-                                })
+                                        attr: jest.fn().mockReturnThis(),
+                                    }),
+                                }),
                             }),
                             selectAll: jest.fn().mockReturnValue({
                                 data: jest.fn().mockReturnThis(),
@@ -846,7 +846,7 @@ describe.only('Master Sankey Test Suite', () => {
                                     return transitionObj;
                                 }),
                                 attr: jest.fn().mockReturnThis(),
-                                style: jest.fn().mockReturnThis()
+                                style: jest.fn().mockReturnThis(),
                             }),
                             append: jest.fn().mockReturnValue({
                                 attr: jest.fn().mockReturnThis(),
@@ -855,7 +855,7 @@ describe.only('Master Sankey Test Suite', () => {
                                     attr: jest.fn().mockReturnThis(),
                                     append: jest.fn().mockReturnValue({
                                         style: jest.fn().mockReturnThis(),
-                                        html: jest.fn().mockReturnThis()
+                                        html: jest.fn().mockReturnThis(),
                                     }),
                                     transition: jest.fn(() => {
                                         const transitionObj = {};
@@ -866,7 +866,7 @@ describe.only('Master Sankey Test Suite', () => {
                                         transitionObj.attrTween = jest.fn().mockReturnValue(transitionObj);
                                         transitionObj.call = jest.fn().mockReturnValue(transitionObj);
                                         return transitionObj;
-                                    })
+                                    }),
                                 }),
                                 transition: jest.fn(() => {
                                     const transitionObj = {};
@@ -877,7 +877,7 @@ describe.only('Master Sankey Test Suite', () => {
                                     transitionObj.attrTween = jest.fn().mockReturnValue(transitionObj);
                                     transitionObj.call = jest.fn().mockReturnValue(transitionObj);
                                     return transitionObj;
-                                })
+                                }),
                             }),
                             transition: jest.fn(() => {
                                 const transitionObj = {};
@@ -892,39 +892,39 @@ describe.only('Master Sankey Test Suite', () => {
                             call: jest.fn().mockReturnThis(),
                             attr: jest.fn().mockReturnValue(800),
                             node: jest.fn().mockReturnValue({
-                                getBoundingClientRect: jest.fn().mockReturnValue({ width: 800, height: 600 })
-                            })
+                                getBoundingClientRect: jest.fn().mockReturnValue({ width: 800, height: 600 }),
+                            }),
                         },
                         sim: {
                             nodes: jest.fn().mockReturnValue([
-                                { id: 'prop-1', x: 100, y: 30, index: 0 }
+                                { id: 'prop-1', x: 100, y: 30, index: 0 },
                             ]),
                             force: jest.fn().mockReturnThis(),
                             alpha: jest.fn().mockReturnThis(),
                             alphaDecay: jest.fn().mockReturnThis(),
-                            restart: jest.fn().mockReturnThis()
+                            restart: jest.fn().mockReturnThis(),
                         },
-                        relationIndex: new Map([['PROPERTY A', new Set(['prop-1'])]])
+                        relationIndex: new Map([['PROPERTY A', new Set(['prop-1'])]]),
                     };
 
                     chartRenderer.sankeyData = mockSankeyData;
                     chartRenderer.zoomBehavior = {
                         transform: jest.fn().mockReturnValue({
                             translate: jest.fn().mockReturnThis(),
-                            scale: jest.fn().mockReturnThis()
-                        })
+                            scale: jest.fn().mockReturnThis(),
+                        }),
                     };
 
                     // Initialize rippleForces to avoid undefined errors
                     chartRenderer.rippleForces = new Map([
                         ['node', { filter: { strength: jest.fn().mockReturnThis() }, ripple: jest.fn() }],
-                        ['link', { filter: { strength: jest.fn().mockReturnThis() }, ripple: jest.fn() }]
+                        ['link', { filter: { strength: jest.fn().mockReturnThis() }, ripple: jest.fn() }],
                     ]);
 
                     // Mock event object
                     const mockEvent = {
                         clientX: 105,
-                        clientY: 30
+                        clientY: 30,
                     };
 
                     // Test click interaction
@@ -938,65 +938,65 @@ describe.only('Master Sankey Test Suite', () => {
                     // Verify zoom was called for bbox zoom
                     expect(mockSankeyData.svg.attr).toHaveBeenCalledWith('width');
                 });
-    
+
                 test('should format tooltip content correctly', () => {
                     const chartRenderer = createChartRenderer();
-    
+
                     // Mock formatter
                     chartRenderer.formatter = {
-                        formatCurrency: jest.fn((amount) => `$${amount.toFixed(2)}`)
+                        formatCurrency: jest.fn((amount) => `$${amount.toFixed(2)}`),
                     };
-    
+
                     // Test node tooltip content
                     const nodeItem = {
                         name: 'PROPERTY A',
                         total: 5000,
                         type: 'property',
-                        propData: { address: '123 Main St' }
+                        propData: { address: '123 Main St' },
                     };
-    
+
                     const nodeContent = chartRenderer.formatTooltipContent(nodeItem, 'node');
                     expect(Array.isArray(nodeContent)).toBe(true);
                     expect(nodeContent.length).toBeGreaterThan(0);
                     expect(nodeContent[0].text).toBe('PROPERTY A');
                     expect(nodeContent[0].bold).toBe(true);
-    
+
                     // Test link tooltip content
                     const linkItem = {
                         source: { name: 'Property A' },
                         target: { name: 'Expenses' },
                         value: 2500,
                         property: 'Property A',
-                        category: 'Maintenance'
+                        category: 'Maintenance',
                     };
-    
+
                     const linkContent = chartRenderer.formatTooltipContent(linkItem, 'link');
                     expect(Array.isArray(linkContent)).toBe(true);
                     expect(linkContent.length).toBeGreaterThan(0);
                     expect(linkContent[0].text).toContain('Property A');
                     expect(linkContent[0].text).toContain('Expenses');
                 });
-    
+
                 test('should handle color theme changes correctly', () => {
                     const chartRenderer = createChartRenderer();
-    
+
                     // Mock theme manager
                     const mockThemeManager = {
                         getColorTheme: jest.fn().mockReturnValue({
                             properties: ['#NEW_COLOR'],
                             categories: ['#NEW_CATEGORY'],
-                            trends: { increasing: '#10B981', decreasing: '#EF4444', stable: '#6B7280' }
+                            trends: { increasing: '#10B981', decreasing: '#EF4444', stable: '#6B7280' },
                         }),
-                        getCurrentColorTheme: jest.fn().mockReturnValue('dark')
+                        getCurrentColorTheme: jest.fn().mockReturnValue('dark'),
                     };
-    
+
                     chartRenderer.setThemeManager(mockThemeManager);
-    
+
                     // Verify colors were updated
                     expect(chartRenderer.chartConfig.colors.properties[0]).toBe('#NEW_COLOR');
                     expect(chartRenderer.chartConfig.colors.categories[0]).toBe('#NEW_CATEGORY');
                 });
-    
+
                 test('should handle zoom to bbox correctly', () => {
                     const chartRenderer = createChartRenderer();
 
@@ -1005,16 +1005,16 @@ describe.only('Master Sankey Test Suite', () => {
                         svg: {
                             attr: jest.fn().mockReturnValue(800),
                             transition: jest.fn().mockReturnThis(),
-                            call: jest.fn().mockReturnThis()
-                        }
+                            call: jest.fn().mockReturnThis(),
+                        },
                     };
 
                     chartRenderer.sankeyData = mockSankeyData;
                     chartRenderer.zoomBehavior = {
                         transform: jest.fn().mockReturnValue({
                             translate: jest.fn().mockReturnThis(),
-                            scale: jest.fn().mockReturnThis()
-                        })
+                            scale: jest.fn().mockReturnThis(),
+                        }),
                     };
 
                     const bbox = [[100, 50], [200, 150]];
@@ -1030,7 +1030,7 @@ describe.only('Master Sankey Test Suite', () => {
                     // Verify zoom was handled (zoomBehavior may not be called in test environment)
                     expect(mockSankeyData.svg.attr).toHaveBeenCalledWith('width');
                 });
-    
+
                 test('should clear interactions correctly', () => {
                     const chartRenderer = createChartRenderer();
 
@@ -1051,7 +1051,7 @@ describe.only('Master Sankey Test Suite', () => {
                                     return transitionObj;
                                 }),
                                 attr: jest.fn().mockReturnThis(),
-                                style: jest.fn().mockReturnThis()
+                                style: jest.fn().mockReturnThis(),
                             }),
                             transition: jest.fn(() => {
                                 const transitionObj = {};
@@ -1063,27 +1063,27 @@ describe.only('Master Sankey Test Suite', () => {
                                 transitionObj.call = jest.fn().mockReturnValue(transitionObj);
                                 return transitionObj;
                             }),
-                            call: jest.fn().mockReturnThis()
+                            call: jest.fn().mockReturnThis(),
                         },
                         sim: {
                             force: jest.fn().mockReturnThis(),
                             alpha: jest.fn().mockReturnThis(),
                             alphaDecay: jest.fn().mockReturnThis(),
                             restart: jest.fn().mockReturnThis(),
-                            nodes: jest.fn().mockReturnValue([])
+                            nodes: jest.fn().mockReturnValue([]),
                         },
-                        links: []
+                        links: [],
                     };
 
                     chartRenderer.sankeyData = mockSankeyData;
                     chartRenderer.zoomBehavior = {
-                        transform: jest.fn()
+                        transform: jest.fn(),
                     };
 
                     // Initialize rippleForces to avoid undefined errors
                     chartRenderer.rippleForces = new Map([
                         ['node', { filter: { strength: jest.fn().mockReturnThis() }, ripple: jest.fn() }],
-                        ['link', { filter: { strength: jest.fn().mockReturnThis() }, ripple: jest.fn() }]
+                        ['link', { filter: { strength: jest.fn().mockReturnThis() }, ripple: jest.fn() }],
                     ]);
 
                     // Set some interaction state
@@ -1101,17 +1101,17 @@ describe.only('Master Sankey Test Suite', () => {
                     // Verify zoom was reset
                     expect(mockSankeyData.svg.call).toHaveBeenCalled();
                 });
-    
+
                 test('should compute ripple bbox correctly', () => {
                     const chartRenderer = createChartRenderer();
-    
+
                     const nodes = [
                         { id: 'node1', x0: 100, y0: 50, x1: 150, y1: 100 },
-                        { id: 'node2', x0: 200, y0: 75, x1: 250, y1: 125 }
+                        { id: 'node2', x0: 200, y0: 75, x1: 250, y1: 125 },
                     ];
-    
+
                     const bbox = chartRenderer.computeRippleBbox(nodes);
-    
+
                     expect(Array.isArray(bbox)).toBe(true);
                     expect(bbox).toHaveLength(2);
                     expect(bbox[0]).toHaveLength(2);
@@ -1119,51 +1119,51 @@ describe.only('Master Sankey Test Suite', () => {
                     expect(typeof bbox[0][0]).toBe('number');
                     expect(typeof bbox[0][1]).toBe('number');
                 });
-    
+
                 test('should handle empty ripple bbox correctly', () => {
                     const chartRenderer = createChartRenderer();
-    
+
                     const bbox = chartRenderer.computeRippleBbox([]);
-    
+
                     expect(bbox).toEqual([[0, 0], [100, 100]]);
                 });
-    
+
                 test('should handle invalid ripple bbox correctly', () => {
                     const chartRenderer = createChartRenderer();
-    
+
                     const nodes = [
-                        { id: 'node1', x0: NaN, y0: 50, x1: 150, y1: 100 }
+                        { id: 'node1', x0: NaN, y0: 50, x1: 150, y1: 100 },
                     ];
-    
+
                     const bbox = chartRenderer.computeRippleBbox(nodes);
-    
+
                     expect(bbox).toEqual([[0, 0], [100, 100]]);
                 });
             });
-    
+
             describe('DataManager extended functionality tests', () => {
                 beforeEach(() => {
                     // Initialize with test state for extended tests
                     dataManager.data = {
                         properties: [
                             { id: 1, name: 'Property A', created: '2025-01-01T00:00:00.000Z' },
-                            { id: 2, name: 'Property B', created: '2025-01-01T00:00:00.000Z' }
+                            { id: 2, name: 'Property B', created: '2025-01-01T00:00:00.000Z' },
                         ],
                         expenseCategories: ['Maintenance', 'Utilities'],
                         currentTimePeriod: 'month',
                         currentView: 'overview',
                         selectedYear: '2025',
-                        selectedMonth: '1'
+                        selectedMonth: '1',
                     };
                     dataManager._initialized = true;
                 });
-    
+
                 test('should calculate data statistics correctly', () => {
                     // Setup mock transactions
                     dataManager.store.transactions = [
                         { id: '1', propertyId: 1, category: 'Maintenance', amount: -1000, date: '2025-01-15', type: 'expense' },
                         { id: '2', propertyId: 1, category: 'Rent', amount: 2000, date: '2025-01-15', type: 'income' },
-                        { id: '3', propertyId: 2, category: 'Utilities', amount: -500, date: '2025-01-15', type: 'expense' }
+                        { id: '3', propertyId: 2, category: 'Utilities', amount: -500, date: '2025-01-15', type: 'expense' },
                     ];
 
                     const stats = dataManager.getDataStatistics();
@@ -1177,19 +1177,19 @@ describe.only('Master Sankey Test Suite', () => {
                     expect(stats.totalProperties).toBe(2);
                     expect(stats.totalExpenses).toBe(1500); // 1000 + 500
                 });
-    
+
                 test('should handle import data correctly', async () => {
                     // Clear existing properties first
                     dataManager.data.properties = [];
 
                     const importData = {
                         properties: [
-                            { id: 1, name: 'Imported Property', created: '2025-01-01T00:00:00.000Z' }
+                            { id: 1, name: 'Imported Property', created: '2025-01-01T00:00:00.000Z' },
                         ],
                         expenseCategories: ['Maintenance', 'Utilities'],
                         transactions: [
-                            { id: '1', propertyId: 1, category: 'Maintenance', amount: -1000, date: '2025-01-15', type: 'expense' }
-                        ]
+                            { id: '1', propertyId: 1, category: 'Maintenance', amount: -1000, date: '2025-01-15', type: 'expense' },
+                        ],
                     };
 
                     // Mock storage save
@@ -1202,15 +1202,15 @@ describe.only('Master Sankey Test Suite', () => {
                     expect(dataManager.store.properties.size).toBe(1);
                     expect(dataManager.store.properties.get(1).name).toBe('Imported Property');
                 });
-    
+
                 test('should handle export data correctly', async () => {
                     // Setup some data
                     dataManager.data.properties = [
-                        { id: 1, name: 'Property A', created: '2025-01-01T00:00:00.000Z' }
+                        { id: 1, name: 'Property A', created: '2025-01-01T00:00:00.000Z' },
                     ];
                     dataManager.data.expenseCategories = ['Maintenance', 'Utilities'];
                     dataManager.store.transactions = [
-                        { id: '1', propertyId: 1, category: 'Maintenance', amount: -1000, date: '2025-01-15', type: 'expense' }
+                        { id: '1', propertyId: 1, category: 'Maintenance', amount: -1000, date: '2025-01-15', type: 'expense' },
                     ];
 
                     const exportedData = await dataManager.exportData();
@@ -1222,15 +1222,15 @@ describe.only('Master Sankey Test Suite', () => {
                     expect(Array.isArray(exportedData.transactions)).toBe(true);
                     expect(Array.isArray(exportedData.categories)).toBe(true);
                 });
-    
+
                 test('should validate transaction integrity correctly', () => {
                     const validData = {
                         properties: [
-                            { id: 1, name: 'Property A', created: '2025-01-01T00:00:00.000Z' }
+                            { id: 1, name: 'Property A', created: '2025-01-01T00:00:00.000Z' },
                         ],
                         transactions: [
-                            { id: '1', propertyId: 1, category: 'Maintenance', amount: -1000, date: '2025-01-15', type: 'expense' }
-                        ]
+                            { id: '1', propertyId: 1, category: 'Maintenance', amount: -1000, date: '2025-01-15', type: 'expense' },
+                        ],
                     };
 
                     const result = dataManager.validateTransactionIntegrity(validData);
@@ -1243,36 +1243,36 @@ describe.only('Master Sankey Test Suite', () => {
                     expect(result.isValid).toBe(false);
                     expect(Array.isArray(result.errors)).toBe(true);
                 });
-    
+
                 test('should detect invalid transaction data', () => {
                     const invalidData = {
                         properties: [
-                            { id: 1, name: 'Property A', created: '2025-01-01T00:00:00.000Z' }
+                            { id: 1, name: 'Property A', created: '2025-01-01T00:00:00.000Z' },
                         ],
                         transactions: [
-                            { id: '1', propertyId: 999, category: 'Maintenance', amount: -1000, date: '2025-01-15', type: 'expense' } // Invalid property ID
-                        ]
+                            { id: '1', propertyId: 999, category: 'Maintenance', amount: -1000, date: '2025-01-15', type: 'expense' }, // Invalid property ID
+                        ],
                     };
-    
+
                     const result = dataManager.validateTransactionIntegrity(invalidData);
-    
+
                     expect(result.isValid).toBe(false);
                     expect(result.errors.length).toBeGreaterThan(0);
                 });
-    
+
                 test('should clean invalid data correctly', async () => {
                     // Setup data with invalid transactions
                     dataManager.store.transactions = [
                         { id: '1', propertyId: 1, category: 'Maintenance', amount: -1000, date: '2025-01-15', type: 'expense' },
-                        { id: '2', propertyId: 999, category: 'Invalid', amount: -500, date: '2025-01-15', type: 'expense' } // Invalid property
+                        { id: '2', propertyId: 999, category: 'Invalid', amount: -500, date: '2025-01-15', type: 'expense' }, // Invalid property
                     ];
-    
+
                     const cleanResult = await dataManager.cleanInvalidData();
 
                     expect(cleanResult).toHaveProperty('cleanedTransactions');
                     expect(cleanResult).toHaveProperty('removedCount');
                 });
-    
+
                 test('should calculate property totals correctly', () => {
                     // Setup property with expenses object (this is how the actual implementation works)
                     const mockProperty = {
@@ -1281,8 +1281,8 @@ describe.only('Master Sankey Test Suite', () => {
                         expenses: {
                             'Maintenance': -1000,
                             'Utilities': -500,
-                            'Insurance': -300
-                        }
+                            'Insurance': -300,
+                        },
                     };
 
                     // Mock the getPropertyById method to return our test property
@@ -1300,25 +1300,25 @@ describe.only('Master Sankey Test Suite', () => {
                     // Restore original method
                     dataManager.getPropertyById = originalGetPropertyById;
                 });
-    
+
                 test('should calculate average expense per property correctly', () => {
                     // Setup transactions
                     dataManager.store.transactions = [
                         { id: '1', propertyId: 1, category: 'Maintenance', amount: -1000, date: '2025-01-15', type: 'expense' },
-                        { id: '2', propertyId: 2, category: 'Utilities', amount: -500, date: '2025-01-15', type: 'expense' }
+                        { id: '2', propertyId: 2, category: 'Utilities', amount: -500, date: '2025-01-15', type: 'expense' },
                     ];
-    
+
                     const average = dataManager.calculateAverageExpensePerProperty('month');
-    
+
                     expect(average).toBe(750); // (1000 + 500) / 2
                 });
-    
+
                 test('should find top expense category correctly', () => {
                     // Setup transactions
                     dataManager.store.transactions = [
                         { id: '1', propertyId: 1, category: 'Maintenance', amount: -2000, date: '2025-01-15', type: 'expense' },
                         { id: '2', propertyId: 1, category: 'Utilities', amount: -500, date: '2025-01-15', type: 'expense' },
-                        { id: '3', propertyId: 2, category: 'Maintenance', amount: -1500, date: '2025-01-15', type: 'expense' }
+                        { id: '3', propertyId: 2, category: 'Maintenance', amount: -1500, date: '2025-01-15', type: 'expense' },
                     ];
 
                     const topCategory = dataManager.getTopExpenseCategory('month');
@@ -1328,39 +1328,39 @@ describe.only('Master Sankey Test Suite', () => {
                     expect(topCategory.name).toBe('Maintenance');
                     expect(topCategory.amount).toBe(3500); // 2000 + 1500
                 });
-    
+
                 test('should handle multi-property data correctly', () => {
                     const multiPropData = dataManager.getMultiPropertyData();
-    
+
                     expect(multiPropData).toHaveProperty('propertySeries');
                     expect(Array.isArray(multiPropData.propertySeries)).toBe(true);
                 });
-    
+
                 test('should validate bulk data correctly', () => {
                     const validBulkData = {
                         properties: [
-                            { id: 1, name: 'Property A', created: '2025-01-01T00:00:00.000Z' }
+                            { id: 1, name: 'Property A', created: '2025-01-01T00:00:00.000Z' },
                         ],
                         transactions: [
-                            { id: '1', propertyId: 1, category: 'Maintenance', amount: -1000, date: '2025-01-15', type: 'expense' }
-                        ]
+                            { id: '1', propertyId: 1, category: 'Maintenance', amount: -1000, date: '2025-01-15', type: 'expense' },
+                        ],
                     };
-    
+
                     const result = dataManager.validateBulkData(validBulkData);
-    
+
                     expect(result).toHaveProperty('isValid');
                     expect(result).toHaveProperty('errors');
                     expect(result.isValid).toBe(true);
                 });
-    
+
                 test('should detect bulk data validation errors', () => {
                     const invalidBulkData = {
                         properties: [
-                            { id: 'invalid', name: 'Property A', created: '2025-01-01T00:00:00.000Z' } // Invalid ID type
+                            { id: 'invalid', name: 'Property A', created: '2025-01-01T00:00:00.000Z' }, // Invalid ID type
                         ],
                         transactions: [
-                            { id: '1', propertyId: 1, category: 'Maintenance', amount: 'invalid', date: '2025-01-15', type: 'expense' } // Invalid amount
-                        ]
+                            { id: '1', propertyId: 1, category: 'Maintenance', amount: 'invalid', date: '2025-01-15', type: 'expense' }, // Invalid amount
+                        ],
                     };
 
                     const result = dataManager.validateBulkData(invalidBulkData);
@@ -1369,17 +1369,17 @@ describe.only('Master Sankey Test Suite', () => {
                     expect(result.isValid).toBe(true);
                     expect(Array.isArray(result.errors)).toBe(true);
                 });
-    
-    
-    
-    
+
+
+
+
                 test('should handle data clearing correctly', async () => {
                     // Setup some data first
                     dataManager.data.properties = [
-                        { id: 1, name: 'Property A', created: '2025-01-01T00:00:00.000Z' }
+                        { id: 1, name: 'Property A', created: '2025-01-01T00:00:00.000Z' },
                     ];
                     dataManager.store.transactions = [
-                        { id: '1', propertyId: 1, category: 'Maintenance', amount: -1000, date: '2025-01-15', type: 'expense' }
+                        { id: '1', propertyId: 1, category: 'Maintenance', amount: -1000, date: '2025-01-15', type: 'expense' },
                     ];
 
                     await dataManager.clearAllData();
@@ -1388,108 +1388,108 @@ describe.only('Master Sankey Test Suite', () => {
                     expect(dataManager.store.transactions).toHaveLength(0);
                     expect(dataManager.store.properties.size).toBe(0);
                 });
-    
-    
-    
+
+
+
                 test('should handle date range calculations correctly', () => {
                     const dateRange = dataManager._getDateRangeForPeriod('month', '2025');
-    
+
                     expect(dateRange).toHaveProperty('start');
                     expect(dateRange).toHaveProperty('end');
                     expect(typeof dateRange.start).toBe('string');
                     expect(typeof dateRange.end).toBe('string');
                 });
-    
+
                 test('should handle cache invalidation correctly', () => {
                     expect(() => {
                         dataManager.invalidateCache();
                     }).not.toThrow();
                 });
-    
+
                 test('should handle debug functionality correctly', () => {
                     const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-    
+
                     expect(() => {
                         dataManager.debug();
                     }).not.toThrow();
-    
+
                     expect(consoleSpy).toHaveBeenCalled();
-    
+
                     consoleSpy.mockRestore();
                 });
-        
+
                 describe('TransactionStore extended functionality tests', () => {
                     let transactionStore;
-        
+
                     beforeEach(() => {
                         // Create a fresh TransactionStore for each test
                         const MockStorage = require('../__mocks__/Storage.js').default;
                         const mockStorage = new MockStorage();
                         transactionStore = dataManager.store; // Use the existing store from dataManager
                     });
-        
+
                     test('should handle transaction queries with filters correctly', () => {
                         // Setup test transactions
                         transactionStore.transactions = [
                             { id: '1', propertyId: 1, category: 'Maintenance', amount: -1000, date: '2025-01-15', type: 'expense' },
                             { id: '2', propertyId: 1, category: 'Rent', amount: 2000, date: '2025-01-15', type: 'income' },
-                            { id: '3', propertyId: 2, category: 'Utilities', amount: -500, date: '2025-01-15', type: 'expense' }
+                            { id: '3', propertyId: 2, category: 'Utilities', amount: -500, date: '2025-01-15', type: 'expense' },
                         ];
-        
+
                         // Test property filter
                         const property1Transactions = transactionStore.queryTransactions({ propertyId: 1 });
                         expect(property1Transactions).toHaveLength(2);
-        
+
                         // Test type filter
                         const expenseTransactions = transactionStore.queryTransactions({ type: 'expense' });
                         expect(expenseTransactions).toHaveLength(2);
-        
+
                         // Test category filter
                         const maintenanceTransactions = transactionStore.queryTransactions({ category: 'Maintenance' });
                         expect(maintenanceTransactions).toHaveLength(1);
                     });
-        
+
                     test('should handle property queries correctly', () => {
                         // Setup test properties
                         transactionStore.properties.set(1, { id: 1, name: 'Property A', created: '2025-01-01T00:00:00.000Z' });
                         transactionStore.properties.set(2, { id: 2, name: 'Property B', created: '2025-01-01T00:00:00.000Z' });
-        
+
                         const properties = transactionStore.queryProperties();
-        
+
                         expect(Array.isArray(properties)).toBe(true);
                         expect(properties).toHaveLength(2);
                         expect(properties[0]).toHaveProperty('id');
                         expect(properties[0]).toHaveProperty('name');
                     });
-        
+
                     test('should handle category queries correctly', () => {
                         // Setup test transactions for category analysis
                         transactionStore.transactions = [
                             { id: '1', propertyId: 1, category: 'Maintenance', subcategory: 'Repairs', amount: -1000, date: '2025-01-15', type: 'expense' },
                             { id: '2', propertyId: 1, category: 'Maintenance', subcategory: 'Cleaning', amount: -500, date: '2025-01-15', type: 'expense' },
-                            { id: '3', propertyId: 1, category: 'Utilities', amount: -300, date: '2025-01-15', type: 'expense' }
+                            { id: '3', propertyId: 1, category: 'Utilities', amount: -300, date: '2025-01-15', type: 'expense' },
                         ];
-        
+
                         const categories = transactionStore.queryCategories();
-        
+
                         expect(Array.isArray(categories)).toBe(true);
                         expect(categories.length).toBeGreaterThan(0);
-        
+
                         // Should include subcategories
                         const maintenanceCat = categories.find(cat => cat.name === 'Maintenance');
                         expect(maintenanceCat).toBeDefined();
                         expect(maintenanceCat.subcategories).toBeDefined();
                     });
-        
+
                     test('should handle transaction statistics correctly', () => {
                         // Setup test transactions
                         transactionStore.transactions = [
                             { id: '1', propertyId: 1, category: 'Maintenance', amount: -1000, date: '2025-01-15', type: 'expense' },
-                            { id: '2', propertyId: 1, category: 'Rent', amount: 2000, date: '2025-01-15', type: 'income' }
+                            { id: '2', propertyId: 1, category: 'Rent', amount: 2000, date: '2025-01-15', type: 'income' },
                         ];
-        
+
                         const stats = transactionStore.getStatistics();
-        
+
                         expect(stats).toHaveProperty('totalTransactions');
                         expect(stats).toHaveProperty('totalIncome');
                         expect(stats).toHaveProperty('totalExpenses');
@@ -1497,38 +1497,38 @@ describe.only('Master Sankey Test Suite', () => {
                         expect(stats.totalIncome).toBe(2000);
                         expect(stats.totalExpenses).toBe(1000);
                     });
-        
+
                     test('should handle data export correctly', () => {
                         // Setup test data
                         transactionStore.transactions = [
-                            { id: '1', propertyId: 1, category: 'Maintenance', amount: -1000, date: '2025-01-15', type: 'expense' }
+                            { id: '1', propertyId: 1, category: 'Maintenance', amount: -1000, date: '2025-01-15', type: 'expense' },
                         ];
                         transactionStore.properties.set(1, { id: 1, name: 'Property A', created: '2025-01-01T00:00:00.000Z' });
-        
+
                         const exportedData = transactionStore.exportData();
-        
+
                         expect(exportedData).toHaveProperty('transactions');
                         expect(exportedData).toHaveProperty('properties');
                         expect(exportedData.transactions).toHaveLength(1);
                         expect(exportedData.properties).toHaveLength(1);
                     });
-        
+
                     test('should handle data import correctly', async () => {
                         const importData = {
                             transactions: [
-                                { id: '1', propertyId: 1, category: 'Maintenance', amount: -1000, date: '2025-01-15', type: 'expense' }
+                                { id: '1', propertyId: 1, category: 'Maintenance', amount: -1000, date: '2025-01-15', type: 'expense' },
                             ],
                             properties: [
-                                { id: 1, name: 'Property A', created: '2025-01-01T00:00:00.000Z' }
-                            ]
+                                { id: 1, name: 'Property A', created: '2025-01-01T00:00:00.000Z' },
+                            ],
                         };
-        
+
                         await transactionStore.importData(importData);
-        
+
                         expect(transactionStore.transactions).toHaveLength(1);
                         expect(transactionStore.properties.size).toBe(1);
                     });
-        
+
                     test('should handle legacy data conversion correctly', () => {
                         const legacyData = {
                             properties: [
@@ -1537,25 +1537,25 @@ describe.only('Master Sankey Test Suite', () => {
                                     name: 'Property A',
                                     expenses: {
                                         'Maintenance': -1000,
-                                        'Utilities': -500
+                                        'Utilities': -500,
                                     },
                                     monthlyData: {
                                         'Jan 2025': {
                                             expenses: { 'Maintenance': -1000 },
-                                            incomes: { 'Rent': 2000 }
-                                        }
-                                    }
-                                }
-                            ]
+                                            incomes: { 'Rent': 2000 },
+                                        },
+                                    },
+                                },
+                            ],
                         };
-        
+
                         const convertedData = transactionStore.convertLegacyData(legacyData);
-        
+
                         expect(convertedData).toHaveProperty('transactions');
                         expect(convertedData).toHaveProperty('properties');
                         expect(convertedData.transactions.length).toBeGreaterThan(0);
                     });
-        
+
                     test('should handle transaction validation correctly', () => {
                         const validTransaction = {
                             id: '1',
@@ -1563,32 +1563,32 @@ describe.only('Master Sankey Test Suite', () => {
                             category: 'Maintenance',
                             amount: -1000,
                             date: '2025-01-15',
-                            type: 'expense'
+                            type: 'expense',
                         };
-        
+
                         const invalidTransaction = {
                             id: '2',
                             propertyId: 'invalid',
                             category: 'Maintenance',
                             amount: 'invalid',
                             date: 'invalid-date',
-                            type: 'invalid-type'
+                            type: 'invalid-type',
                         };
-        
+
                         const validResult = transactionStore._validateTransaction(validTransaction);
                         expect(validResult).toBeDefined();
                         expect(validResult.id).toBe('1');
-        
+
                         const invalidResult = transactionStore._validateTransaction(invalidTransaction);
                         expect(invalidResult).toBeNull();
                     });
-        
+
                     test('should handle monthly grouping correctly', () => {
                         // Setup transactions across multiple months
                         transactionStore.transactions = [
                             { id: '1', propertyId: 1, category: 'Maintenance', amount: -1000, date: '2025-01-15', type: 'expense' },
                             { id: '2', propertyId: 1, category: 'Rent', amount: 2000, date: '2025-02-15', type: 'income' },
-                            { id: '3', propertyId: 1, category: 'Utilities', amount: -500, date: '2025-01-20', type: 'expense' }
+                            { id: '3', propertyId: 1, category: 'Utilities', amount: -500, date: '2025-01-20', type: 'expense' },
                         ];
 
                         const groupedData = transactionStore.groupByMonthYear();
@@ -1601,47 +1601,47 @@ describe.only('Master Sankey Test Suite', () => {
                         expect(groupedData[0]).toHaveProperty('transactions');
                         expect(Array.isArray(groupedData[0].transactions)).toBe(true);
                     });
-        
+
                     test('should handle property summary calculations correctly', () => {
                         const transactions = [
                             { id: '1', propertyId: 1, category: 'Maintenance', amount: -1000, date: '2025-01-15', type: 'expense' },
                             { id: '2', propertyId: 1, category: 'Rent', amount: 2000, date: '2025-01-15', type: 'income' },
-                            { id: '3', propertyId: 1, category: 'Utilities', amount: -500, date: '2025-01-15', type: 'expense' }
+                            { id: '3', propertyId: 1, category: 'Utilities', amount: -500, date: '2025-01-15', type: 'expense' },
                         ];
-        
+
                         const summary = transactionStore._calculatePropertySummary(transactions);
-        
+
                         expect(summary).toBeDefined();
                         expect(typeof summary.income).toBe('number');
                         expect(typeof summary.expenses).toBe('number');
                     });
-        
+
                     test('should handle date range calculations correctly', () => {
                         const dateRange = transactionStore._getDateRangeForPeriod('month', '2025', '6');
-        
+
                         expect(dateRange).toHaveProperty('start');
                         expect(dateRange).toHaveProperty('end');
                         expect(typeof dateRange.start).toBe('string');
                         expect(typeof dateRange.end).toBe('string');
                     });
-        
+
                     test('should handle data clearing correctly', async () => {
                         // Setup some data
                         transactionStore.transactions = [
-                            { id: '1', propertyId: 1, category: 'Maintenance', amount: -1000, date: '2025-01-15', type: 'expense' }
+                            { id: '1', propertyId: 1, category: 'Maintenance', amount: -1000, date: '2025-01-15', type: 'expense' },
                         ];
                         transactionStore.properties.set(1, { id: 1, name: 'Property A', created: '2025-01-01T00:00:00.000Z' });
-        
+
                         await transactionStore.clearAllData();
-        
+
                         expect(transactionStore.transactions).toHaveLength(0);
                         expect(transactionStore.properties.size).toBe(0);
                     });
-        
+
                     test('should handle storage save operations correctly', async () => {
                         // Setup some data
                         transactionStore.transactions = [
-                            { id: '1', propertyId: 1, category: 'Maintenance', amount: -1000, date: '2025-01-15', type: 'expense' }
+                            { id: '1', propertyId: 1, category: 'Maintenance', amount: -1000, date: '2025-01-15', type: 'expense' },
                         ];
 
                         // Mock storage save method
@@ -1651,27 +1651,27 @@ describe.only('Master Sankey Test Suite', () => {
 
                         expect(saveToStorageSpy).toHaveBeenCalled();
                     });
-        
+
                     test('should handle cache invalidation correctly', () => {
                         expect(() => {
                             transactionStore._invalidateCache();
                         }).not.toThrow();
                     });
-        
+
                     test('should handle debounced save correctly', () => {
                         // Mock setTimeout to execute immediately
                         jest.useFakeTimers();
-        
+
                         const saveSpy = jest.spyOn(transactionStore, '_saveToStorage').mockResolvedValue();
-        
+
                         // Trigger debounced save
                         transactionStore._debounceSave();
-        
+
                         // Fast-forward time
                         jest.advanceTimersByTime(1000);
-        
+
                         expect(saveSpy).toHaveBeenCalled();
-        
+
                         jest.useRealTimers();
                     });
                 });
@@ -1690,23 +1690,23 @@ describe.only('Master Sankey Test Suite', () => {
             // Mock data for 5-layer scenario
             mockProperties = [
                 { id: 1, name: 'Property A' },
-                { id: 2, name: 'Property B' }
+                { id: 2, name: 'Property B' },
             ];
 
             mockSources = {
                 'Rent': 5000,
                 'Parking': 1000,
-                'Laundry': 500
+                'Laundry': 500,
             };
 
             mockPropIncomes = new Map([
                 [1, 3000],
-                [2, 3500]
+                [2, 3500],
             ]);
 
             mockPropExpenses = new Map([
                 [1, 2500],
-                [2, 2800]
+                [2, 2800],
             ]);
 
             mockCategories = ['Maintenance', 'Utilities', 'Insurance', 'Taxes'];
@@ -1715,14 +1715,14 @@ describe.only('Master Sankey Test Suite', () => {
                 ['Maintenance', 2000],
                 ['Utilities', 1500],
                 ['Insurance', 800],
-                ['Taxes', 1200]
+                ['Taxes', 1200],
             ]);
 
             mockSubTotals = new Map([
                 ['Maintenance', new Map([['Repairs', 1200], ['Cleaning', 800]])],
                 ['Utilities', new Map([['Electric', 800], ['Water', 700]])],
                 ['Insurance', new Map([['Property', 500], ['Liability', 300]])],
-                ['Taxes', new Map([['Property Tax', 900], ['Assessment', 300]])]
+                ['Taxes', new Map([['Property Tax', 900], ['Assessment', 300]])],
             ]);
         });
 
@@ -1754,7 +1754,7 @@ describe.only('Master Sankey Test Suite', () => {
                 { id: 'sub-Insurance-Property', name: 'PROPERTY', type: 'subcategory', level: 5, depth: 5, x0: 550, y0: 150, x1: 565, y1: 165 },
                 { id: 'sub-Insurance-Liability', name: 'LIABILITY', type: 'subcategory', level: 5, depth: 5, x0: 550, y0: 175, x1: 565, y1: 185 },
                 { id: 'sub-Taxes-Property Tax', name: 'PROPERTY TAX', type: 'subcategory', level: 5, depth: 5, x0: 550, y0: 195, x1: 565, y1: 210 },
-                { id: 'sub-Taxes-Assessment', name: 'ASSESSMENT', type: 'subcategory', level: 5, depth: 5, x0: 550, y0: 220, x1: 565, y1: 230 }
+                { id: 'sub-Taxes-Assessment', name: 'ASSESSMENT', type: 'subcategory', level: 5, depth: 5, x0: 550, y0: 220, x1: 565, y1: 230 },
             ];
 
             const mockSankeyLinks = [
@@ -1775,7 +1775,7 @@ describe.only('Master Sankey Test Suite', () => {
                 { source: mockSankeyNodes[10], target: mockSankeyNodes[16], value: 500, type: 'expenses-to-cat' },
                 { source: mockSankeyNodes[10], target: mockSankeyNodes[17], value: 300, type: 'expenses-to-cat' },
                 { source: mockSankeyNodes[11], target: mockSankeyNodes[18], value: 900, type: 'expenses-to-cat' },
-                { source: mockSankeyNodes[11], target: mockSankeyNodes[19], value: 300, type: 'expenses-to-cat' }
+                { source: mockSankeyNodes[11], target: mockSankeyNodes[19], value: 300, type: 'expenses-to-cat' },
             ];
 
             global.d3.sankey.mockImplementation(() => {
@@ -1802,7 +1802,7 @@ describe.only('Master Sankey Test Suite', () => {
                     { data: { id: 'sub-Insurance-Property', name: 'PROPERTY', parent: 'cat-2', level: 5, type: 'subcategory', total: 500 }, depth: 2 },
                     { data: { id: 'sub-Insurance-Liability', name: 'LIABILITY', parent: 'cat-2', level: 5, type: 'subcategory', total: 300 }, depth: 2 },
                     { data: { id: 'sub-Taxes-Property Tax', name: 'PROPERTY TAX', parent: 'cat-3', level: 5, type: 'subcategory', total: 900 }, depth: 2 },
-                    { data: { id: 'sub-Taxes-Assessment', name: 'ASSESSMENT', parent: 'cat-3', level: 5, type: 'subcategory', total: 300 }, depth: 2 }
+                    { data: { id: 'sub-Taxes-Assessment', name: 'ASSESSMENT', parent: 'cat-3', level: 5, type: 'subcategory', total: 300 }, depth: 2 },
                 ]),
                 links: jest.fn().mockReturnValue([
                     { source: { data: { id: 'expenses', name: 'expenses' } }, target: { data: { id: 'cat-0', name: 'MAINTENANCE' } } },
@@ -1816,8 +1816,8 @@ describe.only('Master Sankey Test Suite', () => {
                     { source: { data: { id: 'cat-2', name: 'INSURANCE' } }, target: { data: { id: 'sub-Insurance-Property', name: 'PROPERTY' } } },
                     { source: { data: { id: 'cat-2', name: 'INSURANCE' } }, target: { data: { id: 'sub-Insurance-Liability', name: 'LIABILITY' } } },
                     { source: { data: { id: 'cat-3', name: 'TAXES' } }, target: { data: { id: 'sub-Taxes-Property Tax', name: 'PROPERTY TAX' } } },
-                    { source: { data: { id: 'cat-3', name: 'TAXES' } }, target: { data: { id: 'sub-Taxes-Assessment', name: 'ASSESSMENT' } } }
-                ])
+                    { source: { data: { id: 'cat-3', name: 'TAXES' } }, target: { data: { id: 'sub-Taxes-Assessment', name: 'ASSESSMENT' } } },
+                ]),
             };
 
             const mockStratify = jest.fn().mockImplementation(() => mockHierarchy);
@@ -1829,7 +1829,7 @@ describe.only('Master Sankey Test Suite', () => {
             const chartRenderer = createChartRenderer();
             const result = chartRenderer.buildSankeyData(
                 mockProperties, mockSources, mockPropIncomes, mockPropExpenses,
-                mockCategories, true, mockCatTotals, mockSubTotals, 800, 600
+                mockCategories, true, mockCatTotals, mockSubTotals, 800, 600,
             );
 
             // Assert node count and structure
@@ -1895,19 +1895,19 @@ describe.only('Master Sankey Test Suite', () => {
             // Mock data for 4-layer scenario (no income)
             const mockProperties = [
                 { id: 1, name: 'Property A' },
-                { id: 2, name: 'Property B' }
+                { id: 2, name: 'Property B' },
             ];
 
             const mockSources = {}; // No income sources
 
             const mockPropIncomes = new Map([
                 [1, 0],
-                [2, 0]
+                [2, 0],
             ]);
 
             const mockPropExpenses = new Map([
                 [1, 2500],
-                [2, 2800]
+                [2, 2800],
             ]);
 
             const mockCategories = ['Maintenance', 'Utilities', 'Insurance', 'Taxes'];
@@ -1916,14 +1916,14 @@ describe.only('Master Sankey Test Suite', () => {
                 ['Maintenance', 2000],
                 ['Utilities', 1500],
                 ['Insurance', 800],
-                ['Taxes', 1200]
+                ['Taxes', 1200],
             ]);
 
             const mockSubTotals = new Map([
                 ['Maintenance', new Map([['Repairs', 1200], ['Cleaning', 800]])],
                 ['Utilities', new Map([['Electric', 800], ['Water', 700]])],
                 ['Insurance', new Map([['Property', 500], ['Liability', 300]])],
-                ['Taxes', new Map([['Property Tax', 900], ['Assessment', 300]])]
+                ['Taxes', new Map([['Property Tax', 900], ['Assessment', 300]])],
             ]);
 
             // Mock D3 sankey return value for no-income scenario
@@ -1948,7 +1948,7 @@ describe.only('Master Sankey Test Suite', () => {
                 { id: 'sub-Insurance-Property', name: 'PROPERTY', type: 'subcategory', level: 4, depth: 4, x0: 450, y0: 150, x1: 465, y1: 165 },
                 { id: 'sub-Insurance-Liability', name: 'LIABILITY', type: 'subcategory', level: 4, depth: 4, x0: 450, y0: 175, x1: 465, y1: 185 },
                 { id: 'sub-Taxes-Property Tax', name: 'PROPERTY TAX', type: 'subcategory', level: 4, depth: 4, x0: 450, y0: 195, x1: 465, y1: 210 },
-                { id: 'sub-Taxes-Assessment', name: 'ASSESSMENT', type: 'subcategory', level: 4, depth: 4, x0: 450, y0: 220, x1: 465, y1: 230 }
+                { id: 'sub-Taxes-Assessment', name: 'ASSESSMENT', type: 'subcategory', level: 4, depth: 4, x0: 450, y0: 220, x1: 465, y1: 230 },
             ];
 
             const mockSankeyLinks = [
@@ -1964,7 +1964,7 @@ describe.only('Master Sankey Test Suite', () => {
                 { source: mockSankeyNodes[6], target: mockSankeyNodes[12], value: 500, type: 'expenses-to-cat' },
                 { source: mockSankeyNodes[6], target: mockSankeyNodes[13], value: 300, type: 'expenses-to-cat' },
                 { source: mockSankeyNodes[7], target: mockSankeyNodes[14], value: 900, type: 'expenses-to-cat' },
-                { source: mockSankeyNodes[7], target: mockSankeyNodes[15], value: 300, type: 'expenses-to-cat' }
+                { source: mockSankeyNodes[7], target: mockSankeyNodes[15], value: 300, type: 'expenses-to-cat' },
             ];
 
             // D3 mock is already set up globally
@@ -1992,7 +1992,7 @@ describe.only('Master Sankey Test Suite', () => {
                     { data: { id: 'sub-Insurance-Property', name: 'PROPERTY', parent: 'cat-2', level: 4, type: 'subcategory', total: 500 }, depth: 2 },
                     { data: { id: 'sub-Insurance-Liability', name: 'LIABILITY', parent: 'cat-2', level: 4, type: 'subcategory', total: 300 }, depth: 2 },
                     { data: { id: 'sub-Taxes-Property Tax', name: 'PROPERTY TAX', parent: 'cat-3', level: 4, type: 'subcategory', total: 900 }, depth: 2 },
-                    { data: { id: 'sub-Taxes-Assessment', name: 'ASSESSMENT', parent: 'cat-3', level: 4, type: 'subcategory', total: 300 }, depth: 2 }
+                    { data: { id: 'sub-Taxes-Assessment', name: 'ASSESSMENT', parent: 'cat-3', level: 4, type: 'subcategory', total: 300 }, depth: 2 },
                 ]),
                 links: jest.fn().mockReturnValue([
                     { source: { data: { id: 'expenses', name: 'expenses' } }, target: { data: { id: 'cat-0', name: 'MAINTENANCE' } } },
@@ -2006,8 +2006,8 @@ describe.only('Master Sankey Test Suite', () => {
                     { source: { data: { id: 'cat-2', name: 'INSURANCE' } }, target: { data: { id: 'sub-Insurance-Property', name: 'PROPERTY' } } },
                     { source: { data: { id: 'cat-2', name: 'INSURANCE' } }, target: { data: { id: 'sub-Insurance-Liability', name: 'LIABILITY' } } },
                     { source: { data: { id: 'cat-3', name: 'TAXES' } }, target: { data: { id: 'sub-Taxes-Property Tax', name: 'PROPERTY TAX' } } },
-                    { source: { data: { id: 'cat-3', name: 'TAXES' } }, target: { data: { id: 'sub-Taxes-Assessment', name: 'ASSESSMENT' } } }
-                ])
+                    { source: { data: { id: 'cat-3', name: 'TAXES' } }, target: { data: { id: 'sub-Taxes-Assessment', name: 'ASSESSMENT' } } },
+                ]),
             };
 
             const mockStratify = jest.fn().mockImplementation(() => mockHierarchy);
@@ -2018,7 +2018,7 @@ describe.only('Master Sankey Test Suite', () => {
             const chartRenderer = createChartRenderer();
             const result = chartRenderer.buildSankeyData(
                 mockProperties, mockSources, mockPropIncomes, mockPropExpenses,
-                mockCategories, false, mockCatTotals, mockSubTotals, 800, 600
+                mockCategories, false, mockCatTotals, mockSubTotals, 800, 600,
             );
 
             // Assert levelOffset = 1 for no income
@@ -2076,7 +2076,7 @@ describe.only('Master Sankey Test Suite', () => {
                 currentTimePeriod: 'month',
                 currentView: 'overview',
                 selectedYear: '2025',
-                selectedMonth: '1'
+                selectedMonth: '1',
             };
             dataManager._initialized = true;
         });
@@ -2100,7 +2100,7 @@ describe.only('Master Sankey Test Suite', () => {
             test('buildSankeyData with empty data returns empty nodes and links', () => {
                 const chartRenderer = createChartRenderer();
                 const result = chartRenderer.buildSankeyData(
-                    [], new Map(), new Map(), new Map(), [], false, new Map(), new Map(), 800, 600
+                    [], new Map(), new Map(), new Map(), [], false, new Map(), new Map(), 800, 600,
                 );
 
                 expect(result.nodes).toEqual([{ name: 'No Expenses', value: 0, isPlaceholder: true }]);
@@ -2135,7 +2135,7 @@ describe.only('Master Sankey Test Suite', () => {
                     { id: '1', propertyId: 1, category: 'Maintenance', subcategory: 'Routine', amount: -1000, date: '2025-01-15', type: 'expense' },
                     { id: '2', propertyId: 1, category: 'Maintenance', subcategory: 'Repairs', amount: -2000, date: '2025-01-15', type: 'expense' },
                     { id: '3', propertyId: 1, category: 'Utilities', amount: -300, date: '2025-01-15', type: 'expense' },
-                    { id: '4', propertyId: 1, category: 'Rent', amount: 4000, date: '2025-01-15', type: 'income' }
+                    { id: '4', propertyId: 1, category: 'Rent', amount: 4000, date: '2025-01-15', type: 'income' },
                 ];
 
                 // Setup property metadata
@@ -2155,7 +2155,7 @@ describe.only('Master Sankey Test Suite', () => {
                 dataManager.store.transactions = [
                     { id: '1', propertyId: 1, category: 'Maintenance', amount: -1500, date: '2025-01-15', type: 'expense' },
                     { id: '2', propertyId: 1, category: 'Utilities', amount: -300, date: '2025-01-15', type: 'expense' },
-                    { id: '3', propertyId: 1, category: 'Rent', amount: 2000, date: '2025-01-15', type: 'income' }
+                    { id: '3', propertyId: 1, category: 'Rent', amount: 2000, date: '2025-01-15', type: 'income' },
                 ];
 
                 // Setup property metadata
@@ -2174,7 +2174,7 @@ describe.only('Master Sankey Test Suite', () => {
                 // Setup transactions with negative income (shouldn't happen but test handles it)
                 dataManager.store.transactions = [
                     { id: '1', propertyId: 1, category: 'Rent', amount: -5000, date: '2025-01-15', type: 'income' },
-                    { id: '2', propertyId: 1, category: 'Parking', amount: 1000, date: '2025-01-15', type: 'income' }
+                    { id: '2', propertyId: 1, category: 'Parking', amount: 1000, date: '2025-01-15', type: 'income' },
                 ];
 
                 // Setup property metadata
@@ -2192,7 +2192,7 @@ describe.only('Master Sankey Test Suite', () => {
                 // Setup transactions with valid data
                 dataManager.store.transactions = [
                     { id: '1', propertyId: 1, category: 'Maintenance', amount: -500, date: '2025-01-15', type: 'expense' },
-                    { id: '2', propertyId: 1, category: 'Rent', amount: 1000, date: '2025-01-15', type: 'income' }
+                    { id: '2', propertyId: 1, category: 'Rent', amount: 1000, date: '2025-01-15', type: 'income' },
                 ];
 
                 // Setup property metadata
@@ -2212,7 +2212,7 @@ describe.only('Master Sankey Test Suite', () => {
                 dataManager.store.transactions = [
                     { id: '1', propertyId: 1, category: 'Maintenance', amount: -1000, date: '2025-01-15', type: 'expense' },
                     { id: '2', propertyId: 1, category: 'Rent', amount: -2000, date: '2025-01-15', type: 'income' },
-                    { id: '3', propertyId: 1, category: 'Parking', amount: -500, date: '2025-01-15', type: 'income' }
+                    { id: '3', propertyId: 1, category: 'Parking', amount: -500, date: '2025-01-15', type: 'income' },
                 ];
 
                 // Setup property metadata
@@ -2235,7 +2235,7 @@ describe.only('Master Sankey Test Suite', () => {
                     { id: '1', propertyId: 1, category: 'Maintenance', amount: -1000, date: '2025-01-15', type: 'expense' },
                     { id: '2', propertyId: 1, category: 'Rent', amount: 2000, date: '2025-01-15', type: 'income' },
                     { id: '3', propertyId: 1, category: 'Maintenance', amount: -1500, date: '2025-02-15', type: 'expense' },
-                    { id: '4', propertyId: 1, category: 'Rent', amount: 2500, date: '2025-02-15', type: 'income' }
+                    { id: '4', propertyId: 1, category: 'Rent', amount: 2500, date: '2025-02-15', type: 'income' },
                 ];
 
                 // Setup property metadata
@@ -2257,7 +2257,7 @@ describe.only('Master Sankey Test Suite', () => {
                 // Setup transactions
                 dataManager.store.transactions = [
                     { id: '1', propertyId: 1, category: 'Maintenance', amount: -1000, date: '2025-01-15', type: 'expense' },
-                    { id: '2', propertyId: 1, category: 'Rent', amount: 2000, date: '2025-01-15', type: 'income' }
+                    { id: '2', propertyId: 1, category: 'Rent', amount: 2000, date: '2025-01-15', type: 'income' },
                 ];
 
                 // Setup property metadata
@@ -2285,13 +2285,13 @@ describe.only('Master Sankey Test Suite', () => {
                 // First call
                 const result1 = chartRenderer.buildSankeyData(
                     mockProperties, mockSources, mockPropIncomes, mockPropExpenses,
-                    mockCategories, true, new Map([['Maintenance', 500]]), new Map(), 800, 600
+                    mockCategories, true, new Map([['Maintenance', 500]]), new Map(), 800, 600,
                 );
 
                 // Second call with same params
                 const result2 = chartRenderer.buildSankeyData(
                     mockProperties, mockSources, mockPropIncomes, mockPropExpenses,
-                    mockCategories, true, new Map([['Maintenance', 500]]), new Map(), 800, 600
+                    mockCategories, true, new Map([['Maintenance', 500]]), new Map(), 800, 600,
                 );
 
                 // Results should be different objects but structurally equivalent
@@ -2304,7 +2304,7 @@ describe.only('Master Sankey Test Suite', () => {
                 // Setup transactions
                 dataManager.store.transactions = [
                     { id: '1', propertyId: 1, category: 'Maintenance', amount: -1000, date: '2025-01-15', type: 'expense' },
-                    { id: '2', propertyId: 1, category: 'Rent', amount: 2000, date: '2025-01-15', type: 'income' }
+                    { id: '2', propertyId: 1, category: 'Rent', amount: 2000, date: '2025-01-15', type: 'income' },
                 ];
 
                 // Setup property metadata
@@ -2350,13 +2350,13 @@ describe.only('Master Sankey Test Suite', () => {
                     { id: 'income-Rent', name: 'RENT', type: 'income-source', level: 0, depth: 0 },
                     { id: 'earnings', name: 'EARNINGS', type: 'earnings', level: 1, depth: 1 },
                     { id: 'prop-1', name: 'PROPERTY A', type: 'property', level: 2, depth: 2 },
-                    { id: 'expenses', name: 'EXPENSES', type: 'expenses', level: 3, depth: 3 }
+                    { id: 'expenses', name: 'EXPENSES', type: 'expenses', level: 3, depth: 3 },
                 ],
                 links: [
                     { source: 'income-Rent', target: 'earnings', value: 3000 },
-                    { source: 'earnings', target: 'prop-1', value: 3200 }
+                    { source: 'earnings', target: 'prop-1', value: 3200 },
                 ],
-                hasIncome: true
+                hasIncome: true,
             };
             buildSankeyDataSpy.mockReturnValue(mockSankeyData);
 
@@ -2410,15 +2410,15 @@ describe.only('Master Sankey Test Suite', () => {
                     { id: 'prop-2', name: 'PROPERTY B', type: 'property', level: 1, depth: 1 },
                     { id: 'expenses', name: 'EXPENSES', type: 'expenses', level: 2, depth: 2 },
                     { id: 'cat-0', name: 'MAINTENANCE', type: 'category', level: 3, depth: 3 },
-                    { id: 'cat-1', name: 'UTILITIES', type: 'category', level: 3, depth: 3 }
+                    { id: 'cat-1', name: 'UTILITIES', type: 'category', level: 3, depth: 3 },
                 ],
                 links: [
                     { source: 'dummy-source', target: 'prop-1', value: 2500, type: 'dummy-to-prop' },
                     { source: 'dummy-source', target: 'prop-2', value: 2800, type: 'dummy-to-prop' },
                     { source: 'prop-1', target: 'expenses', value: 2500 },
-                    { source: 'prop-2', target: 'expenses', value: 2800 }
+                    { source: 'prop-2', target: 'expenses', value: 2800 },
                 ],
-                hasIncome: false
+                hasIncome: false,
             };
             buildSankeyDataSpy.mockReturnValue(mockSankeyData);
 
@@ -2476,7 +2476,7 @@ describe.only('Master Sankey Test Suite', () => {
             buildSankeyDataSpy.mockReturnValue({
                 nodes: [{ id: 'test', name: 'TEST', depth: 0 }],
                 links: [],
-                hasIncome: true
+                hasIncome: true,
             });
 
             // Spy on createSankey
@@ -2510,9 +2510,9 @@ describe.only('Master Sankey Test Suite', () => {
                 monthlyData: {
                     'Jan 2025': {
                         expenses: { 'Maintenance': -1000 },
-                        incomes: { 'Rent': 1500 }
-                    }
-                }
+                        incomes: { 'Rent': 1500 },
+                    },
+                },
             };
             dataManager.data.properties.push(newProperty);
 
@@ -2539,10 +2539,10 @@ describe.only('Master Sankey Test Suite', () => {
                 nodes: [
                     { id: 'income-Rent', name: 'RENT', type: 'income-source', depth: 0 },
                     { id: 'earnings', name: 'EARNINGS', type: 'earnings', depth: 1 },
-                    { id: 'prop-1', name: 'PROPERTY A', type: 'property', depth: 2 }
+                    { id: 'prop-1', name: 'PROPERTY A', type: 'property', depth: 2 },
                 ],
                 links: [],
-                hasIncome: true
+                hasIncome: true,
             };
             buildSankeyDataSpy.mockReturnValue(mockSankeyData);
 
@@ -2596,7 +2596,7 @@ describe.only('Master Sankey Test Suite', () => {
                 currentTimePeriod: 'month',
                 currentView: 'overview',
                 selectedYear: '2025',
-                selectedMonth: '1'
+                selectedMonth: '1',
             };
             dataManager._initialized = true;
         });
@@ -2609,7 +2609,7 @@ describe.only('Master Sankey Test Suite', () => {
                 undefined, // undefined property
                 { id: 1 }, // missing required fields
                 { id: 2, name: 'Property A' }, // valid property
-                { id: 3, name: 'Property B' } // valid property
+                { id: 3, name: 'Property B' }, // valid property
             ];
 
             const mockSources = new Map();
@@ -2621,7 +2621,7 @@ describe.only('Master Sankey Test Suite', () => {
             expect(() => {
                 const result = chartRenderer.buildSankeyData(
                     invalidProperties, mockSources, mockPropIncomes, mockPropExpenses,
-                    mockCategories, false, new Map(), new Map(), 800, 600
+                    mockCategories, false, new Map(), new Map(), 800, 600,
                 );
                 // Should handle invalid properties gracefully
                 expect(result.nodes).toBeDefined();
@@ -2632,7 +2632,7 @@ describe.only('Master Sankey Test Suite', () => {
         test('getAggregatedSankeyData handles non-numeric expense values', () => {
             // Setup transactions with invalid data (this shouldn't happen in real usage)
             dataManager.store.transactions = [
-                { id: '1', propertyId: 1, category: 'Rent', amount: 2000, date: '2025-01-15', type: 'income' }
+                { id: '1', propertyId: 1, category: 'Rent', amount: 2000, date: '2025-01-15', type: 'income' },
             ];
 
             // Setup property metadata
@@ -2665,7 +2665,7 @@ describe.only('Master Sankey Test Suite', () => {
             expect(() => {
                 const result = chartRenderer.buildSankeyData(
                     mockProperties, mockSources, mockPropIncomes, mockPropExpenses,
-                    mockCategories, true, new Map([['Maintenance', 500]]), new Map(), 800, 600
+                    mockCategories, true, new Map([['Maintenance', 500]]), new Map(), 800, 600,
                 );
 
                 // Should return valid result structure with fallback data
@@ -2697,7 +2697,7 @@ describe.only('Master Sankey Test Suite', () => {
             expect(() => {
                 chartRenderer.buildSankeyData(
                     mockProperties, mockSources, mockPropIncomes, mockPropExpenses,
-                    mockCategories, true, new Map([['Maintenance', 500]]), new Map(), 800, 600
+                    mockCategories, true, new Map([['Maintenance', 500]]), new Map(), 800, 600,
                 );
             }).not.toThrow();
         });
@@ -2721,7 +2721,7 @@ describe.only('Master Sankey Test Suite', () => {
 
             const result = chartRenderer.buildSankeyData(
                 mockProperties, mockSources, mockPropIncomes, mockPropExpenses,
-                mockCategories, false, new Map(), new Map(), 800, 600
+                mockCategories, false, new Map(), new Map(), 800, 600,
             );
 
             expect(result.nodes).toEqual([{ name: 'No Expenses', value: 0, isPlaceholder: true }]);
@@ -2743,7 +2743,7 @@ describe.only('Master Sankey Test Suite', () => {
                 currentTimePeriod: 'month',
                 currentView: 'overview',
                 selectedYear: '2025',
-                selectedMonth: '1'
+                selectedMonth: '1',
             };
             dataManager._initialized = true;
         });
@@ -2754,7 +2754,7 @@ describe.only('Master Sankey Test Suite', () => {
             for (let i = 1; i <= 21; i++) {
                 mockProperties.push({
                     id: i,
-                    name: `Property ${i}`
+                    name: `Property ${i}`,
                 });
             }
 
@@ -2766,11 +2766,11 @@ describe.only('Master Sankey Test Suite', () => {
                 ['Maintenance', 3000],
                 ['Utilities', 2000],
                 ['Insurance', 1000],
-                ['Taxes', 2000]
+                ['Taxes', 2000],
             ]);
             const mockSubTotals = new Map([
                 ['Maintenance', new Map([['Repairs', 1500], ['Cleaning', 1500]])],
-                ['Utilities', new Map([['Electric', 1000], ['Water', 1000]])]
+                ['Utilities', new Map([['Electric', 1000], ['Water', 1000]])],
             ]);
 
             // Mock D3 to avoid actual computation time
@@ -2782,7 +2782,7 @@ describe.only('Master Sankey Test Suite', () => {
                 x0: 100 + i * 20,
                 y0: 10 + i * 10,
                 x1: 115 + i * 20,
-                y1: 50 + i * 10
+                y1: 50 + i * 10,
             }));
 
             global.d3.sankey.mockImplementation(() => {
@@ -2798,7 +2798,7 @@ describe.only('Master Sankey Test Suite', () => {
             const mockHierarchy = {
                 descendants: jest.fn().mockReturnValue([]),
                 sort: jest.fn().mockReturnThis(),
-                links: jest.fn().mockReturnValue([])
+                links: jest.fn().mockReturnValue([]),
             };
 
             const mockStratifyFn = jest.fn().mockReturnValue(mockHierarchy);
@@ -2813,7 +2813,7 @@ describe.only('Master Sankey Test Suite', () => {
 
             const result = chartRenderer.buildSankeyData(
                 mockProperties, mockSources, mockPropIncomes, mockPropExpenses,
-                mockCategories, true, mockCatTotals, mockSubTotals, 800, 600
+                mockCategories, true, mockCatTotals, mockSubTotals, 800, 600,
             );
 
             const endTime = Date.now();
@@ -2838,10 +2838,10 @@ describe.only('Master Sankey Test Suite', () => {
                     monthlyData: {
                         'Jan 2025': {
                             expenses: { 'Maintenance': -1000, 'Utilities': -500 },
-                            incomes: { 'Rent': 2000 }
-                        }
-                    }
-                }
+                            incomes: { 'Rent': 2000 },
+                        },
+                    },
+                },
             ];
 
             dataManager.data.properties = mockProperties;
@@ -2867,7 +2867,7 @@ describe.only('Master Sankey Test Suite', () => {
             for (let i = 1; i <= 51; i++) {
                 mockProperties.push({
                     id: i,
-                    name: `Property ${i}`
+                    name: `Property ${i}`,
                 });
             }
 
@@ -2880,11 +2880,11 @@ describe.only('Master Sankey Test Suite', () => {
                 ['Utilities', 5000],
                 ['Insurance', 2500],
                 ['Taxes', 5000],
-                ['Repairs', 3000]
+                ['Repairs', 3000],
             ]);
             const mockSubTotals = new Map([
                 ['Maintenance', new Map([['Routine', 4000], ['Emergency', 3500]])],
-                ['Utilities', new Map([['Electric', 3000], ['Water', 2000]])]
+                ['Utilities', new Map([['Electric', 3000], ['Water', 2000]])],
             ]);
 
             // Mock D3 to avoid actual computation time
@@ -2896,7 +2896,7 @@ describe.only('Master Sankey Test Suite', () => {
                 x0: 100 + i * 20,
                 y0: 10 + i * 10,
                 x1: 115 + i * 20,
-                y1: 50 + i * 10
+                y1: 50 + i * 10,
             }));
 
             global.d3.sankey.mockImplementation(() => {
@@ -2912,7 +2912,7 @@ describe.only('Master Sankey Test Suite', () => {
             const mockHierarchy = {
                 descendants: jest.fn().mockReturnValue([]),
                 sort: jest.fn().mockReturnThis(),
-                links: jest.fn().mockReturnValue([])
+                links: jest.fn().mockReturnValue([]),
             };
 
             const mockStratifyFn = jest.fn().mockReturnValue(mockHierarchy);
@@ -2923,7 +2923,7 @@ describe.only('Master Sankey Test Suite', () => {
 
             const result = chartRenderer.buildSankeyData(
                 mockProperties, mockSources, mockPropIncomes, mockPropExpenses,
-                mockCategories, true, mockCatTotals, mockSubTotals, 800, 600
+                mockCategories, true, mockCatTotals, mockSubTotals, 800, 600,
             );
 
             const endTime = performance.now();

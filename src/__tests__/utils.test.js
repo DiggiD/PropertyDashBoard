@@ -29,7 +29,7 @@ const createDexieMock = () => {
             return Promise.resolve((dbStorage[this.tableName] || []).length);
         }),
         add: jest.fn((item) => {
-            if (!dbStorage[mockQuery.tableName]) dbStorage[mockQuery.tableName] = [];
+            if (!dbStorage[mockQuery.tableName]) {dbStorage[mockQuery.tableName] = [];}
             dbStorage[mockQuery.tableName].push(item);
             return Promise.resolve(1);
         }),
@@ -47,7 +47,7 @@ const createDexieMock = () => {
         close: jest.fn(),
         delete: jest.fn().mockResolvedValue(),
         transaction: jest.fn().mockImplementation(async (stores, mode, callback) => {
-            if (callback) await callback();
+            if (callback) {await callback();}
         }),
         export: jest.fn().mockResolvedValue({}),
         import: jest.fn().mockResolvedValue(),
@@ -85,7 +85,7 @@ beforeAll(() => {
 
     // Fast Indian number formatting function
     const formatIndianNumber = (num) => {
-        if (isNaN(num) || num === null || num === undefined) return '0';
+        if (isNaN(num) || num === null || num === undefined) {return '0';}
         const absNum = Math.abs(num);
         const str = absNum.toString();
         const [intPart, decPart] = str.split('.');
@@ -120,23 +120,23 @@ beforeAll(() => {
     };
 
     const mockFormat = jest.fn((num) => {
-        if (isNaN(num) || num === null || num === undefined) return '₹0';
-        if (!isFinite(num)) return num < 0 ? `-₹${Math.abs(num)}` : `₹${num}`;
+        if (isNaN(num) || num === null || num === undefined) {return '₹0';}
+        if (!isFinite(num)) {return num < 0 ? `-₹${Math.abs(num)}` : `₹${num}`;}
         const formatted = formatIndianNumber(num);
         return num < 0 ? `-₹${formatted}` : `₹${formatted}`;
     });
 
     const compactFormat = jest.fn((num) => {
-        if (isNaN(num) || num === null || num === undefined) return '₹0';
-        if (!isFinite(num)) return num < 0 ? `₹-${Math.abs(num)}` : `₹${num}`;
+        if (isNaN(num) || num === null || num === undefined) {return '₹0';}
+        if (!isFinite(num)) {return num < 0 ? `₹-${Math.abs(num)}` : `₹${num}`;}
         const absNum = Math.abs(num);
-        if (absNum >= 1000000) return `₹${Math.round(absNum/1000000)}M`;
-        if (absNum >= 1000) return `₹${Math.round(absNum/1000)}K`;
+        if (absNum >= 1000000) {return `₹${Math.round(absNum/1000000)}M`;}
+        if (absNum >= 1000) {return `₹${Math.round(absNum/1000)}K`;}
         return `₹${absNum}`;
     });
 
     global.Intl.NumberFormat = jest.fn((locale, options) => ({
-        format: options && options.notation === 'compact' ? compactFormat : mockFormat
+        format: options && options.notation === 'compact' ? compactFormat : mockFormat,
     }));
 });
 
@@ -297,7 +297,7 @@ describe('Utils Modules Tests', () => {
                 'formatCurrency(%s, %s) should return %s',
                 (input, compact, expected) => {
                     expect(formatter.formatCurrency(input, compact)).toBe(expected);
-                }
+                },
             );
 
             test('should handle Intl.NumberFormat errors gracefully', () => {
@@ -378,7 +378,7 @@ describe('Utils Modules Tests', () => {
                     } else {
                         expect(result).toContain(expectedContains);
                     }
-                }
+                },
             );
         });
 
@@ -412,7 +412,7 @@ describe('Utils Modules Tests', () => {
                 'formatFileSize(%s) should return %s',
                 (bytes, expected) => {
                     expect(formatter.formatFileSize(bytes)).toBe(expected);
-                }
+                },
             );
         });
 
@@ -429,7 +429,7 @@ describe('Utils Modules Tests', () => {
                 'formatQuarter(%s) should return %s',
                 (input, expected) => {
                     expect(formatter.formatQuarter(input)).toBe(expected);
-                }
+                },
             );
         });
 
@@ -454,7 +454,7 @@ describe('Utils Modules Tests', () => {
                 'formatPercentageOfTotal(%s, %s) should return %s',
                 (value, total, expected) => {
                     expect(formatter.formatPercentageOfTotal(value, total)).toBe(expected);
-                }
+                },
             );
         });
 
@@ -471,7 +471,7 @@ describe('Utils Modules Tests', () => {
                 (trend, change, expectedContains) => {
                     const result = formatter.formatTrend(trend, change);
                     expect(result).toContain(expectedContains);
-                }
+                },
             );
         });
 
@@ -496,7 +496,7 @@ describe('Utils Modules Tests', () => {
                 'formatAxisLabel(%s) should return %s',
                 (value, expected) => {
                     expect(formatter.formatAxisLabel(value)).toBe(expected);
-                }
+                },
             );
         });
 
@@ -543,7 +543,7 @@ describe('Utils Modules Tests', () => {
                     } else {
                         expect(result.message).toBe(expectedMessageContains);
                     }
-                }
+                },
             );
         });
 
@@ -567,7 +567,7 @@ describe('Utils Modules Tests', () => {
                     if (expectedMessageContains) {
                         expect(result.message).toContain(expectedMessageContains);
                     }
-                }
+                },
             );
         });
 
@@ -594,7 +594,7 @@ describe('Utils Modules Tests', () => {
                     if (expectedMessageContains) {
                         expect(result.message).toContain(expectedMessageContains);
                     }
-                }
+                },
             );
         });
 
@@ -620,7 +620,7 @@ describe('Utils Modules Tests', () => {
                     if (expectedMessageContains) {
                         expect(result.message).toContain(expectedMessageContains);
                     }
-                }
+                },
             );
         });
 
@@ -630,7 +630,7 @@ describe('Utils Modules Tests', () => {
                 const validProperty = {
                     id: 1,
                     name: 'Test Property',
-                    expenses: { 'Maintenance': 1000 }
+                    expenses: { 'Maintenance': 1000 },
                 };
                 const result = validator.validateProperty(validProperty);
                 expect(result.isValid).toBe(true);
@@ -661,7 +661,7 @@ describe('Utils Modules Tests', () => {
                 const validExpenses = {
                     'Maintenance': 1000,
                     'Utilities': 500,
-                    'Repairs': 0
+                    'Repairs': 0,
                 };
                 const result = validator.validateExpenseData(validExpenses);
                 expect(result.isValid).toBe(true);
@@ -692,7 +692,7 @@ describe('Utils Modules Tests', () => {
                     properties: [{ id: 1, name: 'Test Property', expenses: {} }],
                     expenseCategories: ['Maintenance', 'Utilities'],
                     currentTimePeriod: 'all',
-                    currentView: 'overview'
+                    currentView: 'overview',
                 };
                 const result = validator.validateDashboardData(validData);
                 expect(result.isValid).toBe(true);
@@ -715,11 +715,11 @@ describe('Utils Modules Tests', () => {
                     expect(result.errors.length).toBeGreaterThan(0);
                 });
             });
-        
+
             // ============================================================================
             // PERFORMANCE OPTIMIZER TESTS (15+ tests using isolated real code execution)
             // ============================================================================
-        
+
             describe('PerformanceOptimizer', () => {
                 describe('initialization', () => {
                     test('should initialize with default state', () => {
@@ -746,7 +746,7 @@ describe('Utils Modules Tests', () => {
                         // Mock PerformanceObserver
                         global.PerformanceObserver = jest.fn((callback) => ({
                             observe: jest.fn(),
-                            disconnect: jest.fn()
+                            disconnect: jest.fn(),
                         }));
 
                         const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
@@ -766,100 +766,100 @@ describe('Utils Modules Tests', () => {
                         expect(performanceOptimizer.observers.size).toBe(0);
                     });
                 });
-        
+
                 describe('measureMethodExecution', () => {
                     test('should measure execution time of async method', async () => {
                         const mockMethod = jest.fn().mockResolvedValue('result');
                         const context = { test: 'context' };
-        
+
                         const result = await performanceOptimizer.measureMethodExecution(
                             'testMethod',
                             mockMethod,
                             context,
                             'arg1',
-                            'arg2'
+                            'arg2',
                         );
-        
+
                         expect(result).toBe('result');
                         expect(mockMethod).toHaveBeenCalledWith('arg1', 'arg2');
                         expect(mockMethod).toHaveBeenCalledTimes(1);
                         expect(performanceOptimizer.metrics.methodExecutionTime.has('testMethod')).toBe(true);
                     });
-        
+
                     test('should measure execution time of sync method', async () => {
                         const mockMethod = jest.fn().mockReturnValue(42);
-        
+
                         const result = await performanceOptimizer.measureMethodExecution(
                             'syncMethod',
                             mockMethod,
-                            null
+                            null,
                         );
-        
+
                         expect(result).toBe(42);
                         expect(performanceOptimizer.metrics.methodExecutionTime.has('syncMethod')).toBe(true);
                     });
-        
+
                     test('should warn for slow methods', async () => {
                         // Mock performance.now to simulate slow operation
                         const originalNow = global.performance.now;
                         global.performance.now
                             .mockReturnValueOnce(100) // start time
                             .mockReturnValueOnce(250); // end time (150ms later)
-        
+
                         const mockMethod = jest.fn(() => 'slow result');
-        
+
                         const result = await performanceOptimizer.measureMethodExecution('slowMethod', mockMethod, null);
-        
+
                         expect(result).toBe('slow result');
                         expect(console.warn).toHaveBeenCalledWith(
-                            expect.stringContaining('Slow method: slowMethod took')
+                            expect.stringContaining('Slow method: slowMethod took'),
                         );
-        
+
                         // Restore original mock
                         global.performance.now = originalNow;
                     });
-        
+
                     test('should skip measurement when disabled', async () => {
                         performanceOptimizer.setEnabled(false);
                         const mockMethod = jest.fn().mockReturnValue('result');
-        
+
                         const result = await performanceOptimizer.measureMethodExecution(
                             'disabledMethod',
                             mockMethod,
-                            null
+                            null,
                         );
-        
+
                         expect(result).toBe('result');
                         expect(performanceOptimizer.metrics.methodExecutionTime.has('disabledMethod')).toBe(false);
                     });
                 });
-        
+
                 describe('caching', () => {
                     test('should cache values with TTL', () => {
                         const value = { data: 'test' };
                         const result = performanceOptimizer.cache('testKey', value, 1000);
-        
+
                         expect(result).toBe(value);
                         expect(performanceOptimizer.cacheMap.has('testKey')).toBe(true);
                     });
-        
+
                     test('should retrieve cached values', () => {
                         const value = 'cached value';
                         performanceOptimizer.cache('testKey', value);
-        
+
                         const cached = performanceOptimizer.getCached('testKey');
-        
+
                         expect(cached).toBe(value);
                         expect(performanceOptimizer.metrics.cacheHits).toBe(1);
                     });
-        
+
                     test('should return null for non-existent cache key', () => {
                         const cached = performanceOptimizer.getCached('nonExistent');
-        
+
                         expect(cached).toBe(null);
                         expect(performanceOptimizer.metrics.cacheMisses).toBe(1);
                     });
-        
+
                     test('should return null for expired cache entries', () => {
                         jest.useFakeTimers();
                         performanceOptimizer.cache('expiredKey', 'value', 100);
@@ -884,29 +884,29 @@ describe('Utils Modules Tests', () => {
                         expect(optimizer.metrics.cacheMisses).toBe(1);
                         jest.useRealTimers();
                     });
-        
+
                     test('should clear all cache', () => {
                         performanceOptimizer.cache('key1', 'value1');
                         performanceOptimizer.cache('key2', 'value2');
-        
+
                         performanceOptimizer.clearCache();
-        
+
                         expect(performanceOptimizer.cacheMap.size).toBe(0);
                     });
-        
+
                     test('should clear cache by pattern', () => {
                         performanceOptimizer.cache('user:1', 'user1');
                         performanceOptimizer.cache('user:2', 'user2');
                         performanceOptimizer.cache('post:1', 'post1');
-        
+
                         performanceOptimizer.clearCache('user:');
-        
+
                         expect(performanceOptimizer.cacheMap.has('user:1')).toBe(false);
                         expect(performanceOptimizer.cacheMap.has('user:2')).toBe(false);
                         expect(performanceOptimizer.cacheMap.has('post:1')).toBe(true);
                     });
                 });
-        
+
                 describe('event optimization', () => {
                     beforeEach(() => {
                         jest.useFakeTimers();
@@ -955,63 +955,63 @@ describe('Utils Modules Tests', () => {
                         expect(mockFn).toHaveBeenCalledWith('call4');
                     });
                 });
-        
+
                 describe('data optimization', () => {
                     beforeEach(() => {
                         performanceOptimizer.optimizeDataOperations();
                     });
-        
+
                     test('should memoize function results', () => {
                         const expensiveFn = jest.fn((x) => x * 2);
                         const memoizedFn = performanceOptimizer.memoize(expensiveFn);
-        
+
                         // First call
                         const result1 = memoizedFn(5);
                         expect(result1).toBe(10);
                         expect(expensiveFn).toHaveBeenCalledTimes(1);
-        
+
                         // Second call with same argument should use cache
                         const result2 = memoizedFn(5);
                         expect(result2).toBe(10);
                         expect(expensiveFn).toHaveBeenCalledTimes(1); // Still 1 call
-        
+
                         // Third call with different argument
                         const result3 = memoizedFn(3);
                         expect(result3).toBe(6);
                         expect(expensiveFn).toHaveBeenCalledTimes(2);
                     });
-        
+
                     test('should handle custom key generator', () => {
                         const expensiveFn = jest.fn((a, b) => a + b);
                         const memoizedFn = performanceOptimizer.memoize(
                             expensiveFn,
-                            (a, b) => `${a}-${b}`
+                            (a, b) => `${a}-${b}`,
                         );
-        
+
                         memoizedFn(1, 2);
                         memoizedFn(1, 2); // Should use cache
-        
+
                         expect(expensiveFn).toHaveBeenCalledTimes(1);
                     });
                 });
-        
+
                 describe('DOM optimization', () => {
                     beforeEach(() => {
                         performanceOptimizer.optimizeDOMOperations();
                     });
-        
+
                     test('should create document fragment for bulk operations', () => {
                         const operations = [
                             jest.fn(),
                             jest.fn(),
                         ];
-        
+
                         const fragment = performanceOptimizer.createDocumentFragment(operations);
-        
+
                         expect(operations[0]).toHaveBeenCalledWith(fragment);
                         expect(operations[1]).toHaveBeenCalledWith(fragment);
                     });
-        
+
                     test('should debounce DOM updates', () => {
                         const mockFn = jest.fn();
                         const debouncedFn = performanceOptimizer.debounceDOMUpdate(mockFn, 16);
@@ -1021,25 +1021,25 @@ describe('Utils Modules Tests', () => {
 
                         expect(mockFn).not.toHaveBeenCalled();
                     });
-        
+
                     test('should batch style updates', () => {
                         const element = { style: { cssText: 'color: red;' } };
-        
+
                         performanceOptimizer.batchStyleUpdates(element, {
                             backgroundColor: 'blue',
                             fontSize: '14px',
                         });
-        
+
                         expect(element.style.cssText).toContain('background-color:blue');
                         expect(element.style.cssText).toContain('font-size:14px');
                     });
                 });
-        
+
                 describe('chart rendering optimization', () => {
                     beforeEach(() => {
                         performanceOptimizer.optimizeChartRendering();
                     });
-        
+
                     test('should create virtual scroller', () => {
                         const container = {
                             innerHTML: '',
@@ -1047,110 +1047,110 @@ describe('Utils Modules Tests', () => {
                             appendChild: jest.fn(),
                             addEventListener: jest.fn(),
                         };
-        
+
                         const items = ['item1', 'item2', 'item3', 'item4', 'item5'];
                         const itemHeight = 50;
                         const visibleItems = 3;
-        
+
                         performanceOptimizer.createVirtualScroller(container, items, itemHeight, visibleItems);
-        
+
                         expect(container.style.height).toBe('150px'); // 3 * 50
                         expect(container.style.overflow).toBe('auto');
                         expect(container.addEventListener).toHaveBeenCalledWith('scroll', expect.any(Function));
                     });
                 });
-        
+
                 describe('metrics and monitoring', () => {
                     test('should get performance metrics', () => {
                         performanceOptimizer.metrics.cacheHits = 8;
                         performanceOptimizer.metrics.cacheMisses = 2;
-        
+
                         const metrics = performanceOptimizer.getMetrics();
-        
+
                         expect(metrics.cacheStats.hitRate).toBe('80.00%');
                         expect(metrics.cacheSize).toBe(0); // Empty cache
                     });
-        
+
                     test('should measure module load time', () => {
                         const startTime = performance.now() - 50; // 50ms ago
-        
+
                         performanceOptimizer.measureModuleLoad('TestModule', startTime);
-        
+
                         expect(performanceOptimizer.metrics.moduleLoadTime.get('TestModule')).toBeGreaterThanOrEqual(50);
                     });
-        
+
                     test('should warn for slow module loads', () => {
                         const startTime = performance.now() - 150; // 150ms ago
-        
+
                         performanceOptimizer.measureModuleLoad('SlowModule', startTime);
-        
+
                         expect(console.warn).toHaveBeenCalledWith(
-                            expect.stringContaining('Slow module load: SlowModule took')
+                            expect.stringContaining('Slow module load: SlowModule took'),
                         );
                     });
                 });
-        
+
                 describe('observers', () => {
                     test('should add and remove observers', () => {
                         const observer = jest.fn();
-        
+
                         performanceOptimizer.addObserver(observer);
                         expect(performanceOptimizer.observers.has(observer)).toBe(true);
-        
+
                         performanceOptimizer.removeObserver(observer);
                         expect(performanceOptimizer.observers.has(observer)).toBe(false);
                     });
-        
+
                     test('should notify observers', () => {
                         const observer1 = jest.fn();
                         const observer2 = jest.fn();
-        
+
                         performanceOptimizer.addObserver(observer1);
                         performanceOptimizer.addObserver(observer2);
-        
+
                         performanceOptimizer.notifyObservers('testEvent', { data: 'test' });
-        
+
                         expect(observer1).toHaveBeenCalledWith('testEvent', { data: 'test' });
                         expect(observer2).toHaveBeenCalledWith('testEvent', { data: 'test' });
                     });
                 });
-        
+
                 describe('enable/disable', () => {
                     test('should enable and disable performance monitoring', () => {
                         performanceOptimizer.setEnabled(false);
                         expect(performanceOptimizer.isEnabled).toBe(false);
-        
+
                         performanceOptimizer.setEnabled(true);
                         expect(performanceOptimizer.isEnabled).toBe(true);
                     });
-        
+
                     test('should skip operations when disabled', () => {
                         performanceOptimizer.setEnabled(false);
-        
+
                         const result = performanceOptimizer.cache('test', 'value');
                         expect(result).toBe('value');
-        
+
                         const cached = performanceOptimizer.getCached('test');
                         expect(cached).toBe(null); // Should not cache when disabled
                     });
                 });
-        
+
                 describe('cleanup', () => {
                     test('should cleanup all resources', () => {
                         // Add some data
                         performanceOptimizer.cache('test', 'value');
                         performanceOptimizer.metrics.moduleLoadTime.set('TestModule', 100);
                         performanceOptimizer.metrics.methodExecutionTime.set('testMethod', 50);
-        
+
                         performanceOptimizer.cleanup();
-        
+
                         expect(performanceOptimizer.cacheMap.size).toBe(0);
                         expect(performanceOptimizer.metrics.moduleLoadTime.size).toBe(0);
                         expect(performanceOptimizer.metrics.methodExecutionTime.size).toBe(0);
                         expect(performanceOptimizer.metrics.memoryUsage.length).toBe(0);
                     });
                 });
-        
+
                 describe('utility functions', () => {
                     beforeEach(() => {
                         jest.useFakeTimers();
@@ -1218,7 +1218,7 @@ describe('Utils Modules Tests', () => {
                         expect(mockFn).toHaveBeenCalledWith('arg');
                     });
                 });
-        
+
                 describe('debounce/throttle functionality', () => {
                     beforeEach(() => {
                         jest.useFakeTimers();
@@ -1356,7 +1356,7 @@ describe('Utils Modules Tests', () => {
                         expect(mockFn).toHaveBeenCalledWith('third');
                     });
                 });
-        
+
                 describe('measureTime functionality', () => {
                     test('should measure execution time of synchronous functions', async () => {
                         const syncFunction = () => {
@@ -1366,27 +1366,27 @@ describe('Utils Modules Tests', () => {
                             }
                             return sum;
                         };
-        
+
                         const { result, time } = await performanceOptimizer.measureTime(syncFunction);
-        
+
                         expect(result).toBe(499500); // Sum of 0-999
                         expect(time).toBeGreaterThanOrEqual(0);
                         expect(typeof time).toBe('number');
                     });
-        
+
                     test('should measure execution time of async functions', async () => {
                         const asyncFunction = async () => {
                             // Simulate async operation without setTimeout to avoid timer issues
                             await Promise.resolve();
                             return 'async result';
                         };
-        
+
                         const { result, time } = await performanceOptimizer.measureTime(asyncFunction);
-        
+
                         expect(result).toBe('async result');
                         expect(time).toBeGreaterThanOrEqual(0); // Time should be measured
                     });
-        
+
                     test('should measure time of functions with different complexities', async () => {
                         const simpleFn = () => 42;
                         const complexFn = () => {
@@ -1396,18 +1396,18 @@ describe('Utils Modules Tests', () => {
                             }
                             return arr.length;
                         };
-        
+
                         const { time: simpleTime } = await performanceOptimizer.measureTime(simpleFn);
                         const { time: complexTime } = await performanceOptimizer.measureTime(complexFn);
-        
+
                         expect(complexTime).toBeGreaterThanOrEqual(simpleTime);
                     });
-        
+
                     test('should handle measureTime with functions that throw errors', async () => {
                         const errorFunction = () => {
                             throw new Error('Test error');
                         };
-        
+
                         try {
                             await performanceOptimizer.measureTime(errorFunction);
                             fail('Should have thrown');
@@ -1415,43 +1415,43 @@ describe('Utils Modules Tests', () => {
                             expect(error.message).toBe('Test error');
                         }
                     });
-        
+
                     test('should measure time accurately for fast operations', async () => {
                         const fastFunction = () => 'fast';
-        
+
                         const { result, time } = await performanceOptimizer.measureTime(fastFunction);
-        
+
                         expect(result).toBe('fast');
                         expect(time).toBeGreaterThanOrEqual(0);
                         expect(time).toBeLessThan(1); // Should be very fast
                     });
-        
+
                     test('should measure time of functions with side effects', async () => {
                         let counter = 0;
                         const sideEffectFunction = () => {
                             counter++;
                             return counter;
                         };
-        
+
                         const { result, time } = await performanceOptimizer.measureTime(sideEffectFunction);
-        
+
                         expect(result).toBe(1);
                         expect(counter).toBe(1);
                         expect(time).toBeGreaterThanOrEqual(0);
                     });
-        
+
                     test('should handle measureTime with null/undefined return values', async () => {
                         const nullFunction = () => null;
                         const undefinedFunction = () => undefined;
-        
+
                         const { result: nullResult } = await performanceOptimizer.measureTime(nullFunction);
                         const { result: undefinedResult } = await performanceOptimizer.measureTime(undefinedFunction);
-        
+
                         expect(nullResult).toBeNull();
                         expect(undefinedResult).toBeUndefined();
                     });
                 });
-        
+
                 describe('optimizeRender functionality', () => {
                     beforeEach(() => {
                         jest.useFakeTimers();
@@ -1578,13 +1578,13 @@ describe('Utils Modules Tests', () => {
                         delete global.document;
                     });
                 });
-        
+
                 describe('error handling', () => {
                     test('should handle errors in measured methods', async () => {
                         const mockMethod = jest.fn().mockRejectedValue(new Error('Method failed'));
 
                         await expect(
-                            performanceOptimizer.measureMethodExecution('failingMethod', mockMethod, null)
+                            performanceOptimizer.measureMethodExecution('failingMethod', mockMethod, null),
                         ).rejects.toThrow('Method failed');
                     });
 
@@ -1732,7 +1732,7 @@ describe('Utils Modules Tests', () => {
                         // Mock PerformanceObserver
                         const mockObserver = {
                             observe: jest.fn(),
-                            disconnect: jest.fn()
+                            disconnect: jest.fn(),
                         };
 
                         global.PerformanceObserver = jest.fn((callback) => {
@@ -1749,8 +1749,8 @@ describe('Utils Modules Tests', () => {
                         const mockList = {
                             getEntries: jest.fn().mockReturnValue([
                                 { duration: 60, startTime: 100 }, // Long task
-                                { duration: 30, startTime: 200 }  // Not a long task
-                            ])
+                                { duration: 30, startTime: 200 },  // Not a long task
+                            ]),
                         };
 
                         // Find the long task observer callback (first one)
@@ -1758,7 +1758,7 @@ describe('Utils Modules Tests', () => {
                         longTaskCallback(mockList);
 
                         expect(consoleSpy).toHaveBeenCalledWith(
-                            expect.stringContaining('Long task detected: 60.00ms')
+                            expect.stringContaining('Long task detected: 60.00ms'),
                         );
 
                         consoleSpy.mockRestore();
@@ -1769,7 +1769,7 @@ describe('Utils Modules Tests', () => {
                         // Mock PerformanceObserver
                         const mockObserver = {
                             observe: jest.fn(),
-                            disconnect: jest.fn()
+                            disconnect: jest.fn(),
                         };
 
                         global.PerformanceObserver = jest.fn((callback) => {
@@ -1785,8 +1785,8 @@ describe('Utils Modules Tests', () => {
                         // Manually trigger the layout shift observer callback
                         const mockList = {
                             getEntries: jest.fn().mockReturnValue([
-                                { value: 0.15, hadRecentInput: false } // Significant layout shift
-                            ])
+                                { value: 0.15, hadRecentInput: false }, // Significant layout shift
+                            ]),
                         };
 
                         // Find the layout shift observer callback (second one)
@@ -1794,7 +1794,7 @@ describe('Utils Modules Tests', () => {
                         layoutShiftCallback(mockList);
 
                         expect(consoleSpy).toHaveBeenCalledWith(
-                            expect.stringContaining('Layout shift detected: 0.1500')
+                            expect.stringContaining('Layout shift detected: 0.1500'),
                         );
 
                         consoleSpy.mockRestore();
@@ -1805,7 +1805,7 @@ describe('Utils Modules Tests', () => {
                         // Mock PerformanceObserver
                         const mockObserver = {
                             observe: jest.fn(),
-                            disconnect: jest.fn()
+                            disconnect: jest.fn(),
                         };
 
                         global.PerformanceObserver = jest.fn((callback) => {
@@ -1820,8 +1820,8 @@ describe('Utils Modules Tests', () => {
                         // Manually trigger with recent input
                         const mockList = {
                             getEntries: jest.fn().mockReturnValue([
-                                { value: 0.15, hadRecentInput: true } // Should be ignored
-                            ])
+                                { value: 0.15, hadRecentInput: true }, // Should be ignored
+                            ]),
                         };
 
                         // Find the layout shift observer callback (second one)
@@ -2015,7 +2015,7 @@ describe('Utils Modules Tests', () => {
                         const expensiveFn = jest.fn((a, b) => a + b);
                         const memoizedFn = performanceOptimizer.memoize(
                             expensiveFn,
-                            (a, b) => `custom-${a}-${b}`
+                            (a, b) => `custom-${a}-${b}`,
                         );
 
                         expect(memoizedFn(1, 2)).toBe(3);
@@ -2098,7 +2098,7 @@ describe('Utils Modules Tests', () => {
 
                         // Get the scroll handler
                         const scrollHandler = container.addEventListener.mock.calls.find(
-                            call => call[0] === 'scroll'
+                            call => call[0] === 'scroll',
                         )[1];
 
                         // Simulate scroll
@@ -2166,7 +2166,7 @@ describe('Utils Modules Tests', () => {
                         performanceOptimizer.debug();
 
                         expect(consoleSpy).toHaveBeenCalledWith(
-                            expect.stringContaining('Latest Memory Usage:')
+                            expect.stringContaining('Latest Memory Usage:'),
                         );
 
                         consoleSpy.mockRestore();
@@ -2189,7 +2189,7 @@ describe('Utils Modules Tests', () => {
                     const result = validator.validateAndSanitizeInput(input, type);
                     expect(result.isValid).toBe(expectedIsValid);
                     expect(result.sanitized).toBeDefined();
-                }
+                },
             );
         });
 
@@ -2209,7 +2209,7 @@ describe('Utils Modules Tests', () => {
                     if (expectedMessageContains) {
                         expect(result.message).toContain(expectedMessageContains);
                     }
-                }
+                },
             );
         });
 
@@ -2228,7 +2228,7 @@ describe('Utils Modules Tests', () => {
                 'sanitizeString(%s) should return %s',
                 (input, expected) => {
                     expect(validator.sanitizeString(input)).toBe(expected);
-                }
+                },
             );
         });
 
@@ -2246,7 +2246,7 @@ describe('Utils Modules Tests', () => {
                 'isInRange(%s, %s, %s) should return %s',
                 (value, min, max, expected) => {
                     expect(validator.isInRange(value, min, max)).toBe(expected);
-                }
+                },
             );
         });
 
@@ -2297,7 +2297,7 @@ describe('Utils Modules Tests', () => {
                             expect(loadResult).toBe(testData);
                         }
                     }
-                }
+                },
             );
 
             test('should handle save errors gracefully', async () => {
@@ -2365,7 +2365,7 @@ describe('Utils Modules Tests', () => {
             test('should save and load from database', async () => {
                 const testData = {
                     properties: [{ id: 1, name: 'Test Property', monthlyData: {} }],
-                    expenseCategories: ['Maintenance']
+                    expenseCategories: ['Maintenance'],
                 };
 
                 const saveResult = await storage.saveToDatabase(testData);
@@ -2388,7 +2388,7 @@ describe('Utils Modules Tests', () => {
                 // This would require more complex mocking of database tables
                 // For now, test the reconstruction logic with mocked data
                 const mockExpenses = [
-                    { property_id: 1, category: 'Maintenance', amount: 1000, month: 'Jan 2023' }
+                    { property_id: 1, category: 'Maintenance', amount: 1000, month: 'Jan 2023' },
                 ];
 
                 const monthlyData = storage.reconstructMonthlyData(mockExpenses);
@@ -2403,7 +2403,7 @@ describe('Utils Modules Tests', () => {
                     name: 'Test Snapshot',
                     timestamp: new Date().toISOString(),
                     description: 'Test',
-                    data: { test: true }
+                    data: { test: true },
                 };
 
                 const result = await storage.saveHistorySnapshot(snapshot);
@@ -2417,7 +2417,7 @@ describe('Utils Modules Tests', () => {
                 const snapshot = {
                     name: 'Test Snapshot',
                     timestamp: new Date().toISOString(),
-                    data: {}
+                    data: {},
                 };
 
                 const result = await storage.saveHistorySnapshot(snapshot);
@@ -2431,7 +2431,7 @@ describe('Utils Modules Tests', () => {
                 const snapshot = {
                     name: 'Test Snapshot',
                     timestamp: new Date().toISOString(),
-                    data: {}
+                    data: {},
                 };
 
                 localStorage.getItem.mockReturnValue(null);
@@ -2440,7 +2440,7 @@ describe('Utils Modules Tests', () => {
                 expect(result).toBe(true);
                 expect(localStorage.setItem).toHaveBeenCalledWith(
                     'sankey-property-dashboard-history',
-                    expect.any(String)
+                    expect.any(String),
                 );
             });
         });
@@ -2451,15 +2451,15 @@ describe('Utils Modules Tests', () => {
                     name: 'Test',
                     timestamp: new Date().toISOString(),
                     description: 'Test',
-                    data: {}
+                    data: {},
                 }];
 
                 storage.db.history.where = jest.fn().mockReturnValue({
                     equals: jest.fn().mockReturnValue({
                         reverse: jest.fn().mockReturnValue({
-                            sortBy: jest.fn().mockResolvedValue(mockHistory)
-                        })
-                    })
+                            sortBy: jest.fn().mockResolvedValue(mockHistory),
+                        }),
+                    }),
                 });
 
                 const result = await storage.loadHistoryFromStorage();
@@ -2494,7 +2494,7 @@ describe('Utils Modules Tests', () => {
                         const result = await storage.saveSettings(settings);
                         expect(result).toBe(false);
                     }
-                }
+                },
             );
 
             test('should load settings from database', async () => {
@@ -2502,8 +2502,8 @@ describe('Utils Modules Tests', () => {
 
                 storage.db.settings.where = jest.fn().mockReturnValue({
                     equals: jest.fn().mockReturnValue({
-                        toArray: jest.fn().mockResolvedValue(mockSettings)
-                    })
+                        toArray: jest.fn().mockResolvedValue(mockSettings),
+                    }),
                 });
 
                 const result = await storage.loadSettings();
@@ -2608,12 +2608,12 @@ describe('Utils Modules Tests', () => {
                 const exportFormatData = {
                     currentData: { properties: [], expenseCategories: [] },
                     history: [],
-                    settings: {}
+                    settings: {},
                 };
 
                 const directFormatData = {
                     properties: [],
-                    expenseCategories: []
+                    expenseCategories: [],
                 };
 
                 storage.save = jest.fn().mockResolvedValue(true);
@@ -2630,7 +2630,7 @@ describe('Utils Modules Tests', () => {
                 storage.save = jest.fn().mockRejectedValue(new Error('Save failed'));
 
                 const result = await storage.importData({
-                    currentData: { properties: [], expenseCategories: [] }
+                    currentData: { properties: [], expenseCategories: [] },
                 });
                 expect(result).toBe(false);
             });
@@ -2651,7 +2651,7 @@ describe('Utils Modules Tests', () => {
                 'validateDataForStorage(%j) should return %s',
                 (data, expected) => {
                     expect(storage.validateDataForStorage(data)).toBe(expected);
-                }
+                },
             );
         });
 
@@ -2737,9 +2737,9 @@ describe('Utils Modules Tests', () => {
                 storage.db.expenses.where = jest.fn().mockReturnValue({
                     between: jest.fn().mockReturnValue({
                         and: jest.fn().mockReturnValue({
-                            sortBy: jest.fn().mockResolvedValue(mockExpenses)
-                        })
-                    })
+                            sortBy: jest.fn().mockResolvedValue(mockExpenses),
+                        }),
+                    }),
                 });
 
                 const result = await storage.getChronologicalExpenses(1, '2023-01-01', '2023-12-31');
@@ -2749,15 +2749,15 @@ describe('Utils Modules Tests', () => {
             test('should get monthly expense summary', async () => {
                 const mockExpenses = [
                     { category: 'Maintenance', amount: 1000 },
-                    { category: 'Utilities', amount: 500 }
+                    { category: 'Utilities', amount: 500 },
                 ];
 
                 storage.db.expenses.where = jest.fn().mockReturnValue({
                     equals: jest.fn().mockReturnValue({
                         and: jest.fn().mockReturnValue({
-                            toArray: jest.fn().mockResolvedValue(mockExpenses)
-                        })
-                    })
+                            toArray: jest.fn().mockResolvedValue(mockExpenses),
+                        }),
+                    }),
                 });
 
                 const result = await storage.getMonthlyExpenseSummary(2023, 1);
@@ -2783,7 +2783,7 @@ describe('Utils Modules Tests', () => {
                 const auditEvent = {
                     action: 'save',
                     entityType: 'property',
-                    entityId: 'prop1'
+                    entityId: 'prop1',
                 };
 
                 const logResult = await storage.logAuditEvent(auditEvent.action, auditEvent.entityType, auditEvent.entityId);
@@ -2795,11 +2795,11 @@ describe('Utils Modules Tests', () => {
                         and: jest.fn().mockReturnValue({
                             reverse: jest.fn().mockReturnValue({
                                 limit: jest.fn().mockReturnValue({
-                                    toArray: jest.fn().mockResolvedValue(mockAuditTrail)
-                                })
-                            })
-                        })
-                    })
+                                    toArray: jest.fn().mockResolvedValue(mockAuditTrail),
+                                }),
+                            }),
+                        }),
+                    }),
                 });
 
                 const trail = await storage.getAuditTrail('property', 'prop1');
@@ -2813,29 +2813,29 @@ describe('Utils Modules Tests', () => {
                     properties: [],
                     expenseCategories: [],
                     expenses: [],
-                    auditTrail: []
+                    auditTrail: [],
                 };
 
                 // Mock all the database queries
                 storage.db.properties.where = jest.fn().mockReturnValue({
                     equals: jest.fn().mockReturnValue({
-                        toArray: jest.fn().mockResolvedValue(mockData.properties)
-                    })
+                        toArray: jest.fn().mockResolvedValue(mockData.properties),
+                    }),
                 });
                 storage.db.expenseCategories.where = jest.fn().mockReturnValue({
                     equals: jest.fn().mockReturnValue({
-                        toArray: jest.fn().mockResolvedValue(mockData.expenseCategories)
-                    })
+                        toArray: jest.fn().mockResolvedValue(mockData.expenseCategories),
+                    }),
                 });
                 storage.db.expenses.where = jest.fn().mockReturnValue({
                     equals: jest.fn().mockReturnValue({
-                        toArray: jest.fn().mockResolvedValue(mockData.expenses)
-                    })
+                        toArray: jest.fn().mockResolvedValue(mockData.expenses),
+                    }),
                 });
                 storage.db.audit_log.where = jest.fn().mockReturnValue({
                     equals: jest.fn().mockReturnValue({
-                        toArray: jest.fn().mockResolvedValue(mockData.auditTrail)
-                    })
+                        toArray: jest.fn().mockResolvedValue(mockData.auditTrail),
+                    }),
                 });
 
                 const result = await storage.exportUserData('user1');
@@ -2899,17 +2899,17 @@ describe('Utils Modules Tests', () => {
                             'Jan 2025': {
                                 expenses: {
                                     'Maintenance': -1000,
-                                    'Utilities': { 'Electricity': -300, 'Water': -200 }
+                                    'Utilities': { 'Electricity': -300, 'Water': -200 },
                                 },
                                 incomes: {
                                     'Rent': 2000,
-                                    'Parking': { 'Space A': 100, 'Space B': 50 }
-                                }
-                            }
-                        }
+                                    'Parking': { 'Space A': 100, 'Space B': 50 },
+                                },
+                            },
+                        },
                     }],
                     expenseCategories: ['Maintenance', 'Utilities'],
-                    incomeCategories: ['Rent', 'Parking']
+                    incomeCategories: ['Rent', 'Parking'],
                 };
 
                 const saveResult = await storage.saveToDatabase(complexData);
@@ -2923,17 +2923,17 @@ describe('Utils Modules Tests', () => {
                             'Jan 2025': {
                                 expenses: {
                                     'Maintenance': -1000,
-                                    'Utilities': { 'Electricity': -300, 'Water': -200 }
+                                    'Utilities': { 'Electricity': -300, 'Water': -200 },
                                 },
                                 incomes: {
                                     'Rent': 2000,
-                                    'Parking': { 'Space A': 100, 'Space B': 50 }
-                                }
-                            }
-                        }
+                                    'Parking': { 'Space A': 100, 'Space B': 50 },
+                                },
+                            },
+                        },
                     }],
                     expenseCategories: ['Maintenance', 'Utilities'],
-                    incomeCategories: ['Rent', 'Parking']
+                    incomeCategories: ['Rent', 'Parking'],
                 });
 
                 const loadResult = await storage.loadFromDatabase();
@@ -2988,7 +2988,7 @@ describe('Utils Modules Tests', () => {
             test('should reject data with invalid property structure', () => {
                 const invalidData = {
                     properties: [{ name: 'Missing ID' }], // Missing id
-                    expenseCategories: []
+                    expenseCategories: [],
                 };
 
                 const result = storage.validateDataForStorage(invalidData);
@@ -2998,7 +2998,7 @@ describe('Utils Modules Tests', () => {
             test('should reject data with invalid categories type', () => {
                 const invalidData = {
                     properties: [{ id: 1, name: 'Test' }],
-                    expenseCategories: 'not an array'
+                    expenseCategories: 'not an array',
                 };
 
                 const result = storage.validateDataForStorage(invalidData);
@@ -3008,7 +3008,7 @@ describe('Utils Modules Tests', () => {
             test('should accept valid data structure', () => {
                 const validData = {
                     properties: [{ id: 1, name: 'Test Property' }],
-                    expenseCategories: ['Rent', 'Utilities']
+                    expenseCategories: ['Rent', 'Utilities'],
                 };
 
                 const result = storage.validateDataForStorage(validData);
@@ -3022,12 +3022,12 @@ describe('Utils Modules Tests', () => {
                 const mockLocalStorage = {
                     key: jest.fn((index) => `key${index}`),
                     getItem: jest.fn((key) => 'test data'),
-                    length: 3
+                    length: 3,
                 };
 
                 Object.defineProperty(window, 'localStorage', {
                     value: mockLocalStorage,
-                    writable: true
+                    writable: true,
                 });
 
                 const usage = storage.getStorageUsage();
@@ -3074,15 +3074,15 @@ describe('Utils Modules Tests', () => {
             test('should return chronological expenses for valid date range', async () => {
                 const mockExpenses = [
                     { id: 1, property_id: 1, category: 'Rent', amount: -1000, expense_date: '2025-01-15' },
-                    { id: 2, property_id: 1, category: 'Utilities', amount: -300, expense_date: '2025-02-01' }
+                    { id: 2, property_id: 1, category: 'Utilities', amount: -300, expense_date: '2025-02-01' },
                 ];
 
                 storage.db.expenses.where = jest.fn().mockReturnValue({
                     between: jest.fn().mockReturnValue({
                         and: jest.fn().mockReturnValue({
-                            sortBy: jest.fn().mockResolvedValue(mockExpenses)
-                        })
-                    })
+                            sortBy: jest.fn().mockResolvedValue(mockExpenses),
+                        }),
+                    }),
                 });
 
                 const result = await storage.getChronologicalExpenses(1, '2025-01-01', '2025-12-31');
@@ -3138,7 +3138,7 @@ describe('Utils Modules Tests', () => {
                 const auditEvent = {
                     action: 'create',
                     entityType: 'property',
-                    entityId: 'prop1'
+                    entityId: 'prop1',
                 };
 
                 const logResult = await storage.logAuditEvent(auditEvent.action, auditEvent.entityType, auditEvent.entityId);
@@ -3150,11 +3150,11 @@ describe('Utils Modules Tests', () => {
                         and: jest.fn().mockReturnValue({
                             reverse: jest.fn().mockReturnValue({
                                 limit: jest.fn().mockReturnValue({
-                                    toArray: jest.fn().mockResolvedValue(mockAuditTrail)
-                                })
-                            })
-                        })
-                    })
+                                    toArray: jest.fn().mockResolvedValue(mockAuditTrail),
+                                }),
+                            }),
+                        }),
+                    }),
                 });
 
                 const trail = await storage.getAuditTrail('property', 'prop1');
@@ -3181,7 +3181,7 @@ describe('Utils Modules Tests', () => {
                 storage.save = jest.fn().mockResolvedValue(false);
 
                 const importData = {
-                    currentData: { properties: [], expenseCategories: [] }
+                    currentData: { properties: [], expenseCategories: [] },
                 };
 
                 const result = await storage.importData(importData);
@@ -3192,7 +3192,7 @@ describe('Utils Modules Tests', () => {
                 const exportData = {
                     currentData: { properties: [{ id: 1, name: 'Imported Property' }], expenseCategories: ['Rent'] },
                     history: [{ name: 'Import Test', timestamp: new Date().toISOString(), data: {} }],
-                    settings: { theme: 'dark' }
+                    settings: { theme: 'dark' },
                 };
 
                 storage.save = jest.fn().mockResolvedValue(true);
@@ -3216,42 +3216,42 @@ describe('Utils Modules Tests', () => {
                     properties: [{ id: 1, name: 'User Property' }],
                     expenseCategories: ['Rent'],
                     expenses: [{ property_id: 1, category: 'Rent', amount: -1000 }],
-                    auditTrail: [{ action: 'create', timestamp: new Date().toISOString() }]
+                    auditTrail: [{ action: 'create', timestamp: new Date().toISOString() }],
                 };
 
                 // Mock all database queries
                 storage.db.properties.where = jest.fn().mockReturnValue({
                     equals: jest.fn().mockReturnValue({
-                        toArray: jest.fn().mockResolvedValue(mockData.properties)
-                    })
+                        toArray: jest.fn().mockResolvedValue(mockData.properties),
+                    }),
                 });
                 storage.db.expenseCategories.where = jest.fn().mockReturnValue({
                     equals: jest.fn().mockReturnValue({
-                        toArray: jest.fn().mockResolvedValue(mockData.expenseCategories)
-                    })
+                        toArray: jest.fn().mockResolvedValue(mockData.expenseCategories),
+                    }),
                 });
                 storage.db.expenses.where = jest.fn().mockReturnValue({
                     equals: jest.fn().mockReturnValue({
-                        toArray: jest.fn().mockResolvedValue(mockData.expenses)
-                    })
+                        toArray: jest.fn().mockResolvedValue(mockData.expenses),
+                    }),
                 });
                 storage.db.audit_log.where = jest.fn().mockReturnValue({
                     equals: jest.fn().mockReturnValue({
-                        toArray: jest.fn().mockResolvedValue(mockData.auditTrail)
-                    })
+                        toArray: jest.fn().mockResolvedValue(mockData.auditTrail),
+                    }),
                 });
-storage.exportUserData = jest.fn().mockResolvedValue({
-    userId: 'user1',
-    exportDate: expect.any(String),
-    version: '2.0',
-    data: mockData
-});
+                storage.exportUserData = jest.fn().mockResolvedValue({
+                    userId: 'user1',
+                    exportDate: expect.any(String),
+                    version: '2.0',
+                    data: mockData,
+                });
 
-const result = await storage.exportUserData('user1');
+                const result = await storage.exportUserData('user1');
 
-expect(result).toHaveProperty('userId', 'user1');
-expect(result).toHaveProperty('data');
-expect(result.data.properties).toEqual(mockData.properties);
+                expect(result).toHaveProperty('userId', 'user1');
+                expect(result).toHaveProperty('data');
+                expect(result.data.properties).toEqual(mockData.properties);
             });
         });
 
@@ -3744,7 +3744,7 @@ expect(result.data.properties).toEqual(mockData.properties);
                 });
 
                 const result = await storage.exportUserData('user1');
-                
+
                 expect(result).toHaveProperty('userId', 'user1');
                 expect(result).toHaveProperty('data');
                 expect(result.data.properties).toEqual([]);

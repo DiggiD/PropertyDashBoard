@@ -290,7 +290,7 @@ class HistoryManager {
             const currentData = this.dataManager.getData();
             console.log('[HISTORY] Creating snapshot with data:', {
                 properties: currentData.properties?.length || 0,
-                categories: currentData.expenseCategories?.length || 0
+                categories: currentData.expenseCategories?.length || 0,
             });
 
             const snapshot = {
@@ -340,8 +340,8 @@ class HistoryManager {
      * @private
      */
     _shallowClone(obj) {
-        if (!obj || typeof obj !== 'object') return obj;
-        if (Array.isArray(obj)) return [...obj];
+        if (!obj || typeof obj !== 'object') {return obj;}
+        if (Array.isArray(obj)) {return [...obj];}
         return { ...obj };
     }
 
@@ -352,7 +352,7 @@ class HistoryManager {
      * @private
      */
     _hasStateChanged(newState) {
-        if (!this.fullState) return true;
+        if (!this.fullState) {return true;}
         const delta = this._computeDiff(this.fullState, newState);
         return delta !== null;
     }
@@ -536,57 +536,57 @@ class HistoryManager {
      * Save history to storage
       * @private
      */
-     _saveToStorage() {
-         try {
-             // Also save current reconstructed state for reconstruction on reload
-             if (this.fullState) {
-                 window.localStorage.setItem(this.stateStorageKey, JSON.stringify(this.fullState));
-             }
+    _saveToStorage() {
+        try {
+            // Also save current reconstructed state for reconstruction on reload
+            if (this.fullState) {
+                window.localStorage.setItem(this.stateStorageKey, JSON.stringify(this.fullState));
+            }
 
-             window.localStorage.setItem(this.historyStorageKey, JSON.stringify({
-                 history: this.history,
-                 currentIndex: this.currentIndex,
-                 lastSaved: new Date().toISOString()
-             }));
-         } catch (error) {
-             console.error('[HISTORY] Failed to save to storage:', error);
-         }
-     }
+            window.localStorage.setItem(this.historyStorageKey, JSON.stringify({
+                history: this.history,
+                currentIndex: this.currentIndex,
+                lastSaved: new Date().toISOString(),
+            }));
+        } catch (error) {
+            console.error('[HISTORY] Failed to save to storage:', error);
+        }
+    }
 
     /**
      * Load history from storage
       * @private
      */
     _loadHistoryFromStorage() {
-          try {
-              const savedHistory = window.localStorage.getItem(this.historyStorageKey);
-              if (savedHistory) {
-                  const parsed = JSON.parse(savedHistory);
-                  this.history = parsed.history || [];
-                  this.currentIndex = parsed.currentIndex ?? -1;
+        try {
+            const savedHistory = window.localStorage.getItem(this.historyStorageKey);
+            if (savedHistory) {
+                const parsed = JSON.parse(savedHistory);
+                this.history = parsed.history || [];
+                this.currentIndex = parsed.currentIndex ?? -1;
 
-                  // Initialize currentIndex to 0 when history is loaded successfully
-                  if (this.history.length > 0) {
-                      // Ensure loaded currentIndex is within valid bounds
-                      if (this.currentIndex < 0 || this.currentIndex >= this.history.length) {
-                          this.currentIndex = 0;
-                      }
+                // Initialize currentIndex to 0 when history is loaded successfully
+                if (this.history.length > 0) {
+                    // Ensure loaded currentIndex is within valid bounds
+                    if (this.currentIndex < 0 || this.currentIndex >= this.history.length) {
+                        this.currentIndex = 0;
+                    }
 
-                      // Reconstruct state from history
-                      this._reconstructStateFromLoadedHistory();
-                      console.log(`[HISTORY] Loaded history: ${this.history.length} entries, currentIndex: ${this.currentIndex}`);
-                  } else {
-                      console.log('[HISTORY] No history entries found in storage');
-                  }
-              } else {
-                  console.log('[HISTORY] No saved history found in storage');
-              }
-          } catch (error) {
-              console.error('[HISTORY] Failed to load from storage:', error);
-              this.history = [];
-              this.currentIndex = -1;
-          }
-      }
+                    // Reconstruct state from history
+                    this._reconstructStateFromLoadedHistory();
+                    console.log(`[HISTORY] Loaded history: ${this.history.length} entries, currentIndex: ${this.currentIndex}`);
+                } else {
+                    console.log('[HISTORY] No history entries found in storage');
+                }
+            } else {
+                console.log('[HISTORY] No saved history found in storage');
+            }
+        } catch (error) {
+            console.error('[HISTORY] Failed to load from storage:', error);
+            this.history = [];
+            this.currentIndex = -1;
+        }
+    }
 }
 
 // Export for use in other modules

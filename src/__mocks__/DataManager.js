@@ -49,7 +49,7 @@ export default class MockDataManager {
             propIncomes: new Map(),
             hasIncome: false,
             catTotals: new Map(),
-            subTotals: new Map()
+            subTotals: new Map(),
         };
     }
 

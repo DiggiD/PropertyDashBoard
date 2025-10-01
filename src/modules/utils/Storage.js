@@ -176,7 +176,7 @@ class Storage {
             // Start transaction with all tables
             await this.db.transaction('rw', [
                 'properties', 'expenseCategories', 'incomeCategories', 'expenses', 'incomes',
-                'users', 'audit_log', 'metadata'
+                'users', 'audit_log', 'metadata',
             ], async () => {
 
                 // Clear existing user-specific data
@@ -212,7 +212,7 @@ class Storage {
                     for (const category of data.expenseCategories) {
                         await this.db.expenseCategories.add({
                             name: category,
-                            user_id: userId
+                            user_id: userId,
                         });
                     }
                 }
@@ -222,7 +222,7 @@ class Storage {
                     for (const category of data.incomeCategories) {
                         await this.db.incomeCategories.add({
                             name: category,
-                            user_id: userId
+                            user_id: userId,
                         });
                     }
                 }
@@ -255,7 +255,7 @@ class Storage {
                     entity_type: 'database',
                     entity_id: 'full_backup',
                     user_id: userId,
-                    timestamp: timestamp,
+                    timestamp,
                 });
             });
 
@@ -295,12 +295,12 @@ class Storage {
                             for (const [subcategory, amount] of Object.entries(expenseValue)) {
                                 await this.db.expenses.add({
                                     property_id: property.id,
-                                    category: category,
-                                    subcategory: subcategory,
+                                    category,
+                                    subcategory,
                                     amount: amount || 0,
                                     expense_date: `${year}-${month.toString().padStart(2, '0')}-01`,
                                     month: monthKey,
-                                    year: year,
+                                    year,
                                     user_id: userId,
                                 });
                             }
@@ -308,12 +308,12 @@ class Storage {
                             // Flat expenses
                             await this.db.expenses.add({
                                 property_id: property.id,
-                                category: category,
+                                category,
                                 subcategory: null,
                                 amount: expenseValue || 0,
                                 expense_date: `${year}-${month.toString().padStart(2, '0')}-01`,
                                 month: monthKey,
-                                year: year,
+                                year,
                                 user_id: userId,
                             });
                         }
@@ -343,8 +343,8 @@ class Storage {
                     for (const [subcategory, amount] of Object.entries(expenseValue)) {
                         await this.db.expenses.add({
                             property_id: property.id,
-                            category: category,
-                            subcategory: subcategory,
+                            category,
+                            subcategory,
                             amount: amount || 0,
                             expense_date: currentDate.toISOString().split('T')[0],
                             month: monthKey,
@@ -356,7 +356,7 @@ class Storage {
                     // Flat expenses
                     await this.db.expenses.add({
                         property_id: property.id,
-                        category: category,
+                        category,
                         subcategory: null,
                         amount: expenseValue || 0,
                         expense_date: currentDate.toISOString().split('T')[0],
@@ -391,12 +391,12 @@ class Storage {
                             for (const [subcategory, amount] of Object.entries(incomeValue)) {
                                 await this.db.incomes.add({
                                     property_id: property.id,
-                                    category: category,
-                                    subcategory: subcategory,
+                                    category,
+                                    subcategory,
                                     amount: amount || 0,
                                     income_date: `${year}-${month.toString().padStart(2, '0')}-01`,
                                     month: monthKey,
-                                    year: year,
+                                    year,
                                     user_id: userId,
                                 });
                             }
@@ -404,12 +404,12 @@ class Storage {
                             // Flat incomes
                             await this.db.incomes.add({
                                 property_id: property.id,
-                                category: category,
+                                category,
                                 subcategory: null,
                                 amount: incomeValue || 0,
                                 income_date: `${year}-${month.toString().padStart(2, '0')}-01`,
                                 month: monthKey,
-                                year: year,
+                                year,
                                 user_id: userId,
                             });
                         }
@@ -447,7 +447,7 @@ class Storage {
                 incomeCategories: incomeCategories.length,
                 expenses: expenses.length,
                 incomes: incomesFromDB.length,  // Add this
-                metadata: metadata.length
+                metadata: metadata.length,
             });
 
             // If no data in database, return null to allow fallback to localStorage
@@ -489,7 +489,7 @@ class Storage {
                 expenseCategories: data.expenseCategories.length,
                 incomeCategories: data.incomeCategories?.length || 0,
                 totalExpenses: expenses.length,
-                hasMonthlyData: data.properties.some(p => p.monthlyData && Object.keys(p.monthlyData).length > 0)
+                hasMonthlyData: data.properties.some(p => p.monthlyData && Object.keys(p.monthlyData).length > 0),
             });
             return data;
         } catch (error) {
@@ -538,7 +538,7 @@ class Storage {
             if (!monthlyData[propertyId][month]) {
                 monthlyData[propertyId][month] = {
                     expenses: {},
-                    total: 0
+                    total: 0,
                 };
             }
 
@@ -582,7 +582,7 @@ class Storage {
 
             if (!monthlyIncomes[propertyId][month]) {
                 monthlyIncomes[propertyId][month] = {
-                    incomes: {}
+                    incomes: {},
                 };
             }
 
@@ -622,7 +622,7 @@ class Storage {
             merged[month] = {
                 expenses: expenseMonth.expenses || {},
                 incomes: incomeMonth.incomes || {},
-                total: (expenseMonth.total || 0) + this.calculateMonthTotal(incomeMonth.incomes)  // Sum expense total + income total
+                total: (expenseMonth.total || 0) + this.calculateMonthTotal(incomeMonth.incomes),  // Sum expense total + income total
             };
         });
 
@@ -753,7 +753,7 @@ class Storage {
             if (data) {
                 console.log('[STORAGE] Data loaded from Dexie database successfully:', {
                     properties: data.properties?.length || 0,
-                    categories: data.expenseCategories?.length || 0
+                    categories: data.expenseCategories?.length || 0,
                 });
                 return data;
             }
@@ -765,7 +765,7 @@ class Storage {
         if (data) {
             console.log('[STORAGE] Data loaded from localStorage fallback:', {
                 properties: data.properties?.length || 0,
-                categories: data.expenseCategories?.length || 0
+                categories: data.expenseCategories?.length || 0,
             });
         } else {
             console.log('[STORAGE] No data found in any storage method');
@@ -786,7 +786,7 @@ class Storage {
             console.log('[STORAGE] Saving history snapshot:', {
                 name: snapshot.name,
                 timestamp: snapshot.timestamp,
-                dataSize: JSON.stringify(snapshot).length
+                dataSize: JSON.stringify(snapshot).length,
             });
 
             // Save to database as primary storage
@@ -852,8 +852,8 @@ class Storage {
                     length: history.length,
                     firstItem: history[0] ? {
                         name: history[0].name,
-                        timestamp: history[0].timestamp
-                    } : null
+                        timestamp: history[0].timestamp,
+                    } : null,
                 });
 
                 // Convert database format to expected format
@@ -861,7 +861,7 @@ class Storage {
                     name: item.name,
                     timestamp: item.timestamp,
                     description: item.description,
-                    data: item.data
+                    data: item.data,
                 }));
             }
 
@@ -871,7 +871,7 @@ class Storage {
             console.log('[STORAGE] Loading history from localStorage:', {
                 key: this.historyStorageKey,
                 hasData: !!historyString,
-                dataLength: historyString ? historyString.length : 0
+                dataLength: historyString ? historyString.length : 0,
             });
 
             if (!historyString) {
@@ -884,8 +884,8 @@ class Storage {
                 length: history.length,
                 firstItem: history[0] ? {
                     name: history[0].name,
-                    timestamp: history[0].timestamp
-                } : null
+                    timestamp: history[0].timestamp,
+                } : null,
             });
 
             return history;
@@ -914,9 +914,9 @@ class Storage {
                 // Save each setting as a separate record
                 for (const [key, value] of Object.entries(settings)) {
                     await this.db.settings.put({
-                        key: key,
-                        value: value,
-                        user_id: 'default'
+                        key,
+                        value,
+                        user_id: 'default',
                     });
                 }
 
@@ -1149,7 +1149,7 @@ class Storage {
             if (dataToSave) {
                 console.log('[STORAGE] Saving data:', {
                     properties: dataToSave.properties?.length || 0,
-                    categories: dataToSave.expenseCategories?.length || 0
+                    categories: dataToSave.expenseCategories?.length || 0,
                 });
                 const saveResult = await this.save(dataToSave);
                 console.log('[STORAGE] Save result:', saveResult);
@@ -1237,7 +1237,7 @@ class Storage {
      * @returns {number} Size in bytes
      */
     getStringSize(str) {
-        if (str == null) return 0;
+        if (str == null) {return 0;}
         return new Blob([str]).size;
     }
 
@@ -1424,7 +1424,7 @@ class Storage {
 
         try {
             await this.db.audit_log.add({
-                action: action,
+                action,
                 entity_type: entityType,
                 entity_id: entityId,
                 user_id: userId,
@@ -1489,22 +1489,22 @@ class Storage {
             ]);
 
             const exportData = {
-                userId: userId,
+                userId,
                 exportDate: new Date().toISOString(),
                 version: '2.0',
                 data: {
-                    properties: properties,
+                    properties,
                     expenseCategories: categories.map(c => c.name),
-                    expenses: expenses,
-                    auditTrail: auditTrail,
-                }
+                    expenses,
+                    auditTrail,
+                },
             };
 
             console.log(`[STORAGE] Exported data for user ${userId}:`, {
                 properties: properties.length,
                 categories: categories.length,
                 expenses: expenses.length,
-                auditEntries: auditTrail.length
+                auditEntries: auditTrail.length,
             });
 
             return exportData;

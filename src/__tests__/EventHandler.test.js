@@ -33,7 +33,7 @@ describe('EventHandler', () => {
 
     beforeEach(() => {
         jest.clearAllMocks();
-    
+
         mockUIManager = {
             setCurrentView: jest.fn(),
             showLoadingState: jest.fn(),
@@ -48,7 +48,7 @@ describe('EventHandler', () => {
             getModalFormData: jest.fn(),
             currentView: 'overview',
         };
-    
+
         // Mock DOM elements
         mockUIManager.getElement.mockImplementation((key) => {
             if (key === 'overviewBtn') {
@@ -74,12 +74,12 @@ describe('EventHandler', () => {
             }
             return null;
         });
-    
+
         eventHandler = new EventHandler(
             mockDataManager,
             mockUIManager,
             mockHistoryManager,
-            mockThemeManager
+            mockThemeManager,
         );
     });
 
@@ -139,7 +139,7 @@ describe('EventHandler', () => {
 
             expect(mockUIManager.showError).toHaveBeenCalledWith(
                 'Failed to change view',
-                'View Change Error'
+                'View Change Error',
             );
         });
     });
@@ -180,7 +180,7 @@ describe('EventHandler', () => {
 
             expect(mockUIManager.showError).toHaveBeenCalledWith(
                 'Failed to import data. Please check the format.',
-                'Import Error'
+                'Import Error',
             );
         });
     });
@@ -373,7 +373,7 @@ describe('EventHandler', () => {
             const mockEvent = {
                 ctrlKey: true,
                 key: 'z',
-                preventDefault: jest.fn()
+                preventDefault: jest.fn(),
             };
 
             // First trigger should work

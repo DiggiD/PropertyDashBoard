@@ -25,7 +25,7 @@ const createTransition = () => {
         attrTween: jest.fn().mockReturnThis(),
         selectAll: jest.fn().mockReturnThis(),
         select: jest.fn().mockReturnThis(),
-        each: jest.fn().mockReturnThis()
+        each: jest.fn().mockReturnThis(),
     };
     return transition;
 };
@@ -57,7 +57,7 @@ const createSelection = () => {
         outerHTML: '<svg></svg>',
         html: jest.fn().mockReturnThis(),
         filter: jest.fn(() => createSelection()),
-        size: jest.fn(() => 1)
+        size: jest.fn(() => 1),
     };
     return selection;
 };
@@ -108,7 +108,7 @@ describe('ChartRenderer with High Coverage', () => {
                 propIncomes: new Map([[1, 1500]]),
                 propExpenses: new Map([[1, 1200]]),
                 catTotals: new Map([['Rent', 800], ['Utilities', 300]]),
-                subTotals: new Map()
+                subTotals: new Map(),
             })),
             getProperties: jest.fn(() => [{ id: 1, name: 'Property 1' }]),
             getExpenseCategories: jest.fn(() => ['Rent', 'Utilities']),
@@ -117,26 +117,26 @@ describe('ChartRenderer with High Coverage', () => {
             hasData: jest.fn(() => true),
             clearSankeyCache: jest.fn(),
             on: jest.fn(),
-            emit: jest.fn()
+            emit: jest.fn(),
         };
 
         mockUIManager = {
             getElement: jest.fn((id) => {
-                if (id === 'overviewChartContent' || id === 'chart-container') return mockContainer;
+                if (id === 'overviewChartContent' || id === 'chart-container') {return mockContainer;}
                 return null;
             }),
             showLoadingState: jest.fn(),
-            hideLoadingState: jest.fn()
+            hideLoadingState: jest.fn(),
         };
 
         mockFormatter = {
-            formatCurrency: jest.fn((val) => `$${val}`)
+            formatCurrency: jest.fn((val) => `$${val}`),
         };
 
         mockThemeManager = {
             isDark: jest.fn(() => false),
             getColorTheme: jest.fn(() => ({ properties: ['#5D878F'], categories: ['#DB4545'] })),
-            getCurrentColorTheme: jest.fn(() => 'light')
+            getCurrentColorTheme: jest.fn(() => 'light'),
         };
 
         // Create ChartRenderer (tests singleton, so need clean state)
@@ -163,7 +163,7 @@ describe('ChartRenderer with High Coverage', () => {
 
         test('should handle singleton pattern', () => {
             const mockFormatter2 = {
-                formatCurrency: jest.fn((val) => `$${val}`)
+                formatCurrency: jest.fn((val) => `$${val}`),
             };
             const secondInstance = new ChartRenderer(mockDataManager, mockUIManager, mockFormatter2);
             expect(secondInstance).toBe(chartRenderer); // Should return existing instance
@@ -266,7 +266,7 @@ describe('ChartRenderer with High Coverage', () => {
                 true,
                 new Map([['Rent', 800]]),
                 new Map(),
-                800, 600
+                800, 600,
             );
 
             expect(result).toBeDefined();
@@ -285,7 +285,7 @@ describe('ChartRenderer with High Coverage', () => {
                 false,
                 new Map(),
                 new Map(),
-                800, 600
+                800, 600,
             );
 
             expect(result).toBeDefined();
@@ -302,7 +302,7 @@ describe('ChartRenderer with High Coverage', () => {
                 false,
                 new Map([['Rent', 800]]),
                 new Map(),
-                800, 600
+                800, 600,
             );
 
             expect(result).toBeDefined();
@@ -326,7 +326,7 @@ describe('ChartRenderer with High Coverage', () => {
                 false,
                 new Map([['Rent', 800]]),
                 new Map(),
-                800, 600
+                800, 600,
             );
 
             expect(result).toBeDefined();
@@ -344,7 +344,7 @@ describe('ChartRenderer with High Coverage', () => {
                 true,
                 new Map([['Rent', NaN]]),
                 new Map(),
-                800, 600
+                800, 600,
             );
 
             expect(result).toBeDefined();
@@ -361,7 +361,7 @@ describe('ChartRenderer with High Coverage', () => {
                 false,
                 new Map([['Rent', 100]]),
                 new Map(),
-                800, 600
+                800, 600,
             );
 
             expect(result).toBeDefined();
@@ -378,7 +378,7 @@ describe('ChartRenderer with High Coverage', () => {
                 false,
                 new Map([['Utilities', 1000]]),
                 new Map([['Utilities', new Map([['Elec', 600], ['Water', 400]])]]),
-                800, 600
+                800, 600,
             );
 
             expect(result).toBeDefined();
@@ -396,7 +396,7 @@ describe('ChartRenderer with High Coverage', () => {
                 false,
                 new Map([['Rent', 1000]]),
                 new Map(),
-                800, 600
+                800, 600,
             );
 
             expect(result).toBeDefined();
@@ -407,7 +407,7 @@ describe('ChartRenderer with High Coverage', () => {
             const properties = [
                 { id: 1, name: 'Prop1' },
                 { id: 2, name: 'Prop2' },
-                { id: 3, name: 'Prop3' }
+                { id: 3, name: 'Prop3' },
             ];
 
             const result = chartRenderer.buildSankeyData(
@@ -419,7 +419,7 @@ describe('ChartRenderer with High Coverage', () => {
                 true,
                 new Map([['Rent', 800], ['Util', 600], ['Maint', 400]]),
                 new Map(),
-                800, 600
+                800, 600,
             );
 
             expect(result).toBeDefined();
@@ -437,7 +437,7 @@ describe('ChartRenderer with High Coverage', () => {
                 false,
                 new Map([['Rent', 800]]),
                 new Map(),
-                800, 600
+                800, 600,
             );
             expect(result.nodes[0].name).toBe('Missing Expense Data');
         });
@@ -452,7 +452,7 @@ describe('ChartRenderer with High Coverage', () => {
                 false,
                 new Map([['Rent', 800]]),
                 new Map(),
-                800, 600
+                800, 600,
             );
             expect(result.nodes[0].name).toBe('Missing Expense Data');
         });
@@ -467,7 +467,7 @@ describe('ChartRenderer with High Coverage', () => {
                 false,
                 new Map([['Rent', 800]]),
                 new Map(),
-                800, 600
+                800, 600,
             );
             expect(result.nodes[0].name).toBe('PROPERTY 1');
         });
@@ -477,8 +477,8 @@ describe('ChartRenderer with High Coverage', () => {
             const subTotals = new Map([
                 ['Utilities', new Map([
                     ['Electric', 200],
-                    ['Water', 100]
-                ])]
+                    ['Water', 100],
+                ])],
             ]);
 
             const result = chartRenderer.buildSankeyData(
@@ -490,7 +490,7 @@ describe('ChartRenderer with High Coverage', () => {
                 false,
                 new Map([['Utilities', 300]]),
                 subTotals,
-                800, 600
+                800, 600,
             );
 
             expect(result).toBeDefined();
@@ -533,7 +533,7 @@ describe('ChartRenderer with High Coverage', () => {
         test('should handle node/enter/update selections', () => {
             const data = {
                 nodes: [{ id: 'node1', name: 'Node 1', level: 0 }],
-                links: []
+                links: [],
             };
             chartRenderer.createSankey(mockContainer, data);
 
@@ -545,9 +545,9 @@ describe('ChartRenderer with High Coverage', () => {
             const data = {
                 nodes: [
                     { id: 'source', name: 'Source', level: 0 },
-                    { id: 'target', name: 'Target', level: 1 }
+                    { id: 'target', name: 'Target', level: 1 },
                 ],
-                links: [{ source: 'source', target: 'target', value: 100, type: 'test' }]
+                links: [{ source: 'source', target: 'target', value: 100, type: 'test' }],
             };
             chartRenderer.createSankey(mockContainer, data);
 
@@ -559,14 +559,14 @@ describe('ChartRenderer with High Coverage', () => {
             // Initial render
             const data1 = {
                 nodes: [{ id: 'old', name: 'Old Node', level: 0 }],
-                links: []
+                links: [],
             };
             chartRenderer.createSankey(mockContainer, data1);
 
             // Update with different data
             const data2 = {
                 nodes: [{ id: 'new', name: 'New Node', level: 0 }],
-                links: []
+                links: [],
             };
             chartRenderer.createSankey(mockContainer, data2);
 
@@ -580,11 +580,11 @@ describe('ChartRenderer with High Coverage', () => {
                 sources: { Rent: 1000 },
                 nodes: [
                     { id: 'income', name: 'Income', type: 'income' },
-                    { id: 'prop1', name: 'Property 1', type: 'property' }
+                    { id: 'prop1', name: 'Property 1', type: 'property' },
                 ],
                 links: [
-                    { source: 'income', target: 'prop1', value: 1000, type: 'income-to-prop', property: 'Property 1' }
-                ]
+                    { source: 'income', target: 'prop1', value: 1000, type: 'income-to-prop', property: 'Property 1' },
+                ],
             };
 
             chartRenderer.createSankey(mockContainer, data);
@@ -615,7 +615,7 @@ describe('ChartRenderer with High Coverage', () => {
                 sim: d3.forceSimulation(),
                 svg: d3.select(mockContainer),
                 links: [],
-                relationIndex: new Map([['Property 1', new Set(['node1'])], ['Test Node', new Set(['node1'])], ['Source', new Set(['source'])], ['Target', new Set(['target'])]] )
+                relationIndex: new Map([['Property 1', new Set(['node1'])], ['Test Node', new Set(['node1'])], ['Source', new Set(['source'])], ['Target', new Set(['target'])]] ),
             };
 
             expect(() => chartRenderer.handleInteraction(event, item, type, false)).not.toThrow();
@@ -626,7 +626,7 @@ describe('ChartRenderer with High Coverage', () => {
             const item = {
                 source: { id: 'source', name: 'Source' },
                 target: { id: 'target', name: 'Target' },
-                value: 100
+                value: 100,
             };
             const type = 'link';
 
@@ -635,7 +635,7 @@ describe('ChartRenderer with High Coverage', () => {
                 sim: d3.forceSimulation(),
                 svg: d3.select(mockContainer),
                 links: [],
-                relationIndex: new Map([['Property 1', new Set(['node1'])], ['Test Node', new Set(['node1'])], ['Source', new Set(['source'])], ['Target', new Set(['target'])]] )
+                relationIndex: new Map([['Property 1', new Set(['node1'])], ['Test Node', new Set(['node1'])], ['Source', new Set(['source'])], ['Target', new Set(['target'])]] ),
             };
 
             expect(() => chartRenderer.handleInteraction(event, item, type, false)).not.toThrow();
@@ -653,7 +653,7 @@ describe('ChartRenderer with High Coverage', () => {
                 sim: d3.forceSimulation(),
                 svg: d3.select(mockContainer),
                 links: [],
-                relationIndex: new Map([['Test Node', new Set(['node1'])]] )
+                relationIndex: new Map([['Test Node', new Set(['node1'])]] ),
             };
 
             // Mock the force filter function
@@ -670,14 +670,14 @@ describe('ChartRenderer with High Coverage', () => {
 
             // Set up state for same selection
             chartRenderer.interactionState = 'PINNED_SELECT';
-            chartRenderer.state.selected = { type: 'node', item: item };
+            chartRenderer.state.selected = { type: 'node', item };
 
             chartRenderer.rippleForces = new Map([['node', d3.forceManyBody()], ['link', d3.forceManyBody()]]);
             chartRenderer.sankeyData = {
                 sim: d3.forceSimulation(),
                 svg: d3.select(mockContainer),
                 links: [],
-                relationIndex: new Map([['Test Node', new Set(['node1'])]] )
+                relationIndex: new Map([['Test Node', new Set(['node1'])]] ),
             };
 
             const clearSpy = jest.spyOn(chartRenderer, 'clearRipple');
@@ -705,7 +705,7 @@ describe('ChartRenderer with High Coverage', () => {
                 sim: d3.forceSimulation(),
                 svg: d3.select(mockContainer),
                 links: [],
-                relationIndex: new Map([['Test Node', new Set(['node1'])]] )
+                relationIndex: new Map([['Test Node', new Set(['node1'])]] ),
             };
             expect(() => chartRenderer.handleInteraction(event, item, 'node', false)).not.toThrow();
         });
@@ -719,7 +719,7 @@ describe('ChartRenderer with High Coverage', () => {
             chartRenderer.sankeyData = {
                 sim: d3.forceSimulation(),
                 svg: d3.select(mockContainer),
-                links: []
+                links: [],
             };
 
             expect(() => chartRenderer.clearRipple()).not.toThrow();
@@ -772,13 +772,13 @@ describe('ChartRenderer with High Coverage', () => {
         test('should hide tooltips', () => {
             // Mock the tooltip and persistentTooltip to avoid D3 chaining issues
             const mockTooltip = {
-                style: jest.fn(() => mockTooltip)
+                style: jest.fn(() => mockTooltip),
             };
             const mockPersistentTooltip = {
-                transition: function() { return this; },
-                duration: function() { return this; },
-                style: function() { return this; },
-                remove: function() { return this; }
+                transition() { return this; },
+                duration() { return this; },
+                style() { return this; },
+                remove() { return this; },
             };
 
             chartRenderer.tooltip = mockTooltip;
@@ -806,16 +806,16 @@ describe('ChartRenderer with High Coverage', () => {
         test('should update node and link visuals', () => {
             const nodes = [
                 { id: 'node1', x0: 0, y0: 0, x1: 50, y1: 100 },
-                { id: 'node2', x0: 100, y0: 0, x1: 150, y1: 100 }
+                { id: 'node2', x0: 100, y0: 0, x1: 150, y1: 100 },
             ];
             const links = [
-                { source: 'node1', target: 'node2', index: 0, width: 2, path: 'M50,50 L100,50' }
+                { source: 'node1', target: 'node2', index: 0, width: 2, path: 'M50,50 L100,50' },
             ];
             const relatedIds = new Set(['node1']);
 
             chartRenderer.sankeyData = {
                 svg: d3.select(mockContainer),
-                links: []
+                links: [],
             };
 
             expect(() => chartRenderer.updateRippleVisuals(nodes, links, relatedIds, false, false)).not.toThrow();
@@ -823,13 +823,13 @@ describe('ChartRenderer with High Coverage', () => {
 
         test('should handle zoom transitions on click', () => {
             const nodes = [
-                { id: 'node1', x0: 0, y0: 0, x1: 50, y1: 100 }
+                { id: 'node1', x0: 0, y0: 0, x1: 50, y1: 100 },
             ];
             const relatedIds = new Set(['node1']);
 
             chartRenderer.sankeyData = {
                 svg: d3.select(mockContainer),
-                links: []
+                links: [],
             };
 
             expect(() => chartRenderer.updateRippleVisuals(nodes, [], relatedIds, false, true)).not.toThrow();
@@ -837,22 +837,22 @@ describe('ChartRenderer with High Coverage', () => {
 
         test('should handle transition with isFinal parameter', () => {
             const nodes = [
-                { id: 'node1', x0: 0, y0: 0, x1: 50, y1: 100 }
+                { id: 'node1', x0: 0, y0: 0, x1: 50, y1: 100 },
             ];
             const links = [
-                { source: 'node1', target: 'node2', index: 0, width: 2 }
+                { source: 'node1', target: 'node2', index: 0, width: 2 },
             ];
             const relatedIds = new Set(['node1']);
 
             chartRenderer.sankeyData = {
                 svg: d3.select(mockContainer),
-                links: links
+                links,
             };
 
             // Mock the transition to test isFinal parameter
             const mockTransition = {
                 duration: jest.fn().mockReturnThis(),
-                ease: jest.fn().mockReturnThis()
+                ease: jest.fn().mockReturnThis(),
             };
 
             chartRenderer.sankeyData.svg.transition = jest.fn().mockReturnValue(mockTransition);
@@ -864,16 +864,16 @@ describe('ChartRenderer with High Coverage', () => {
 
         test('should handle sankeyLinkHorizontal call on click', () => {
             const nodes = [
-                { id: 'node1', x0: 0, y0: 0, x1: 50, y1: 100 }
+                { id: 'node1', x0: 0, y0: 0, x1: 50, y1: 100 },
             ];
             const links = [
-                { source: 'node1', target: 'node2', index: 0, width: 2 }
+                { source: 'node1', target: 'node2', index: 0, width: 2 },
             ];
             const relatedIds = new Set(['node1']);
 
             chartRenderer.sankeyData = {
                 svg: d3.select(mockContainer),
-                links: links
+                links,
             };
 
             // Mock d3.sankeyLinkHorizontal
@@ -886,7 +886,7 @@ describe('ChartRenderer with High Coverage', () => {
                 classed: jest.fn().mockReturnThis(),
                 transition: jest.fn().mockReturnThis(),
                 attr: jest.fn().mockReturnThis(),
-                style: jest.fn().mockReturnThis()
+                style: jest.fn().mockReturnThis(),
             };
 
             chartRenderer.sankeyData.svg.selectAll = jest.fn().mockReturnValue(mockLinkSelection);
@@ -909,7 +909,7 @@ describe('ChartRenderer with High Coverage', () => {
         test('should handle color theme changes', () => {
             const mockThemeManager = {
                 getColorTheme: jest.fn(() => ({ properties: ['#000'], categories: ['#fff'] })),
-                getCurrentColorTheme: jest.fn(() => 'dark')
+                getCurrentColorTheme: jest.fn(() => 'dark'),
             };
 
             chartRenderer.themeManager = mockThemeManager;
@@ -1012,7 +1012,7 @@ describe('ChartRenderer with High Coverage', () => {
             chartRenderer.sankeyData = {
                 sim: d3.forceSimulation(),
                 svg: d3.select(mockContainer),
-                links: []
+                links: [],
             };
             expect(() => chartRenderer.onHoverOut()).not.toThrow();
         });
@@ -1030,7 +1030,7 @@ describe('ChartRenderer with High Coverage', () => {
             const mockThemeManager = {
                 isDark: jest.fn(() => true),
                 getColorTheme: jest.fn(() => ({ properties: ['#000'], categories: ['#fff'] })),
-                getCurrentColorTheme: jest.fn(() => 'dark')
+                getCurrentColorTheme: jest.fn(() => 'dark'),
             };
 
             chartRenderer.setThemeManager(mockThemeManager);
@@ -1043,9 +1043,9 @@ describe('ChartRenderer with High Coverage', () => {
                 getColorTheme: jest.fn(() => ({
                     properties: ['#ff0000'],
                     categories: ['#00ff00'],
-                    trends: { increasing: '#0000ff' }
+                    trends: { increasing: '#0000ff' },
                 })),
-                getCurrentColorTheme: jest.fn(() => 'dark')
+                getCurrentColorTheme: jest.fn(() => 'dark'),
             };
 
             chartRenderer.themeManager = mockThemeManager;
@@ -1059,9 +1059,9 @@ describe('ChartRenderer with High Coverage', () => {
                 isDark: jest.fn(() => false),
                 getColorTheme: jest.fn(() => ({
                     properties: ['#5D878F'],
-                    categories: ['#DB4545']
+                    categories: ['#DB4545'],
                 })),
-                getCurrentColorTheme: jest.fn(() => 'light')
+                getCurrentColorTheme: jest.fn(() => 'light'),
             };
 
             chartRenderer.themeManager = mockThemeManager;
@@ -1074,7 +1074,7 @@ describe('ChartRenderer with High Coverage', () => {
         test('should handle color theme change event', () => {
             const mockThemeManager = {
                 getColorTheme: jest.fn(() => ({ properties: ['#000'], categories: ['#fff'] })),
-                getCurrentColorTheme: jest.fn(() => 'dark')
+                getCurrentColorTheme: jest.fn(() => 'dark'),
             };
 
             chartRenderer.themeManager = mockThemeManager;
@@ -1082,9 +1082,9 @@ describe('ChartRenderer with High Coverage', () => {
                 svg: {
                     selectAll: jest.fn(() => ({
                         attr: jest.fn(),
-                        style: jest.fn()
-                    }))
-                }
+                        style: jest.fn(),
+                    })),
+                },
             };
 
             const debouncedSpy = jest.spyOn(chartRenderer, 'debouncedRender');
@@ -1097,7 +1097,7 @@ describe('ChartRenderer with High Coverage', () => {
         test('should handle color theme change event without sankeyData', () => {
             const mockThemeManager = {
                 getColorTheme: jest.fn(() => ({ properties: ['#000'], categories: ['#fff'] })),
-                getCurrentColorTheme: jest.fn(() => 'dark')
+                getCurrentColorTheme: jest.fn(() => 'dark'),
             };
 
             chartRenderer.themeManager = mockThemeManager;
@@ -1139,7 +1139,7 @@ describe('ChartRenderer with High Coverage', () => {
         test('should handle showError when error element exists', () => {
             const mockErrorElement = {
                 textContent: '',
-                style: { display: 'none' }
+                style: { display: 'none' },
             };
             mockUIManager.getElement.mockReturnValue(mockErrorElement);
 
@@ -1152,7 +1152,7 @@ describe('ChartRenderer with High Coverage', () => {
         test('should handle showError with console logging', () => {
             const mockErrorElement = {
                 textContent: '',
-                style: { display: 'none' }
+                style: { display: 'none' },
             };
             mockUIManager.getElement.mockReturnValue(mockErrorElement);
 
@@ -1219,44 +1219,44 @@ describe('ChartRenderer with High Coverage', () => {
                     attr: jest.fn((key) => key === 'width' ? 800 : 600),
                     transition: jest.fn(() => ({
                         call: jest.fn(() => ({
-                            transform: jest.fn()
-                        }))
-                    }))
-                }
+                            transform: jest.fn(),
+                        })),
+                    })),
+                },
             };
             chartRenderer.zoomBehavior = {
-                transform: jest.fn(() => jest.fn())
+                transform: jest.fn(() => jest.fn()),
             };
 
             // Mock d3.zoomIdentity
             global.d3.zoomIdentity = {
                 translate: jest.fn(() => ({
-                    scale: jest.fn(() => ({}))
-                }))
+                    scale: jest.fn(() => ({})),
+                })),
             };
 
             chartRenderer.zoomToBbox(bbox);
 
             expect(chartRenderer.sankeyData.svg.transition).toHaveBeenCalled();
         });
-test('should handle zoom to bbox with invalid values', () => {
-    const bbox = [[NaN, NaN], [NaN, NaN]];
-    chartRenderer.sankeyData = {
-        svg: {
-            attr: jest.fn(() => ({
-                width: jest.fn(() => 800),
-                height: jest.fn(() => 600)
-            })),
-            transition: jest.fn(() => ({
-                call: jest.fn()
-            }))
-        }
-    };
-    chartRenderer.zoomBehavior = d3.zoom();
-    chartRenderer.zoomToBbox(bbox);
+        test('should handle zoom to bbox with invalid values', () => {
+            const bbox = [[NaN, NaN], [NaN, NaN]];
+            chartRenderer.sankeyData = {
+                svg: {
+                    attr: jest.fn(() => ({
+                        width: jest.fn(() => 800),
+                        height: jest.fn(() => 600),
+                    })),
+                    transition: jest.fn(() => ({
+                        call: jest.fn(),
+                    })),
+                },
+            };
+            chartRenderer.zoomBehavior = d3.zoom();
+            chartRenderer.zoomToBbox(bbox);
 
-    // Should not throw
-});
+            // Should not throw
+        });
     });
 
     describe('Async Operations - renderOverviewSankey', () => {
@@ -1273,8 +1273,8 @@ test('should handle zoom to bbox with invalid values', () => {
 
         test('should handle missing overviewChartContent container', async () => {
             mockUIManager.getElement.mockImplementation((id) => {
-                if (id === 'overviewChartContent') return null;
-                if (id === 'chart-container') return mockContainer;
+                if (id === 'overviewChartContent') {return null;}
+                if (id === 'chart-container') {return mockContainer;}
                 return null;
             });
             const result = await chartRenderer.renderOverviewSankey(mockContainer);
@@ -1286,7 +1286,7 @@ test('should handle zoom to bbox with invalid values', () => {
         test('should handle ResizeObserver entries with width changes', async () => {
             const mockResizeObserver = {
                 disconnect: jest.fn(),
-                observe: jest.fn()
+                observe: jest.fn(),
             };
             chartRenderer.resizeObserver = mockResizeObserver;
 
@@ -1331,7 +1331,7 @@ test('should handle zoom to bbox with invalid values', () => {
                 propIncomes: new Map([[1, NaN]]),
                 propExpenses: new Map([[1, NaN]]),
                 catTotals: new Map([['Rent', NaN]]),
-                subTotals: new Map()
+                subTotals: new Map(),
             });
 
             const data = chartRenderer.buildSankeyData(
@@ -1343,7 +1343,7 @@ test('should handle zoom to bbox with invalid values', () => {
                 false,
                 new Map([['Rent', NaN]]),
                 new Map(),
-                800, 600
+                800, 600,
             );
 
             expect(data).toBeDefined();
@@ -1368,7 +1368,7 @@ test('should handle zoom to bbox with invalid values', () => {
                 propIncomes: new Map([[1, 1500]]),
                 propExpenses: new Map([[1, 1200]]),
                 catTotals: new Map([['Rent', 800]]),
-                subTotals: new Map()
+                subTotals: new Map(),
             });
 
             // Mock buildSankeyData to throw
@@ -1391,7 +1391,7 @@ test('should handle zoom to bbox with invalid values', () => {
                 propIncomes: new Map(),
                 propExpenses: new Map(),
                 catTotals: new Map(),
-                subTotals: new Map()
+                subTotals: new Map(),
             });
 
             const originalBuild = chartRenderer.buildSankeyData;
@@ -1420,7 +1420,7 @@ test('should handle zoom to bbox with invalid values', () => {
                 propIncomes: new Map(),
                 propExpenses: new Map(), // empty
                 catTotals: new Map(),
-                subTotals: new Map()
+                subTotals: new Map(),
             });
             await chartRenderer.renderOverviewSankey(mockContainer);
             expect(mockContainer.innerHTML).toContain('No Data Available');
@@ -1508,7 +1508,7 @@ test('should handle zoom to bbox with invalid values', () => {
                 target: { name: 'Target' },
                 value: 500,
                 property: 'Prop1',
-                category: 'Rent'
+                category: 'Rent',
             };
             const content = chartRenderer.formatTooltipContent(item, 'link');
 
@@ -1538,7 +1538,7 @@ test('should handle zoom to bbox with invalid values', () => {
             const mockSelection = {
                 transition: jest.fn(() => mockSelection),
                 duration: jest.fn(() => mockSelection),
-                attr: jest.fn(() => mockSelection)
+                attr: jest.fn(() => mockSelection),
             };
 
             chartRenderer.persistentTooltip = mockSelection;
@@ -1555,20 +1555,20 @@ test('should handle zoom to bbox with invalid values', () => {
                 svg: {
                     attr: jest.fn(() => ({
                         width: jest.fn(() => 800),
-                        height: jest.fn(() => 600)
+                        height: jest.fn(() => 600),
                     })),
                     transition: jest.fn(() => ({
                         call: jest.fn(() => ({
                             transition: jest.fn(() => ({
                                 duration: jest.fn(() => ({
                                     style: jest.fn(() => ({
-                                        remove: jest.fn()
-                                    }))
-                                }))
-                            }))
-                        }))
-                    }))
-                }
+                                        remove: jest.fn(),
+                                    })),
+                                })),
+                            })),
+                        })),
+                    })),
+                },
             };
             chartRenderer.zoomToBbox(bbox);
 
@@ -1579,7 +1579,7 @@ test('should handle zoom to bbox with invalid values', () => {
         test('should handle invalid bbox', () => {
             const bbox = [[NaN, NaN], [NaN, NaN]];
             chartRenderer.sankeyData = {
-                svg: d3.select(mockContainer)
+                svg: d3.select(mockContainer),
             };
             chartRenderer.zoomBehavior = d3.zoom();
             expect(() => chartRenderer.zoomToBbox(bbox)).not.toThrow();
@@ -1593,7 +1593,7 @@ test('should handle zoom to bbox with invalid values', () => {
                 sim: d3.forceSimulation(),
                 svg: d3.select(mockContainer),
                 links: [],
-                relationIndex: new Map([['Property 1', new Set(['node1'])]] )
+                relationIndex: new Map([['Property 1', new Set(['node1'])]] ),
             };
 
             expect(chartRenderer.relatedIdsCache.size).toBe(0);
@@ -1638,9 +1638,9 @@ test('should handle zoom to bbox with invalid values', () => {
                 getColorTheme: jest.fn(() => ({
                     properties: ['#000000'],
                     categories: ['#ffffff'],
-                    trends: { increasing: '#00ff00' }
+                    trends: { increasing: '#00ff00' },
                 })),
-                getCurrentColorTheme: jest.fn(() => 'dark')
+                getCurrentColorTheme: jest.fn(() => 'dark'),
             };
 
             chartRenderer.themeManager = mockThemeManager;
@@ -1661,7 +1661,7 @@ test('should handle zoom to bbox with invalid values', () => {
                 true,
                 new Map([['Utilities', 300]]),
                 new Map([['Utilities', new Map([['Electric', 200], ['Water', 100]])]]),
-                800, 600
+                800, 600,
             );
 
             expect(result).toBeDefined();
@@ -1678,7 +1678,7 @@ test('should handle zoom to bbox with invalid values', () => {
                 false,
                 new Map([['Rent', 800]]),
                 new Map(),
-                800, 600
+                800, 600,
             );
 
             expect(result).toBeDefined();

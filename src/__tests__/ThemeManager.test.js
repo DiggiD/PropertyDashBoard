@@ -275,7 +275,7 @@ describe('ThemeManager', () => {
                         theme: 'dark',
                         isDark: true,
                     }),
-                })
+                }),
             );
 
             dispatchSpy.mockRestore();
@@ -292,7 +292,7 @@ describe('ThemeManager', () => {
                     detail: expect.objectContaining({
                         theme: 'ocean',
                     }),
-                })
+                }),
             );
 
             dispatchSpy.mockRestore();
@@ -406,8 +406,8 @@ describe('ThemeManager', () => {
                 expect.objectContaining({
                     current: 'dark',
                     isDark: true,
-                    manualOverride: true
-                })
+                    manualOverride: true,
+                }),
             );
         });
 
@@ -423,9 +423,9 @@ describe('ThemeManager', () => {
                     type: 'themeChange',
                     detail: expect.objectContaining({
                         theme: 'light',
-                        isDark: false
-                    })
-                })
+                        isDark: false,
+                    }),
+                }),
             );
 
             dispatchSpy.mockRestore();
@@ -613,7 +613,7 @@ describe('ThemeManager', () => {
             // Mock invalid style property to trigger potential errors (though setProperty rarely throws)
             const setPropertySpy = jest.spyOn(document.documentElement.style, 'setProperty').mockImplementation(() => {
                 // Simulate potential error for invalid selector/property
-                if (Math.random() > 1) throw new Error('Invalid property');
+                if (Math.random() > 1) {throw new Error('Invalid property');}
             });
 
             expect(() => themeManager.applyCurrentTheme()).not.toThrow();

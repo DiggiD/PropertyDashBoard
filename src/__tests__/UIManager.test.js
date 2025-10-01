@@ -8,7 +8,7 @@
 jest.mock('../modules/utils/Formatter', () => ({
     formatCurrency: jest.fn((val) => `$${val}`),
     formatDate: jest.fn((date) => date?.toISOString().split('T')[0] || ''),
-    formatNumber: jest.fn((num) => num?.toString() || '0')
+    formatNumber: jest.fn((num) => num?.toString() || '0'),
 }));
 
 jest.mock('../modules/core/ThemeManager', () => ({
@@ -18,7 +18,7 @@ jest.mock('../modules/core/ThemeManager', () => ({
     getCurrentColorTheme: jest.fn(() => 'default'),
     setColorTheme: jest.fn(),
     toggleDarkMode: jest.fn(),
-    setDarkMode: jest.fn()
+    setDarkMode: jest.fn(),
 }));
 
 // Mock DOM elements
@@ -72,8 +72,8 @@ Object.defineProperty(window, 'ResizeObserver', {
     value: jest.fn(() => ({
         observe: jest.fn(),
         unobserve: jest.fn(),
-        disconnect: jest.fn()
-    }))
+        disconnect: jest.fn(),
+    })),
 });
 
 // Mock document.dispatchEvent to avoid JSDOM issues
@@ -96,7 +96,7 @@ describe('UIManager', () => {
         mockFormatter = {
             formatCurrency: jest.fn((val) => `$${val}`),
             formatDate: jest.fn((date) => date?.toISOString().split('T')[0] || ''),
-            formatNumber: jest.fn((num) => num?.toString() || '0')
+            formatNumber: jest.fn((num) => num?.toString() || '0'),
         };
 
         mockThemeManager = {
@@ -106,7 +106,7 @@ describe('UIManager', () => {
             getCurrentColorTheme: jest.fn(() => 'default'),
             setColorTheme: jest.fn(),
             toggleDarkMode: jest.fn(),
-            setDarkMode: jest.fn()
+            setDarkMode: jest.fn(),
         };
 
         uiManager = new UIManager(mockFormatter, mockThemeManager);
@@ -228,7 +228,7 @@ describe('UIManager', () => {
         test('should create specific fallback elements for known IDs', () => {
             // Remove existing element first
             const existing = document.getElementById('chart-container');
-            if (existing) existing.remove();
+            if (existing) {existing.remove();}
 
             const chartContainer = uiManager.getElement('chart-container', true);
             expect(chartContainer).toBeDefined();
@@ -1106,8 +1106,8 @@ describe('UIManager', () => {
                 detail: {
                     theme: 'dark',
                     isDark: true,
-                    colors: { primary: '#000' }
-                }
+                    colors: { primary: '#000' },
+                },
             };
             uiManager.handleThemeChange(event);
             // Should not throw
@@ -1117,8 +1117,8 @@ describe('UIManager', () => {
             const event = {
                 detail: {
                     theme: 'blue',
-                    colors: { primary: '#0066cc' }
-                }
+                    colors: { primary: '#0066cc' },
+                },
             };
             uiManager.handleColorThemeChange(event);
             // Should not throw
@@ -1324,7 +1324,7 @@ describe('UIManager', () => {
 
         test('should cover populateYearPicker with missing header', () => {
             const header = document.getElementById('yearPickerHeader');
-            if (header) header.remove();
+            if (header) {header.remove();}
             uiManager.populateYearPicker(['2023', '2024']);
             // Should handle missing header
         });
@@ -1583,8 +1583,8 @@ describe('UIManager', () => {
                 detail: {
                     theme: 'dark',
                     isDark: true,
-                    colors: { primary: '#000' }
-                }
+                    colors: { primary: '#000' },
+                },
             };
             uiManager.handleThemeChange(event);
             // Should not throw
@@ -1594,8 +1594,8 @@ describe('UIManager', () => {
             const event = {
                 detail: {
                     theme: 'blue',
-                    colors: { primary: '#0066cc' }
-                }
+                    colors: { primary: '#0066cc' },
+                },
             };
             uiManager.handleColorThemeChange(event);
             // Should not throw
@@ -1941,7 +1941,7 @@ describe('UIManager', () => {
         test('should handle event listener errors', () => {
             const invalidElement = {
                 addEventListener: jest.fn(() => { throw new Error('Event Error'); }),
-                removeEventListener: jest.fn()
+                removeEventListener: jest.fn(),
             };
 
             // Create a fresh UIManager instance for this test
@@ -1956,7 +1956,7 @@ describe('UIManager', () => {
                 isDarkModeActive: jest.fn(() => { throw new Error('Theme Error'); }),
                 setDarkMode: jest.fn(() => { throw new Error('Theme Set Error'); }),
                 getColorTheme: jest.fn(() => { throw new Error('Get Theme Error'); }),
-                setColorTheme: jest.fn(() => { throw new Error('Set Color Error'); })
+                setColorTheme: jest.fn(() => { throw new Error('Set Color Error'); }),
             };
 
             const errorUIManager = new UIManager(mockFormatter, errorThemeManager);
@@ -1974,7 +1974,7 @@ describe('UIManager', () => {
                 { width: 320, expected: 'mobile' },
                 { width: 768, expected: 'tablet' },
                 { width: 1024, expected: 'desktop' },
-                { width: 1200, expected: 'desktop' }
+                { width: 1200, expected: 'desktop' },
             ];
 
             testSizes.forEach(({ width, expected }) => {
@@ -2063,7 +2063,7 @@ describe('UIManager', () => {
                 textField: 'new value',
                 checkField: 'off',
                 selectField: 'option2',
-                textareaField: 'new content'
+                textareaField: 'new content',
             });
 
             expect(textInput.value).toBe('new value');
@@ -2311,7 +2311,7 @@ describe('UIManager', () => {
                 getColorThemeOptions: jest.fn(() => [{ id: 'default', name: 'Default' }]),
                 getCurrentColorTheme: jest.fn(() => 'default'),
                 setColorTheme: jest.fn(),
-                toggleDarkMode: jest.fn()
+                toggleDarkMode: jest.fn(),
             };
 
             const incompleteUIManager = new UIManager(mockFormatter, incompleteThemeManager);
@@ -2325,7 +2325,7 @@ describe('UIManager', () => {
                 getColorTheme: jest.fn(() => null),
                 getColorThemeOptions: jest.fn(() => []),
                 getCurrentColorTheme: jest.fn(() => 'default'),
-                setColorTheme: jest.fn()
+                setColorTheme: jest.fn(),
             };
 
             const invalidUIManager = new UIManager(mockFormatter, invalidThemeManager);
@@ -2478,8 +2478,8 @@ describe('UIManager', () => {
                 detail: {
                     theme: 'dark',
                     isDark: true,
-                    colors: { primary: '#000', secondary: '#333' }
-                }
+                    colors: { primary: '#000', secondary: '#333' },
+                },
             };
 
             testUIManager.handleThemeChange(themeEvent);
@@ -2488,8 +2488,8 @@ describe('UIManager', () => {
             const colorThemeEvent = {
                 detail: {
                     theme: 'blue',
-                    colors: { primary: '#0066cc' }
-                }
+                    colors: { primary: '#0066cc' },
+                },
             };
 
             testUIManager.handleColorThemeChange(colorThemeEvent);
@@ -2507,7 +2507,7 @@ describe('UIManager', () => {
             // Simulate data loaded
             const stats = {
                 totalProperties: 100,
-                totalCategories: 5
+                totalCategories: 5,
             };
 
             testUIManager.updateDataDisplay(stats);

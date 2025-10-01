@@ -47,7 +47,7 @@ const mockDocument = {
         if (event instanceof Event || event.type) {
             return true;
         }
-        throw new TypeError("Failed to execute 'dispatchEvent' on 'EventTarget': parameter 1 is not of type 'Event'.");
+        throw new TypeError('Failed to execute \'dispatchEvent\' on \'EventTarget\': parameter 1 is not of type \'Event\'.');
     }),
     createElement: jest.fn(() => ({
         addEventListener: jest.fn(),
@@ -149,16 +149,16 @@ describe('App', () => {
             if (key === 'yearPickerHeader') {
                 return {
                     querySelectorAll: jest.fn().mockReturnValue([]),
-                    querySelector: jest.fn().mockReturnValue(null)
+                    querySelector: jest.fn().mockReturnValue(null),
                 };
             }
             if (key === 'propertiesDashboard') {
                 return {
                     querySelector: jest.fn().mockReturnValue({
                         innerHTML: '',
-                        appendChild: jest.fn()
+                        appendChild: jest.fn(),
                     }),
-                    appendChild: jest.fn()
+                    appendChild: jest.fn(),
                 };
             }
             return null;
@@ -229,7 +229,7 @@ describe('App', () => {
             realStorage,
             realValidator,
             realThemeManager,
-            realPropertiesManager
+            realPropertiesManager,
         );
     });
 
@@ -417,7 +417,7 @@ describe('App', () => {
         test('should update time period selection', () => {
             const mockElement = {
                 querySelectorAll: jest.fn().mockReturnValue([]),
-                querySelector: jest.fn().mockReturnValue(null)
+                querySelector: jest.fn().mockReturnValue(null),
             };
             realUIManager.getElement.mockReturnValue(mockElement);
             realDataManager.getSelectedYear.mockReturnValue('2025');
@@ -450,9 +450,9 @@ describe('App', () => {
             realDataManager.getProperties.mockReturnValue([
                 {
                     monthlyData: {
-                        'Jan 2025': { expenses: { 'Maintenance': -1000 } }
-                    }
-                }
+                        'Jan 2025': { expenses: { 'Maintenance': -1000 } },
+                    },
+                },
             ]);
 
             const result = app.hasDataForMonthYear('2025', '01');
@@ -465,9 +465,9 @@ describe('App', () => {
                 {
                     monthlyData: {
                         'Mar 2025': { expenses: { 'Maintenance': -1000 } },
-                        'Jan 2025': { expenses: { 'Maintenance': -500 } }
-                    }
-                }
+                        'Jan 2025': { expenses: { 'Maintenance': -500 } },
+                    },
+                },
             ]);
 
             const result = app.getLastAvailableMonthForYear('2025');
@@ -540,7 +540,7 @@ describe('App', () => {
             expect(app.isInitialized).toBe(false);
             expect(realUIManager.showError).toHaveBeenCalledWith(
                 'Failed to initialize application',
-                'Please refresh the page and try again'
+                'Please refresh the page and try again',
             );
         });
     });
@@ -620,7 +620,7 @@ describe('App', () => {
         test('should execute updateTimePeriodSelection method', () => {
             const mockElement = {
                 querySelectorAll: jest.fn().mockReturnValue([]),
-                querySelector: jest.fn().mockReturnValue(null)
+                querySelector: jest.fn().mockReturnValue(null),
             };
             realUIManager.getElement = jest.fn().mockReturnValue(mockElement);
             realDataManager.getSelectedYear = jest.fn().mockReturnValue('2025');
@@ -670,7 +670,7 @@ describe('App', () => {
             app.dataManager.setSelectedYear(selectedYear);
 
             if (app.currentView === 'properties') {
-                let selectedMonth = app.dataManager.getSelectedMonth();
+                const selectedMonth = app.dataManager.getSelectedMonth();
                 if (!selectedMonth || selectedMonth === 'all') {
                     // Auto-select current month
                     const now = new Date();
@@ -717,9 +717,9 @@ describe('App', () => {
             realDataManager.getProperties = jest.fn().mockReturnValue([
                 {
                     monthlyData: {
-                        'Jan 2025': { expenses: { 'Maintenance': -1000 } }
-                    }
-                }
+                        'Jan 2025': { expenses: { 'Maintenance': -1000 } },
+                    },
+                },
             ]);
 
             const result = app.hasDataForMonthYear('2025', '01');
@@ -731,9 +731,9 @@ describe('App', () => {
             realDataManager.getProperties = jest.fn().mockReturnValue([
                 {
                     monthlyData: {
-                        'Feb 2025': { expenses: { 'Maintenance': -1000 } }
-                    }
-                }
+                        'Feb 2025': { expenses: { 'Maintenance': -1000 } },
+                    },
+                },
             ]);
 
             const result = app.hasDataForMonthYear('2025', '01');
@@ -746,9 +746,9 @@ describe('App', () => {
                 {
                     monthlyData: {
                         'Mar 2025': { expenses: { 'Maintenance': -1000 } },
-                        'Jan 2025': { expenses: { 'Maintenance': -500 } }
-                    }
-                }
+                        'Jan 2025': { expenses: { 'Maintenance': -500 } },
+                    },
+                },
             ]);
 
             const result = app.getLastAvailableMonthForYear('2025');
@@ -760,9 +760,9 @@ describe('App', () => {
             realDataManager.getProperties = jest.fn().mockReturnValue([
                 {
                     monthlyData: {
-                        'Mar 2024': { expenses: { 'Maintenance': -1000 } }
-                    }
-                }
+                        'Mar 2024': { expenses: { 'Maintenance': -1000 } },
+                    },
+                },
             ]);
 
             const result = app.getLastAvailableMonthForYear('2025');
@@ -1139,9 +1139,9 @@ describe('App', () => {
             realDataManager.getProperties.mockReturnValue([
                 {
                     monthlyData: {
-                        'Jan 2025': { expenses: { 'Rent': -1000 } }
-                    }
-                }
+                        'Jan 2025': { expenses: { 'Rent': -1000 } },
+                    },
+                },
             ]);
 
             const result = app.hasDataForMonthYear('2025', '01');
@@ -1160,9 +1160,9 @@ describe('App', () => {
                 {
                     monthlyData: {
                         'Mar 2025': { expenses: { 'Rent': -1000 } },
-                        'Jan 2025': { expenses: { 'Rent': -500 } }
-                    }
-                }
+                        'Jan 2025': { expenses: { 'Rent': -500 } },
+                    },
+                },
             ]);
 
             const result = app.getLastAvailableMonthForYear('2025');
@@ -1375,7 +1375,7 @@ describe('App', () => {
         test('should execute yearChange event handler for overview view', () => {
             // Mock the event
             const mockEvent = {
-                detail: { selectedYear: '2024' }
+                detail: { selectedYear: '2024' },
             };
 
             // Set up the event listener
@@ -1406,7 +1406,7 @@ describe('App', () => {
 
         test('should execute yearChange event handler for properties view', () => {
             const mockEvent = {
-                detail: { selectedYear: '2024' }
+                detail: { selectedYear: '2024' },
             };
 
             app.currentView = 'properties';
@@ -1419,7 +1419,7 @@ describe('App', () => {
             app.dataManager.setSelectedYear(selectedYear);
 
             if (app.currentView === 'properties') {
-                let selectedMonth = app.dataManager.getSelectedMonth();
+                const selectedMonth = app.dataManager.getSelectedMonth();
                 if (!selectedMonth || selectedMonth === 'all') {
                     // Auto-select logic
                     app.dataManager.setSelectedMonth('12'); // Mock auto-selection
@@ -1432,7 +1432,7 @@ describe('App', () => {
 
         test('should execute monthChange event handler', () => {
             const mockEvent = {
-                detail: { selectedMonth: '03' }
+                detail: { selectedMonth: '03' },
             };
 
             realDataManager.setSelectedMonth.mockImplementation(() => {});
@@ -1453,15 +1453,15 @@ describe('App', () => {
             const mockSelectedItem = {
                 classList: {
                     remove: jest.fn(),
-                    add: jest.fn()
-                }
+                    add: jest.fn(),
+                },
             };
 
             const mockYearPickerHeader = {
                 querySelectorAll: jest.fn().mockReturnValue([
-                    { classList: { remove: jest.fn() } }
+                    { classList: { remove: jest.fn() } },
                 ]),
-                querySelector: jest.fn().mockReturnValue(mockSelectedItem)
+                querySelector: jest.fn().mockReturnValue(mockSelectedItem),
             };
 
             realUIManager.getElement.mockReturnValue(mockYearPickerHeader);
@@ -1477,9 +1477,9 @@ describe('App', () => {
         test('should handle yearPickerHeader without selected item', () => {
             const mockYearPickerHeader = {
                 querySelectorAll: jest.fn().mockReturnValue([
-                    { classList: { remove: jest.fn() } }
+                    { classList: { remove: jest.fn() } },
                 ]),
-                querySelector: jest.fn().mockReturnValue(null)
+                querySelector: jest.fn().mockReturnValue(null),
             };
 
             realUIManager.getElement.mockReturnValue(mockYearPickerHeader);
@@ -1576,7 +1576,7 @@ describe('App', () => {
             // Create new app instance to test constructor
             const testApp = new App(
                 realDataManager, realUIManager, realEventHandler, realChartRenderer,
-                realHistoryManager, realFormatter, realStorage, realValidator, realThemeManager, realPropertiesManager
+                realHistoryManager, realFormatter, realStorage, realValidator, realThemeManager, realPropertiesManager,
             );
 
             expect(testApp.chartRenderer).toBe(realChartRenderer);
@@ -1589,7 +1589,7 @@ describe('App', () => {
         test('should handle properties with no monthlyData', () => {
             realDataManager.getProperties.mockReturnValue([
                 { monthlyData: null },
-                { monthlyData: undefined }
+                { monthlyData: undefined },
             ]);
 
             const result = app.hasDataForMonthYear('2025', '01');
@@ -1600,9 +1600,9 @@ describe('App', () => {
             realDataManager.getProperties.mockReturnValue([
                 {
                     monthlyData: {
-                        'Invalid Format': { expenses: { 'Rent': -1000 } }
-                    }
-                }
+                        'Invalid Format': { expenses: { 'Rent': -1000 } },
+                    },
+                },
             ]);
 
             const result = app.hasDataForMonthYear('2025', '01');
@@ -1613,7 +1613,7 @@ describe('App', () => {
     describe('getLastAvailableMonthForYear Edge Cases', () => {
         test('should handle properties with no monthlyData', () => {
             realDataManager.getProperties.mockReturnValue([
-                { monthlyData: null }
+                { monthlyData: null },
             ]);
 
             const result = app.getLastAvailableMonthForYear('2025');
@@ -1624,9 +1624,9 @@ describe('App', () => {
             realDataManager.getProperties.mockReturnValue([
                 {
                     monthlyData: {
-                        'Jan 2024': { expenses: { 'Rent': -1000 } }
-                    }
-                }
+                        'Jan 2024': { expenses: { 'Rent': -1000 } },
+                    },
+                },
             ]);
 
             const result = app.getLastAvailableMonthForYear('2025');
@@ -1637,9 +1637,9 @@ describe('App', () => {
             realDataManager.getProperties.mockReturnValue([
                 {
                     monthlyData: {
-                        'InvalidMonth 2025': { expenses: { 'Rent': -1000 } }
-                    }
-                }
+                        'InvalidMonth 2025': { expenses: { 'Rent': -1000 } },
+                    },
+                },
             ]);
 
             const result = app.getLastAvailableMonthForYear('2025');
@@ -1847,7 +1847,7 @@ describe('App', () => {
             app.dataManager.setSelectedYear(selectedYear);
 
             if (app.currentView === 'properties') {
-                let selectedMonth = app.dataManager.getSelectedMonth();
+                const selectedMonth = app.dataManager.getSelectedMonth();
                 if (!selectedMonth || selectedMonth === 'all') {
                     // Auto-select current month
                     const now = new Date();
@@ -1950,9 +1950,9 @@ describe('App', () => {
             realDataManager.getProperties.mockReturnValue([
                 {
                     monthlyData: {
-                        'Jan 2025': { expenses: { 'Rent': -1000 } }
-                    }
-                }
+                        'Jan 2025': { expenses: { 'Rent': -1000 } },
+                    },
+                },
             ]);
 
             const result1 = app.hasDataForMonthYear('2025', '01');
@@ -1975,9 +1975,9 @@ describe('App', () => {
                 {
                     monthlyData: {
                         'Mar 2025': { expenses: { 'Rent': -1000 } },
-                        'Jan 2025': { expenses: { 'Rent': -500 } }
-                    }
-                }
+                        'Jan 2025': { expenses: { 'Rent': -500 } },
+                    },
+                },
             ]);
 
             const result1 = app.getLastAvailableMonthForYear('2025');
@@ -2011,7 +2011,7 @@ describe('App', () => {
 
             // Mock the event
             const mockEvent = {
-                detail: { selectedYear: '2024' }
+                detail: { selectedYear: '2024' },
             };
 
             // Set up mocks
@@ -2043,7 +2043,7 @@ describe('App', () => {
 
             // Mock the event
             const mockEvent = {
-                detail: { selectedMonth: '03' }
+                detail: { selectedMonth: '03' },
             };
 
             // Set up mocks

@@ -47,12 +47,12 @@ jest.mock('events', () => ({
         on: jest.fn(),
         emit: jest.fn(),
         removeListener: jest.fn(),
-        removeAllListeners: jest.fn()
-    }))
+        removeAllListeners: jest.fn(),
+    })),
 }));
 
 // Mock TransactionStore for complete isolation
-let mockOnChangeCallbacks = [];
+const mockOnChangeCallbacks = [];
 jest.mock('src/modules/core/TransactionStore.js', () => {
     return jest.fn().mockImplementation(() => ({
         initialize: jest.fn().mockResolvedValue(),
@@ -99,7 +99,7 @@ jest.mock('src/modules/core/TransactionStore.js', () => {
             });
         }),
         getStatistics: jest.fn().mockReturnValue({ transactionCount: 0 }),
-        _saveToStorage: jest.fn().mockResolvedValue()
+        _saveToStorage: jest.fn().mockResolvedValue(),
     }));
 });
 
@@ -121,18 +121,18 @@ describe('DataManager with Isolated Mocks (80%+ Coverage)', () => {
         // Create isolated mocks for all dependencies
         mockStorage = {
             save: jest.fn().mockResolvedValue(true),
-            load: jest.fn().mockResolvedValue({ transactions: [{}], properties: [], categories: [] })
+            load: jest.fn().mockResolvedValue({ transactions: [{}], properties: [], categories: [] }),
         };
 
         mockValidator = {
             validatePropertyName: jest.fn().mockReturnValue({ isValid: true, message: '' }),
             validateCategoryName: jest.fn().mockReturnValue({ isValid: true, message: '' }),
             validateAmount: jest.fn().mockReturnValue({ isValid: true, message: '' }),
-            validateDashboardData: jest.fn().mockReturnValue({ isValid: true, message: '' })
+            validateDashboardData: jest.fn().mockReturnValue({ isValid: true, message: '' }),
         };
 
         mockFormatter = {
-            formatCurrency: jest.fn((val) => `$${val}`)
+            formatCurrency: jest.fn((val) => `$${val}`),
         };
 
         // Mock EventEmitter instance
@@ -145,7 +145,7 @@ describe('DataManager with Isolated Mocks (80%+ Coverage)', () => {
                 }
             }),
             removeListener: jest.fn(),
-            removeAllListeners: jest.fn()
+            removeAllListeners: jest.fn(),
         };
 
         // Import the mocked TransactionStore constructor
@@ -198,7 +198,7 @@ describe('DataManager with Isolated Mocks (80%+ Coverage)', () => {
                 totalIncome,
                 netAmount,
                 categories,
-                lastTransaction
+                lastTransaction,
             };
         };
 
@@ -217,7 +217,7 @@ describe('DataManager with Isolated Mocks (80%+ Coverage)', () => {
         mockTransactionStore.queryCategories.mockReturnValue([
             { name: 'Rent', type: 'expense' },
             { name: 'Utilities', type: 'expense' },
-            { name: 'Maintenance', type: 'expense' }
+            { name: 'Maintenance', type: 'expense' },
         ]);
 
         mockTransactionStore.queryTransactions.mockImplementation((filters = {}) => {
@@ -331,7 +331,7 @@ describe('DataManager with Isolated Mocks (80%+ Coverage)', () => {
                 const endDate = new Date(selectedYear, selectedMonth + 1, 0);
                 return {
                     start: startDate.toISOString().split('T')[0],
-                    end: endDate.toISOString().split('T')[0]
+                    end: endDate.toISOString().split('T')[0],
                 };
             }
             if (period === 'year') {
@@ -454,8 +454,8 @@ describe('DataManager with Isolated Mocks (80%+ Coverage)', () => {
                 expect.objectContaining({
                     propertyId: propResult.property.id,
                     type: 'expense',
-                    dateRange: expect.any(Object)
-                })
+                    dateRange: expect.any(Object),
+                }),
             );
         });
 
@@ -543,10 +543,10 @@ describe('DataManager with Isolated Mocks (80%+ Coverage)', () => {
             const testData = {
                 transactions: [
                     { propertyId: 1, category: 'Rent', amount: -1000, date: '2025-01-01', type: 'expense' },
-                    { propertyId: 1, category: 'Utilities', amount: -500, date: '2025-01-01', type: 'expense' }
+                    { propertyId: 1, category: 'Utilities', amount: -500, date: '2025-01-01', type: 'expense' },
                 ],
                 properties: [{ id: 1, name: 'Imported Property' }],
-                categories: ['Rent', 'Utilities']
+                categories: ['Rent', 'Utilities'],
             };
 
             // Call importData - executes validation and conversion logic
@@ -715,7 +715,7 @@ describe('DataManager with Isolated Mocks (80%+ Coverage)', () => {
         const periodTestCases = [
             { period: 'all', description: 'all time period' },
             { period: 'year', description: 'year period' },
-            { period: 'month', description: 'month period' }
+            { period: 'month', description: 'month period' },
         ];
 
         periodTestCases.forEach(({ period, description }) => {
@@ -790,8 +790,8 @@ describe('DataManager with Isolated Mocks (80%+ Coverage)', () => {
                 expect.objectContaining({
                     propertyId: propResult.property.id,
                     type: 'expense',
-                    dateRange: expect.any(Object)
-                })
+                    dateRange: expect.any(Object),
+                }),
             );
         });
     });
@@ -846,7 +846,7 @@ describe('DataManager with Isolated Mocks (80%+ Coverage)', () => {
             // Test invalid property name
             mockValidator.validatePropertyName.mockReturnValue({
                 isValid: false,
-                message: 'Invalid property name'
+                message: 'Invalid property name',
             });
             const invalidPropResult = await dataManager.addProperty('Invalid@Name');
             expect(invalidPropResult.success).toBe(false);
@@ -863,7 +863,7 @@ describe('DataManager with Isolated Mocks (80%+ Coverage)', () => {
             const propResult = await dataManager.addProperty('Validation Test');
             mockValidator.validateAmount.mockReturnValue({
                 isValid: false,
-                message: 'Invalid amount'
+                message: 'Invalid amount',
             });
             const invalidExpenseResult = await dataManager.updatePropertyExpense(propResult.property.id, 'Rent', -100);
             expect(invalidExpenseResult.success).toBe(false);
@@ -949,13 +949,13 @@ describe('DataManager with Isolated Mocks (80%+ Coverage)', () => {
         test('should handle concurrent async operations', async () => {
             // Mock async operations to test concurrency
             mockTransactionStore.addTransaction.mockImplementation(
-                () => new Promise(resolve => setTimeout(resolve, 100))
+                () => new Promise(resolve => setTimeout(resolve, 100)),
             );
 
             const promises = [
                 dataManager.addProperty('Concurrent 1'),
                 dataManager.addProperty('Concurrent 2'),
-                dataManager.addProperty('Concurrent 3')
+                dataManager.addProperty('Concurrent 3'),
             ];
 
             const results = await Promise.all(promises);
@@ -968,7 +968,7 @@ describe('DataManager with Isolated Mocks (80%+ Coverage)', () => {
         test('should handle initialization with delayed storage', async () => {
             // Mock storage with delay
             mockStorage.load.mockImplementation(
-                () => new Promise(resolve => setTimeout(() => resolve(null), 200))
+                () => new Promise(resolve => setTimeout(() => resolve(null), 200)),
             );
 
             const dm = new DataManager(mockStorage, mockValidator, mockFormatter);
@@ -1055,12 +1055,12 @@ describe('DataManager with Isolated Mocks (80%+ Coverage)', () => {
             dataManager.validateBulkData.mockReturnValue({
                 isValid: false,
                 message: 'Bulk validation failed',
-                errors: ['Multiple validation errors']
+                errors: ['Multiple validation errors'],
             });
 
             const invalidBulkData = {
                 properties: [{ name: '', expenses: {} }],
-                expenseCategories: ['']
+                expenseCategories: [''],
             };
 
             const result = await dataManager.importData(JSON.stringify(invalidBulkData));
@@ -1125,12 +1125,12 @@ describe('DataManager with Isolated Mocks (80%+ Coverage)', () => {
             dataManager.validateBulkData.mockReturnValue({
                 isValid: false,
                 message: 'Validation failed',
-                errors: ['Invalid property structure']
+                errors: ['Invalid property structure'],
             });
 
             const invalidData = {
                 properties: [{ invalid: 'structure' }],
-                expenseCategories: []
+                expenseCategories: [],
             };
 
             const result = await dataManager.importData(JSON.stringify(invalidData));
@@ -1141,7 +1141,7 @@ describe('DataManager with Isolated Mocks (80%+ Coverage)', () => {
         test('should handle empty data import gracefully', async () => {
             const emptyData = {
                 properties: [],
-                expenseCategories: []
+                expenseCategories: [],
             };
 
             const result = await dataManager.importData(JSON.stringify(emptyData));
@@ -1181,15 +1181,15 @@ describe('DataManager with Isolated Mocks (80%+ Coverage)', () => {
             const expenseResult = await dataManager.updatePropertyExpense(
                 propResult.property.id,
                 undefined,
-                null
+                null,
             );
             expect(expenseResult.success).toBe(false);
         });
-    
+
         // ============================================================================
         // COMPREHENSIVE COVERAGE TESTS FOR 95%+ TARGET
         // ============================================================================
-    
+
         describe('comprehensive coverage tests for 95%+ target', () => {
             beforeEach(async () => {
                 jest.clearAllTimers();
@@ -1197,7 +1197,7 @@ describe('DataManager with Isolated Mocks (80%+ Coverage)', () => {
                 // Ensure hasUnsavedChanges method is available
                 dataManager.hasUnsavedChanges = jest.fn(() => dataManager._hasUnsavedChanges);
             });
-    
+
             // Test uncovered functions
             test('should cover seedSampleData function', () => {
                 // seedSampleData is not used in refactored code, but test it for coverage
@@ -1206,74 +1206,74 @@ describe('DataManager with Isolated Mocks (80%+ Coverage)', () => {
                 // Function should execute without errors
                 expect(dataManager.data).toBeDefined();
             });
-    
+
             test('should cover hasUnsavedChanges method', () => {
                 // Initially false
                 expect(dataManager.hasUnsavedChanges()).toBe(false);
-    
+
                 // Mark as changed
                 dataManager.markAsChanged();
                 expect(dataManager.hasUnsavedChanges()).toBe(true);
             });
-    
+
             test('should cover validateDataIntegrity method', () => {
                 const result = dataManager.validateDataIntegrity();
                 expect(typeof result).toBe('object');
                 expect(result).toHaveProperty('isValid');
             });
-    
+
             test('should cover calculatePropertyTotal method', () => {
                 const expenses = {
                     'Rent': 1000,
                     'Utilities': { 'Electricity': 200, 'Water': 100 },
-                    'Maintenance': 500
+                    'Maintenance': 500,
                 };
                 const total = dataManager.calculatePropertyTotal(expenses);
                 expect(total).toBe(1800); // 1000 + 200 + 100 + 500
             });
-    
+
             test('should cover getPropertyExpenseData method', () => {
                 const property = {
                     expenses: {
                         'Rent': 1000,
-                        'Utilities': { 'Electricity': 200, 'Water': 100 }
-                    }
+                        'Utilities': { 'Electricity': 200, 'Water': 100 },
+                    },
                 };
-    
+
                 // Test flat structure
                 const flatData = dataManager.getPropertyExpenseData(property, false);
                 expect(flatData.total).toBe(1300);
                 expect(flatData.expenses.Utilities).toBe(300);
-    
+
                 // Test hierarchical structure
                 const hierarchyData = dataManager.getPropertyExpenseData(property, true);
                 expect(hierarchyData.total).toBe(1300);
                 expect(hierarchyData.expenses.Utilities).toEqual({ 'Electricity': 200, 'Water': 100 });
             });
-    
+
             test('should cover initializeMonthlyDataForNewProperty method', () => {
                 const property = { id: 1, name: 'Test Property', expenses: { 'Rent': 1000 } };
                 dataManager.initializeMonthlyDataForNewProperty(property);
                 expect(property.monthlyData).toBeDefined();
                 expect(Object.keys(property.monthlyData).length).toBe(1);
             });
-    
+
             test('should cover initializeQuarterlyDataForNewProperty method', () => {
                 const property = { id: 1, name: 'Test Property', expenses: { 'Rent': 1000 } };
                 dataManager.initializeQuarterlyDataForNewProperty(property);
                 expect(property.quarterlyData).toBeDefined();
                 expect(Object.keys(property.quarterlyData).length).toBe(1);
             });
-    
+
             test('should cover computeSubTotalForProperty method', async () => {
                 const propResult = await dataManager.addProperty('Subtotal Test');
                 await dataManager.updatePropertyExpense(propResult.property.id, 'Utilities.Electricity', 300);
-    
+
                 const property = dataManager.getPropertyById(propResult.property.id);
                 const subtotal = dataManager.computeSubTotalForProperty(property, 'Utilities', 'Electricity', 'all');
                 expect(subtotal).toBe(300);
             });
-    
+
             test('should cover initializeExpensesFromMonthlyData method', () => {
                 const property = {
                     name: 'Monthly Test',
@@ -1281,18 +1281,18 @@ describe('DataManager with Isolated Mocks (80%+ Coverage)', () => {
                         'Jan 2025': {
                             expenses: {
                                 'Rent': 1000,
-                                'Utilities': { 'Electricity': 200, 'Water': 100 }
-                            }
-                        }
+                                'Utilities': { 'Electricity': 200, 'Water': 100 },
+                            },
+                        },
                     },
-                    expenses: {}
+                    expenses: {},
                 };
-    
+
                 dataManager.initializeExpensesFromMonthlyData(property);
                 expect(property.expenses.Rent).toBe(-1000); // Negative for expenses
                 expect(property.expenses.Utilities).toBe(-300); // Sum of subcategories
             });
-    
+
             test('should cover initializeExpensesFromQuarterlyData method', () => {
                 const property = {
                     name: 'Quarterly Test',
@@ -1300,42 +1300,42 @@ describe('DataManager with Isolated Mocks (80%+ Coverage)', () => {
                         'Q1 2025': {
                             expenses: {
                                 'Rent': 1000,
-                                'Utilities': { 'Electricity': 200, 'Water': 100 }
-                            }
-                        }
+                                'Utilities': { 'Electricity': 200, 'Water': 100 },
+                            },
+                        },
                     },
-                    expenses: {}
+                    expenses: {},
                 };
-    
+
                 dataManager.initializeExpensesFromQuarterlyData(property);
                 expect(property.expenses.Rent).toBe(-1000);
                 expect(property.expenses.Utilities).toBe(-300);
             });
-    
+
             // Test uncovered branches
             test('should cover initialize already initialized branch', async () => {
                 // First initialization
                 await dataManager.initialize();
                 expect(dataManager._initialized).toBe(true);
-    
+
                 // Second initialization should skip
                 const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
                 await dataManager.initialize();
                 expect(consoleSpy).toHaveBeenCalledWith('[DATAMANAGER] Already initialized, skipping');
                 consoleSpy.mockRestore();
             });
-    
+
             test('should cover initialize without initialData branch', async () => {
                 const dm = new DataManager(mockStorage, mockValidator, mockFormatter);
                 dm.store = mockTransactionStore;
-    
+
                 // Mock seedTransactions to avoid actual seeding
                 jest.spyOn(dm, 'seedTransactions').mockResolvedValue();
-    
+
                 await dm.initialize(); // No initialData provided
                 expect(dm._initialized).toBe(true);
             });
-    
+
             test('should cover initialize error handling', async () => {
                 mockTransactionStore.initialize.mockRejectedValue(new Error('Init failed'));
 
@@ -1346,240 +1346,240 @@ describe('DataManager with Isolated Mocks (80%+ Coverage)', () => {
                 await expect(dm.initialize()).resolves.not.toThrow();
                 expect(dm._initialized).toBe(true);
             });
-    
+
             test('should cover validateAndNormalizeData invalid data branch', () => {
                 const result = dataManager.validateAndNormalizeData(null);
                 expect(result.properties).toEqual([]);
                 expect(result.expenseCategories).toEqual([]);
             });
-    
+
             test('should cover validateAndNormalizeData validation failure branch', () => {
                 mockValidator.validateDashboardData.mockReturnValue({
                     isValid: false,
-                    errors: ['Validation error']
+                    errors: ['Validation error'],
                 });
-    
+
                 const invalidData = { properties: [{ invalid: true }] };
                 const result = dataManager.validateAndNormalizeData(invalidData);
                 expect(result.properties).toEqual([]);
             });
-    
+
             test('should cover addProperty null name branch', async () => {
                 const result = await dataManager.addProperty(null);
                 expect(result.success).toBe(false);
                 expect(result.message).toContain('cannot be null');
             });
-    
+
             test('should cover addProperty validation failure branch', async () => {
                 mockValidator.validatePropertyName.mockReturnValue({
                     isValid: false,
-                    message: 'Invalid name'
+                    message: 'Invalid name',
                 });
-    
+
                 const result = await dataManager.addProperty('Invalid@Name');
                 expect(result.success).toBe(false);
             });
-    
+
             test('should cover addProperty duplicate name branch', async () => {
                 await dataManager.addProperty('Duplicate Test');
                 const result = await dataManager.addProperty('Duplicate Test');
                 expect(result.success).toBe(false);
                 expect(result.message).toContain('already exists');
             });
-    
+
             test('should cover addProperty limit exceeded branch', async () => {
                 // Mock the size check by overriding the method
                 const originalSize = mockTransactionStore.properties.size;
                 Object.defineProperty(mockTransactionStore.properties, 'size', {
                     get: () => 20,
-                    configurable: true
+                    configurable: true,
                 });
-    
+
                 const result = await dataManager.addProperty('Limit Test');
                 expect(result.success).toBe(false);
                 expect(result.message).toContain('Maximum of 20 properties');
-    
+
                 // Restore original size
                 Object.defineProperty(mockTransactionStore.properties, 'size', {
                     get: () => originalSize,
-                    configurable: true
+                    configurable: true,
                 });
             });
-    
+
             test('should cover updatePropertyName not found branch', () => {
                 const result = dataManager.updatePropertyName(999, 'New Name');
                 expect(result.success).toBe(false);
                 expect(result.message).toContain('not found');
             });
-    
+
             test('should cover updatePropertyName validation failure branch', async () => {
                 const propResult = await dataManager.addProperty('Validation Test');
                 mockValidator.validatePropertyName.mockReturnValue({
                     isValid: false,
-                    message: 'Invalid name'
+                    message: 'Invalid name',
                 });
-    
+
                 const result = dataManager.updatePropertyName(propResult.property.id, 'Invalid@Name');
                 expect(result.success).toBe(false);
             });
-    
+
             test('should cover updatePropertyName duplicate name branch', async () => {
                 const prop1 = await dataManager.addProperty('Prop 1');
                 const prop2 = await dataManager.addProperty('Prop 2');
-    
+
                 const result = dataManager.updatePropertyName(prop1.property.id, 'Prop 2');
                 expect(result.success).toBe(false);
                 expect(result.message).toContain('already exists');
             });
-    
+
             test('should cover deleteProperty not found branch', () => {
                 const result = dataManager.deleteProperty(999);
                 expect(result.success).toBe(false);
                 expect(result.message).toContain('not found');
             });
-    
+
             test('should cover addExpenseCategory validation failure branch', () => {
                 mockValidator.validateCategoryName.mockReturnValue({
                     isValid: false,
-                    message: 'Invalid category'
+                    message: 'Invalid category',
                 });
-    
+
                 const result = dataManager.addExpenseCategory('Invalid@Category');
                 expect(result.success).toBe(false);
             });
-    
+
             test('should cover addExpenseCategory duplicate branch', () => {
                 dataManager.addExpenseCategory('Test Category');
                 const result = dataManager.addExpenseCategory('Test Category');
                 expect(result.success).toBe(false);
                 expect(result.message).toContain('already exists');
             });
-    
+
             test('should cover addExpenseCategory limit exceeded branch', () => {
                 // Mock size to exceed limit
                 const originalSize = mockTransactionStore.categories.size;
                 Object.defineProperty(mockTransactionStore.categories, 'size', {
                     get: () => 15,
-                    configurable: true
+                    configurable: true,
                 });
-    
+
                 const result = dataManager.addExpenseCategory('Limit Test');
                 expect(result.success).toBe(false);
                 expect(result.message).toContain('Maximum of 15 categories');
-    
+
                 // Restore original size
                 Object.defineProperty(mockTransactionStore.categories, 'size', {
                     get: () => originalSize,
-                    configurable: true
+                    configurable: true,
                 });
             });
-    
+
             test('should cover updateExpenseCategory not found branch', () => {
                 const result = dataManager.updateExpenseCategory('NonExistent', 'New Name');
                 expect(result.success).toBe(false);
                 expect(result.message).toContain('not found');
             });
-    
+
             test('should cover updateExpenseCategory validation failure branch', () => {
                 dataManager.addExpenseCategory('Old Category');
                 mockValidator.validateCategoryName.mockReturnValue({
                     isValid: false,
-                    message: 'Invalid name'
+                    message: 'Invalid name',
                 });
-    
+
                 const result = dataManager.updateExpenseCategory('Old Category', 'Invalid@Name');
                 expect(result.success).toBe(false);
             });
-    
+
             test('should cover updateExpenseCategory duplicate branch', () => {
                 dataManager.addExpenseCategory('Category 1');
                 dataManager.addExpenseCategory('Category 2');
-    
+
                 const result = dataManager.updateExpenseCategory('Category 1', 'Category 2');
                 expect(result.success).toBe(false);
                 expect(result.message).toContain('already exists');
             });
-    
+
             test('should cover deleteExpenseCategory not found branch', () => {
                 const result = dataManager.deleteExpenseCategory('NonExistent');
                 expect(result.success).toBe(false);
                 expect(result.message).toContain('not found');
             });
-    
+
             test('should cover updatePropertyExpense null category branch', async () => {
                 const propResult = await dataManager.addProperty('Expense Test');
                 const result = await dataManager.updatePropertyExpense(propResult.property.id, null, 1000);
                 expect(result.success).toBe(false);
                 expect(result.message).toContain('Category cannot be null');
             });
-    
+
             test('should cover updatePropertyExpense validation failure branch', async () => {
                 const propResult = await dataManager.addProperty('Expense Test');
                 mockValidator.validateAmount.mockReturnValue({
                     isValid: false,
-                    message: 'Invalid amount'
+                    message: 'Invalid amount',
                 });
-    
+
                 const result = await dataManager.updatePropertyExpense(propResult.property.id, 'Rent', -100);
                 expect(result.success).toBe(false);
             });
-    
+
             test('should cover updatePropertyExpense colon separator branch', async () => {
                 const propResult = await dataManager.addProperty('Expense Test');
                 await dataManager.updatePropertyExpense(propResult.property.id, 'Utilities:Electricity', 300);
                 // Should parse correctly
                 expect(mockTransactionStore.addTransaction).toHaveBeenCalled();
             });
-    
+
             test('should cover updatePropertyExpense category not found branch', async () => {
                 const propResult = await dataManager.addProperty('Expense Test');
                 const result = await dataManager.updatePropertyExpense(propResult.property.id, 'NonExistentCategory', 1000);
                 expect(result.success).toBe(false);
                 expect(result.message).toContain('not found');
             });
-    
+
             test('should cover updatePropertyExpense property not found branch', async () => {
                 const result = await dataManager.updatePropertyExpense(999, 'Rent', 1000);
                 expect(result.success).toBe(false);
                 expect(result.message).toContain('Property not found');
             });
-    
+
             test('should cover updatePropertyExpense update existing transaction branch', async () => {
                 const propResult = await dataManager.addProperty('Expense Test');
                 await dataManager.updatePropertyExpense(propResult.property.id, 'Rent', 1000);
-    
+
                 // Update the same expense (should update existing)
                 const result = await dataManager.updatePropertyExpense(propResult.property.id, 'Rent', 1500);
                 expect(result.success).toBe(true);
                 expect(result.oldAmount).toBe(1000);
                 expect(result.newAmount).toBe(1500);
             });
-    
+
             test('should cover getCurrentPeriodData with timePeriod parameter', async () => {
                 const propResult = await dataManager.addProperty('Period Test');
                 await dataManager.updatePropertyExpense(propResult.property.id, 'Rent', 1000);
-    
+
                 const property = dataManager.getPropertyById(propResult.property.id);
                 const data = dataManager.getCurrentPeriodData(property, 'year');
                 expect(data.total).toBe(1000);
             });
-    
+
             test('should cover getCurrentPeriodData null property branch', () => {
                 const data = dataManager.getCurrentPeriodData(null);
                 expect(data.total).toBe(0);
                 expect(data.expenses).toEqual({});
             });
-    
+
             test('should cover getCurrentPeriodData undefined property branch', () => {
                 const data = dataManager.getCurrentPeriodData(undefined);
                 expect(data.total).toBe(0);
                 expect(data.expenses).toEqual({});
             });
-    
+
             test('should cover calculateTotalExpenses with timePeriod parameter', async () => {
                 const propResult = await dataManager.addProperty('Total Test');
                 await dataManager.updatePropertyExpense(propResult.property.id, 'Rent', 1000);
-    
+
                 // Manually update data
                 dataManager.data = {
                     properties: mockTransactionStore.queryProperties(),
@@ -1590,11 +1590,11 @@ describe('DataManager with Isolated Mocks (80%+ Coverage)', () => {
                     selectedYear: 'all',
                     selectedMonth: 'all',
                 };
-    
+
                 const total = dataManager.calculateTotalExpenses('year');
                 expect(total).toBe(1000);
             });
-    
+
             test('should cover calculateAverageExpensePerProperty with timePeriod', async () => {
                 const prop1 = await dataManager.addProperty('Prop 1');
                 const prop2 = await dataManager.addProperty('Prop 2');
@@ -1608,133 +1608,133 @@ describe('DataManager with Isolated Mocks (80%+ Coverage)', () => {
                 const average = dataManager.calculateAverageExpensePerProperty('year');
                 expect(average).toBe(750);
             });
-    
+
             test('should cover getTopExpenseCategory with timePeriod', async () => {
                 const prop = await dataManager.addProperty('Top Category Test');
                 await dataManager.updatePropertyExpense(prop.property.id, 'Rent', 1000);
-    
+
                 const topCategory = dataManager.getTopExpenseCategory('year');
                 expect(topCategory.name).toBe('Rent');
                 expect(topCategory.amount).toBe(1000);
             });
-    
+
             test('should cover importData null input branch', async () => {
                 const result = await dataManager.importData(null);
                 expect(result).toBe(false);
             });
-    
+
             test('should cover importData undefined input branch', async () => {
                 const result = await dataManager.importData(undefined);
                 expect(result).toBe(false);
             });
-    
+
             test('should cover importData JSON parsing branch', async () => {
                 const result = await dataManager.importData('{invalid json}');
                 expect(result).toBe(false);
             });
-    
+
             test('should cover importData currentData structure branch', async () => {
                 const dataWithCurrentData = {
                     currentData: {
                         properties: [],
-                        expenseCategories: []
-                    }
+                        expenseCategories: [],
+                    },
                 };
-    
+
                 const result = await dataManager.importData(JSON.stringify(dataWithCurrentData));
                 expect(result).toBe(true);
             });
-    
+
             test('should cover importData invalid data structure branch', async () => {
                 const result = await dataManager.importData(JSON.stringify(null));
                 expect(result).toBe(false);
             });
-    
+
             test('should cover getIncomeCategories with fallback', () => {
                 // Mock data.incomeCategories as undefined
                 dataManager.data.incomeCategories = undefined;
                 const categories = dataManager.getIncomeCategories();
                 expect(Array.isArray(categories)).toBe(true);
             });
-    
+
             test('should cover getPropertyIncomeData with period parameter', async () => {
                 const propResult = await dataManager.addProperty('Income Test');
                 const property = dataManager.getPropertyById(propResult.property.id);
-    
+
                 const incomeData = dataManager.getPropertyIncomeData(property, 'year');
                 expect(incomeData.total).toBe(0);
                 expect(incomeData.income).toEqual({});
             });
-    
+
             test('should cover getPropertyIncomeData with year parameter', async () => {
                 const propResult = await dataManager.addProperty('Income Test');
                 const property = dataManager.getPropertyById(propResult.property.id);
-    
+
                 const incomeData = dataManager.getPropertyIncomeData(property, 'all', '2024');
                 expect(incomeData.total).toBe(0);
             });
-    
+
             test('should cover getPropertyIncomeData null property branch', () => {
                 const incomeData = dataManager.getPropertyIncomeData(null);
                 expect(incomeData.total).toBe(0);
                 expect(incomeData.income).toEqual({});
             });
-    
+
             test('should cover getAggregatedSankeyData with period parameter', () => {
                 const sankeyData = dataManager.getAggregatedSankeyData('year');
                 expect(sankeyData).toBeDefined();
             });
-    
+
             test('should cover getAggregatedSankeyData with year parameter', () => {
                 const sankeyData = dataManager.getAggregatedSankeyData('all', '2024');
                 expect(sankeyData).toBeDefined();
             });
-    
+
             test('should cover hasData null property branch', () => {
                 const hasData = dataManager.hasData(null);
                 expect(hasData).toBe(false);
             });
-    
+
             test('should cover _getDateRangeForPeriod month branch with selected year', () => {
                 dataManager.data.selectedMonth = '02';
                 const range = dataManager._getDateRangeForPeriod('month', '2024');
                 expect(range).toHaveProperty('start');
                 expect(range).toHaveProperty('end');
             });
-    
+
             test('should cover _getDateRangeForPeriod year branch with selected year', () => {
                 const range = dataManager._getDateRangeForPeriod('year', '2024');
                 expect(range.start).toBe('2024-01-01');
                 expect(range.end).toBe('2024-12-31');
             });
-    
+
             test('should cover _getDateRangeForPeriod year branch without selected year', () => {
                 const currentYear = new Date().getFullYear();
                 const range = dataManager._getDateRangeForPeriod('year');
                 expect(range.start).toBe(`${currentYear}-01-01`);
                 expect(range.end).toBe(`${currentYear}-12-31`);
             });
-    
+
             test('should cover cleanup method', () => {
                 // Add a subscription
                 dataManager.subscriptions.push(jest.fn());
-    
+
                 dataManager.cleanup();
                 expect(dataManager.subscriptions).toEqual([]);
             });
-    
+
             test('should cover getAvailableYears method', () => {
                 const years = dataManager.getAvailableYears();
                 expect(Array.isArray(years)).toBe(true);
             });
-    
+
             test('should cover debug method', () => {
                 const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
                 dataManager.debug();
                 expect(consoleSpy).toHaveBeenCalledWith('[DATAMANAGER DEBUG] === DATA MANAGER INFO ===');
                 consoleSpy.mockRestore();
             });
-    
+
             // Test additional edge cases for higher coverage
             test('should handle initializeExpensesFromMonthlyData with invalid monthly data', () => {
                 const property = { name: 'Test', monthlyData: null };
@@ -1742,138 +1742,138 @@ describe('DataManager with Isolated Mocks (80%+ Coverage)', () => {
                 // Should handle gracefully
                 expect(property.expenses).toBeUndefined();
             });
-    
+
             test('should handle initializeExpensesFromQuarterlyData with invalid quarterly data', () => {
                 const property = { name: 'Test', quarterlyData: null };
                 dataManager.initializeExpensesFromQuarterlyData(property);
                 // Should handle gracefully
                 expect(property.expenses).toBeUndefined();
             });
-    
+
             test('should handle getPropertyExpenseData with null property', () => {
                 const data = dataManager.getPropertyExpenseData(null);
                 expect(data.total).toBe(0);
                 expect(data.expenses).toEqual({});
             });
-    
+
             test('should handle getPropertyExpenseData with property without expenses', () => {
                 const property = { expenses: null };
                 const data = dataManager.getPropertyExpenseData(property);
                 expect(data.total).toBe(0);
                 expect(data.expenses).toEqual({});
             });
-    
+
             test('should handle calculatePropertyTotal with empty expenses', () => {
                 const total = dataManager.calculatePropertyTotal({});
                 expect(total).toBe(0);
             });
-    
+
             test('should handle calculatePropertyTotal with null values', () => {
                 const expenses = { 'Rent': null, 'Utilities': undefined };
                 const total = dataManager.calculatePropertyTotal(expenses);
                 expect(total).toBe(0);
             });
-    
+
             test('should handle computeSubTotalForProperty with null property', () => {
                 const subtotal = dataManager.computeSubTotalForProperty(null, 'Utilities', 'Electricity', 'all');
                 expect(subtotal).toBe(0);
             });
-    
+
             test('should handle getTopExpenseCategory with no transactions', () => {
                 const topCategory = dataManager.getTopExpenseCategory();
                 expect(topCategory.name).toBe('None');
                 expect(topCategory.amount).toBe(0);
             });
-    
+
             test('should handle importData with empty object', async () => {
                 const result = await dataManager.importData(JSON.stringify({}));
                 expect(result).toBe(true);
             });
-    
+
             test('should handle importData with invalid data structure', async () => {
                 const result = await dataManager.importData(JSON.stringify(123));
                 expect(result).toBe(false);
             });
-    
+
             test('should handle _getDateRangeForPeriod with invalid period', () => {
                 const range = dataManager._getDateRangeForPeriod('invalid');
                 expect(range).toBe(null);
             });
-    
+
             test('should handle setCurrentTimePeriod with invalid period', () => {
                 dataManager.setCurrentTimePeriod('invalid');
                 expect(dataManager.getCurrentTimePeriod()).toBe('all'); // Should not change
             });
-    
+
             test('should handle setCurrentView with invalid view', () => {
                 dataManager.setCurrentView('invalid');
                 expect(dataManager.getCurrentView()).toBe('overview'); // Should not change
             });
-    
+
             test('should handle addIncomeCategory validation failure', () => {
                 mockValidator.validateCategoryName.mockReturnValue({
                     isValid: false,
-                    message: 'Invalid category'
+                    message: 'Invalid category',
                 });
-    
+
                 const result = dataManager.addIncomeCategory('Invalid@Category');
                 expect(result.success).toBe(false);
             });
-    
+
             test('should handle addIncomeCategory duplicate', () => {
                 dataManager.addIncomeCategory('Test Income');
                 const result = dataManager.addIncomeCategory('Test Income');
                 expect(result.success).toBe(false);
             });
-    
+
             test('should handle addIncomeCategory limit exceeded', () => {
                 // Mock size to exceed limit
                 const originalSize = mockTransactionStore.incomeCategories.size;
                 Object.defineProperty(mockTransactionStore.incomeCategories, 'size', {
                     get: () => 10,
-                    configurable: true
+                    configurable: true,
                 });
-    
+
                 const result = dataManager.addIncomeCategory('Limit Test');
                 expect(result.success).toBe(false);
                 expect(result.message).toContain('Maximum of 10 income categories');
-    
+
                 // Restore original size
                 Object.defineProperty(mockTransactionStore.incomeCategories, 'size', {
                     get: () => originalSize,
-                    configurable: true
+                    configurable: true,
                 });
             });
-    
+
             test('should handle updateIncomeCategory not found', () => {
                 const result = dataManager.updateIncomeCategory('NonExistent', 'New Name');
                 expect(result.success).toBe(false);
             });
-    
+
             test('should handle updateIncomeCategory validation failure', () => {
                 dataManager.addIncomeCategory('Old Income');
                 mockValidator.validateCategoryName.mockReturnValue({
                     isValid: false,
-                    message: 'Invalid name'
+                    message: 'Invalid name',
                 });
-    
+
                 const result = dataManager.updateIncomeCategory('Old Income', 'Invalid@Name');
                 expect(result.success).toBe(false);
             });
-    
+
             test('should handle updateIncomeCategory duplicate', () => {
                 dataManager.addIncomeCategory('Income 1');
                 dataManager.addIncomeCategory('Income 2');
-    
+
                 const result = dataManager.updateIncomeCategory('Income 1', 'Income 2');
                 expect(result.success).toBe(false);
             });
-    
+
             test('should handle deleteIncomeCategory not found', () => {
                 const result = dataManager.deleteIncomeCategory('NonExistent');
                 expect(result.success).toBe(false);
             });
-    
+
             test('should handle getPropertyById with null result', () => {
                 const property = dataManager.getPropertyById(999);
                 expect(property).toBe(null);
@@ -1900,7 +1900,7 @@ describe('DataManager with Isolated Mocks (80%+ Coverage)', () => {
                 const property = dataManager.getPropertyById(propResult.property.id);
                 property.monthlyData = {
                     'Jan 2024': { expenses: {} },
-                    'Feb 2024': { expenses: {} }
+                    'Feb 2024': { expenses: {} },
                 };
                 dataManager.data.properties = [property];
 
@@ -1913,13 +1913,13 @@ describe('DataManager with Isolated Mocks (80%+ Coverage)', () => {
                 const updateDataDisplayMock = jest.fn().mockResolvedValue();
                 const uiManagerSpy = jest.spyOn(require('src/modules/core/UIManager.js'), 'default')
                     .mockImplementation(() => ({
-                        updateDataDisplay: updateDataDisplayMock
+                        updateDataDisplay: updateDataDisplayMock,
                     }));
 
                 const testData = {
                     transactions: [],
                     properties: [],
-                    expenseCategories: []
+                    expenseCategories: [],
                 };
 
                 const result = await dataManager.importData(JSON.stringify(testData));
@@ -1938,7 +1938,7 @@ describe('DataManager with Isolated Mocks (80%+ Coverage)', () => {
                     category: 'Rent',
                     amount: 1000, // Positive amount for income
                     date: new Date().toISOString().split('T')[0],
-                    type: 'income'
+                    type: 'income',
                 });
 
                 const property = dataManager.getPropertyById(propResult.property.id);
@@ -1996,79 +1996,79 @@ describe('DataManager with Isolated Mocks (80%+ Coverage)', () => {
                 expect(result).toHaveProperty('cleanedTransactions');
                 expect(result).toHaveProperty('removedCount');
             });
-    
+
             test('should handle loadData method', async () => {
                 // loadData is an alias for initialize
                 await dataManager.loadData();
                 expect(dataManager._initialized).toBe(true);
             });
-    
+
             test('should handle clearAllData method (second one)', async () => {
                 await dataManager.addProperty('Clear Test');
                 await dataManager.clearAllData();
                 expect(dataManager.getProperties()).toEqual([]);
             });
-    
+
             test('should handle initializeEmptyState method', () => {
                 dataManager.initializeEmptyState();
                 expect(dataManager.data.properties).toEqual([]);
                 expect(dataManager.data.expenseCategories).toEqual([]);
             });
-    
+
             test('should handle markAsChanged method', () => {
                 dataManager.markAsChanged();
                 expect(dataManager._hasUnsavedChanges).toBe(true);
             });
-    
+
             test('should handle save method', async () => {
                 const result = await dataManager.save();
                 expect(result).toBe(true);
                 expect(dataManager._hasUnsavedChanges).toBe(false);
             });
-    
+
             test('should handle getData method', () => {
                 const data = dataManager.getData();
                 expect(data).toEqual(dataManager.data);
             });
-    
+
             test('should handle getProperties method', () => {
                 const props = dataManager.getProperties();
                 expect(Array.isArray(props)).toBe(true);
             });
-    
+
             test('should handle getExpenseCategories method', () => {
                 const categories = dataManager.getExpenseCategories();
                 expect(Array.isArray(categories)).toBe(true);
             });
-    
+
             test('should handle setSelectedYear method', () => {
                 dataManager.setSelectedYear('2024');
                 expect(dataManager.getSelectedYear()).toBe('2024');
             });
-    
+
             test('should handle setSelectedMonth method', () => {
                 dataManager.setSelectedMonth('01');
                 expect(dataManager.getSelectedMonth()).toBe('01');
             });
-    
+
             test('should handle getDataStatistics method', () => {
                 const stats = dataManager.getDataStatistics();
                 expect(stats).toHaveProperty('totalProperties');
                 expect(stats).toHaveProperty('totalExpenses');
             });
-    
+
             test('should handle exportData method', async () => {
                 const exported = await dataManager.exportData();
                 expect(exported).toHaveProperty('transactions');
             });
-    
+
             test('should handle clearSankeyCache method', () => {
                 dataManager.clearSankeyCache();
                 expect(dataManager.sankeyCache.size).toBe(0);
             });
         });
     });
-    
-    
-    
-    });
+
+
+
+});

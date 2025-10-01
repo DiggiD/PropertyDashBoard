@@ -60,7 +60,7 @@ class TransactionStore {
         this.options = {
             debounceMs: 500,
             maxTransactions: 10000,
-            ...options
+            ...options,
         };
 
         // Core data structure - normalized flat transactions
@@ -179,7 +179,7 @@ class TransactionStore {
                 }
 
                 return result;
-            }
+            },
         });
     }
 
@@ -206,7 +206,7 @@ class TransactionStore {
                             this.properties.set(prop.id, {
                                 id: prop.id,
                                 name: prop.name || `Property ${prop.id}`,
-                                created: prop.created || new Date().toISOString()
+                                created: prop.created || new Date().toISOString(),
                             });
                         }
                     });
@@ -236,7 +236,7 @@ class TransactionStore {
             if (data && data.properties && Array.isArray(data.properties)) {
                 // Check if it has the old hierarchical structure
                 const hasLegacyStructure = data.properties.some(prop =>
-                    prop && (prop.expenses || prop.monthlyData || prop.quarterlyData)
+                    prop && (prop.expenses || prop.monthlyData || prop.quarterlyData),
                 );
                 if (hasLegacyStructure) {
                     console.log('[TRANSACTIONSTORE] Detected legacy hierarchical data structure');
@@ -262,7 +262,7 @@ class TransactionStore {
 
         // Process each property
         legacyData.properties.forEach((property, index) => {
-            if (!property) return;
+            if (!property) {return;}
 
             const propertyId = property.id || (index + 1);
 
@@ -270,7 +270,7 @@ class TransactionStore {
             propertyMap.set(propertyId, {
                 id: propertyId,
                 name: property.name || `Property ${propertyId}`,
-                created: new Date().toISOString()
+                created: new Date().toISOString(),
             });
 
             // Convert expenses
@@ -281,7 +281,7 @@ class TransactionStore {
                     'expense',
                     null, // no specific date for top-level expenses
                     migratedTransactions,
-                    categorySet
+                    categorySet,
                 );
             }
 
@@ -298,7 +298,7 @@ class TransactionStore {
                             'expense',
                             date,
                             migratedTransactions,
-                            categorySet
+                            categorySet,
                         );
                     }
 
@@ -312,7 +312,7 @@ class TransactionStore {
                                     category,
                                     amount: Math.abs(amount), // incomes are positive
                                     date,
-                                    type: 'income'
+                                    type: 'income',
                                 });
                                 incomeCategorySet.add(category);
                             }
@@ -359,7 +359,7 @@ class TransactionStore {
                             subcategory,
                             amount: subValue, // expenses should be negative
                             date: date || new Date().toISOString().split('T')[0],
-                            type
+                            type,
                         });
                     }
                 });
@@ -371,7 +371,7 @@ class TransactionStore {
                     category,
                     amount: value, // expenses should be negative
                     date: date || new Date().toISOString().split('T')[0],
-                    type
+                    type,
                 });
             }
             categorySet.add(category);
@@ -388,7 +388,7 @@ class TransactionStore {
             const year = parts[1];
 
             const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                               'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
             const monthIndex = monthNames.indexOf(monthName);
 
             if (monthIndex !== -1) {
@@ -428,7 +428,7 @@ class TransactionStore {
      * Validate transaction object
      */
     _validateTransaction(txn) {
-        if (!txn || typeof txn !== 'object') return null;
+        if (!txn || typeof txn !== 'object') {return null;}
 
         const validated = {
             id: txn.id || this.generateId(),
@@ -438,7 +438,7 @@ class TransactionStore {
             amount: typeof txn.amount === 'number' ? txn.amount : 0,
             date: txn.date || new Date().toISOString().split('T')[0],
             type: txn.type === 'income' ? 'income' : 'expense',
-            description: txn.description ? txn.description.toString().trim() : undefined
+            description: txn.description ? txn.description.toString().trim() : undefined,
         };
 
         // Basic validation
@@ -502,7 +502,7 @@ class TransactionStore {
      * Save to storage
      */
     async _saveToStorage() {
-        if (!this._hasUnsavedChanges) return;
+        if (!this._hasUnsavedChanges) {return;}
 
         try {
             const dataToSave = {
@@ -511,7 +511,7 @@ class TransactionStore {
                 categories: Array.from(this.categories),
                 incomeCategories: Array.from(this.incomeCategories),
                 version: '1.0',
-                lastSaved: new Date().toISOString()
+                lastSaved: new Date().toISOString(),
             };
 
             const success = await this.storage.save(dataToSave);
@@ -584,7 +584,7 @@ class TransactionStore {
             this.properties.set(validatedTxn.propertyId, {
                 id: validatedTxn.propertyId,
                 name: `Property ${validatedTxn.propertyId}`,
-                created: new Date().toISOString()
+                created: new Date().toISOString(),
             });
         }
 
@@ -680,8 +680,8 @@ class TransactionStore {
             results = results.filter(t => {
                 const txnDate = t.date;
 
-                if (start && txnDate < start) return false;
-                if (end && txnDate > end) return false;
+                if (start && txnDate < start) {return false;}
+                if (end && txnDate > end) {return false;}
                 return true;
             });
         }
@@ -689,8 +689,8 @@ class TransactionStore {
         if (filters.amountRange) {
             const { min, max } = filters.amountRange;
             results = results.filter(t => {
-                if (min !== undefined && t.amount < min) return false;
-                if (max !== undefined && t.amount > max) return false;
+                if (min !== undefined && t.amount < min) {return false;}
+                if (max !== undefined && t.amount > max) {return false;}
                 return true;
             });
         }
@@ -707,8 +707,8 @@ class TransactionStore {
                     bVal = new Date(bVal);
                 }
 
-                if (aVal < bVal) return order === 'asc' ? -1 : 1;
-                if (aVal > bVal) return order === 'asc' ? 1 : -1;
+                if (aVal < bVal) {return order === 'asc' ? -1 : 1;}
+                if (aVal > bVal) {return order === 'asc' ? 1 : -1;}
                 return 0;
             });
         } else {
@@ -751,7 +751,7 @@ class TransactionStore {
                 totalIncome: summary.income,
                 netAmount: summary.net,
                 categories: summary.categories,
-                lastTransaction: propertyTxns.length > 0 ? propertyTxns[0].date : null
+                lastTransaction: propertyTxns.length > 0 ? propertyTxns[0].date : null,
             });
         });
 
@@ -759,11 +759,11 @@ class TransactionStore {
         if (filters.sortBy) {
             const { field, order = 'asc' } = filters.sortBy;
             properties.sort((a, b) => {
-                let aVal = a[field];
-                let bVal = b[field];
+                const aVal = a[field];
+                const bVal = b[field];
 
-                if (aVal < bVal) return order === 'asc' ? -1 : 1;
-                if (aVal > bVal) return order === 'asc' ? 1 : -1;
+                if (aVal < bVal) {return order === 'asc' ? -1 : 1;}
+                if (aVal > bVal) {return order === 'asc' ? 1 : -1;}
                 return 0;
             });
         }
@@ -795,7 +795,7 @@ class TransactionStore {
                     transactionCount: 0,
                     totalAmount: 0,
                     subcategories: new Map(),
-                    properties: new Set()
+                    properties: new Set(),
                 });
             }
 
@@ -809,7 +809,7 @@ class TransactionStore {
                     cat.subcategories.set(txn.subcategory, {
                         name: txn.subcategory,
                         transactionCount: 0,
-                        totalAmount: 0
+                        totalAmount: 0,
                     });
                 }
                 const subcat = cat.subcategories.get(txn.subcategory);
@@ -822,17 +822,17 @@ class TransactionStore {
         const result = Array.from(categories.values()).map(cat => ({
             ...cat,
             subcategories: Array.from(cat.subcategories.values()),
-            properties: Array.from(cat.properties)
+            properties: Array.from(cat.properties),
         }));
 
         if (filters.sortBy) {
             const { field, order = 'asc' } = filters.sortBy;
             result.sort((a, b) => {
-                let aVal = a[field];
-                let bVal = b[field];
+                const aVal = a[field];
+                const bVal = b[field];
 
-                if (aVal < bVal) return order === 'asc' ? -1 : 1;
-                if (aVal > bVal) return order === 'asc' ? 1 : -1;
+                if (aVal < bVal) {return order === 'asc' ? -1 : 1;}
+                if (aVal > bVal) {return order === 'asc' ? 1 : -1;}
                 return 0;
             });
         } else {
@@ -859,7 +859,7 @@ class TransactionStore {
         // Query all transactions within the period
         const allTxns = this.queryTransactions({
             dateRange,
-            sortBy: { field: 'date', order: 'desc' }
+            sortBy: { field: 'date', order: 'desc' },
         });
 
         // Separate expenses and incomes
@@ -877,7 +877,7 @@ class TransactionStore {
                     expenses: new Map(),
                     totalExpenses: 0,
                     incomes: new Map(),
-                    totalIncome: 0
+                    totalIncome: 0,
                 });
             }
 
@@ -896,7 +896,7 @@ class TransactionStore {
                     expenses: new Map(),
                     totalExpenses: 0,
                     incomes: new Map(),
-                    totalIncome: 0
+                    totalIncome: 0,
                 });
             }
 
@@ -958,7 +958,7 @@ class TransactionStore {
             propIncomes,
             propExpenses,
             catTotals,
-            subTotals
+            subTotals,
         };
 
         this._queryCache.set(cacheKey, result);
@@ -992,7 +992,7 @@ class TransactionStore {
                     totalExpenses: 0,
                     totalIncome: 0,
                     netAmount: 0,
-                    categories: new Map()
+                    categories: new Map(),
                 });
             }
 
@@ -1014,7 +1014,7 @@ class TransactionStore {
 
         // Convert to sorted array
         const result = Array.from(grouped.values()).sort((a, b) => {
-            if (a.year !== b.year) return b.year - a.year;
+            if (a.year !== b.year) {return b.year - a.year;}
             return b.month - a.month;
         });
 
@@ -1030,7 +1030,7 @@ class TransactionStore {
             expenses: 0,
             income: 0,
             net: 0,
-            categories: new Map()
+            categories: new Map(),
         };
 
         transactions.forEach(txn => {
@@ -1094,7 +1094,7 @@ class TransactionStore {
 
         return {
             start: startDate.toISOString().split('T')[0],
-            end: endDate.toISOString().split('T')[0]
+            end: endDate.toISOString().split('T')[0],
         };
     }
 
@@ -1124,7 +1124,7 @@ class TransactionStore {
             totalIncome: incomeTxns.reduce((sum, t) => sum + t.amount, 0),
             netAmount: incomeTxns.reduce((sum, t) => sum + t.amount, 0) - expenseTxns.reduce((sum, t) => sum + Math.abs(t.amount), 0),
             hasUnsavedChanges: this._hasUnsavedChanges,
-            lastSaved: this._lastSaved
+            lastSaved: this._lastSaved,
         };
     }
 
@@ -1155,7 +1155,7 @@ class TransactionStore {
             categories: Array.from(this.categories),
             incomeCategories: Array.from(this.incomeCategories),
             version: '1.0',
-            exportedAt: new Date().toISOString()
+            exportedAt: new Date().toISOString(),
         };
     }
 
@@ -1177,7 +1177,7 @@ class TransactionStore {
 
         // Process each property
         legacyData.properties.forEach((property, index) => {
-            if (!property) return;
+            if (!property) {return;}
 
             const propertyId = property.id || (index + 1);
 
@@ -1185,7 +1185,7 @@ class TransactionStore {
             propertyMap.set(propertyId, {
                 id: propertyId,
                 name: property.name || `Property ${propertyId}`,
-                created: new Date().toISOString()
+                created: new Date().toISOString(),
             });
 
             // Convert expenses
@@ -1196,7 +1196,7 @@ class TransactionStore {
                     'expense',
                     null, // no specific date for top-level expenses
                     migratedTransactions,
-                    categorySet
+                    categorySet,
                 );
             }
 
@@ -1213,7 +1213,7 @@ class TransactionStore {
                             'expense',
                             date,
                             migratedTransactions,
-                            categorySet
+                            categorySet,
                         );
                     }
 
@@ -1227,7 +1227,7 @@ class TransactionStore {
                                     category,
                                     amount: Math.abs(amount), // incomes are positive
                                     date,
-                                    type: 'income'
+                                    type: 'income',
                                 });
                                 incomeCategorySet.add(category);
                             }
@@ -1250,7 +1250,7 @@ class TransactionStore {
             transactions: migratedTransactions,
             properties: Array.from(propertyMap.values()),
             categories: Array.from(categorySet),
-            incomeCategories: Array.from(incomeCategorySet)
+            incomeCategories: Array.from(incomeCategorySet),
         };
     }
 

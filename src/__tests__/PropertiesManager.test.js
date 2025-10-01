@@ -33,7 +33,7 @@ const fireEvent = {
         event.initEvent('blur', true, false);
         element.dispatchEvent(event);
         return event;
-    }
+    },
 };
 
 describe('PropertiesManager - 80%+ Coverage Target', () => {
@@ -78,8 +78,8 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
                 currentTimePeriod: 'all',
                 properties: mockProperties,
                 expenseCategories: ['Rent', 'Utilities'],
-                incomeCategories: []
-            }
+                incomeCategories: [],
+            },
         };
         mockUIManager = {
             showToast: jest.fn(),
@@ -93,11 +93,11 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
             updateYearPickerSelection: jest.fn(),
             updateMonthPickerSelection: jest.fn(),
             formatter: {
-                formatCurrency: jest.fn((val) => `$${Math.abs(val)}`)
-            }
+                formatCurrency: jest.fn((val) => `$${Math.abs(val)}`),
+            },
         };
         mockHistoryManager = {
-            createSnapshot: jest.fn()
+            createSnapshot: jest.fn(),
         };
 
         // Create real instances for complex tests
@@ -220,7 +220,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
             dataManager.getPropertyById = jest.fn().mockReturnValue(null);
             dataManager.addProperty = jest.fn().mockResolvedValue({
                 success: true,
-                property: { id: 1, name: 'Test Property', expenses: {} }
+                property: { id: 1, name: 'Test Property', expenses: {} },
             });
             dataManager.updatePropertyName = jest.fn().mockReturnValue({ success: true });
             dataManager.deleteProperty = jest.fn().mockResolvedValue({ success: true });
@@ -301,7 +301,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
         test('should populate and auto-select hierarchical categories', () => {
             dataManager.addProperty = jest.fn().mockResolvedValue({
                 success: true,
-                property: { id: 1, name: 'Parent Property', expenses: { 'Hierarchy': {} } }
+                property: { id: 1, name: 'Parent Property', expenses: { 'Hierarchy': {} } },
             });
 
             expect(() => propertiesManager.addCategory('Hierarchy', true)).not.toThrow();
@@ -426,12 +426,12 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
                 id: 1,
                 name: 'Test Property',
                 expenses: { 'Rent': -1000 },
-                quarterlyData: { 'Q1 2025': { expenses: {}, total: 0 } }
+                quarterlyData: { 'Q1 2025': { expenses: {}, total: 0 } },
             };
             dataManager.getPropertyById.mockReturnValue(mockProperty);
             dataManager.getCurrentPeriodData.mockReturnValue({
                 total: -1000,
-                expenses: { 'Rent': -1000 }
+                expenses: { 'Rent': -1000 },
             });
             propertiesManager.currentPropertyId = 1;
         });
@@ -445,7 +445,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
             const mockEvent = {
                 target: valueElement,
                 stopPropagation: jest.fn(),
-                preventDefault: jest.fn()
+                preventDefault: jest.fn(),
             };
 
             expect(() => propertiesManager.handleExpenseEdit(mockEvent)).not.toThrow();
@@ -494,7 +494,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
             mockInput.closest = jest.fn().mockReturnValue({
                 innerHTML: '',
                 dataset: { category: 'Rent' },
-                querySelector: jest.fn().mockReturnValue({ value: '-1000' })
+                querySelector: jest.fn().mockReturnValue({ value: '-1000' }),
             });
 
             expect(() => propertiesManager.cancelExpenseEdit(mockInput)).not.toThrow();
@@ -556,7 +556,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
         test('should sort properties by total amount', () => {
             const mockProperties = [
                 { id: 1, name: 'Small', expenses: {}, id: 1 },
-                { id: 2, name: 'Large', expenses: {}, id: 2 }
+                { id: 2, name: 'Large', expenses: {}, id: 2 },
             ];
             dataManager.getCurrentPeriodData
                 .mockReturnValueOnce({ total: -500 })
@@ -574,8 +574,8 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
                 name: 'Test Property',
                 expenses: {
                     'Rent': -1000,
-                    'Utilities': { 'Electricity': -300, 'Water': -200 }
-                }
+                    'Utilities': { 'Electricity': -300, 'Water': -200 },
+                },
             };
 
             const html = propertiesManager.renderCategoriesPanel(mockCategories, mockProperty);
@@ -588,8 +588,8 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
         test('should render subcategories panel', () => {
             const mockProperty = {
                 expenses: {
-                    'Utilities': { 'Electricity': -300, 'Water': -200 }
-                }
+                    'Utilities': { 'Electricity': -300, 'Water': -200 },
+                },
             };
 
             const html = propertiesManager.renderSubcategoriesPanel(mockProperty, 'Utilities', null);
@@ -605,16 +605,16 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
                     'Level1': {
                         'Level2': {
                             'Level3': -100,
-                            'Level4': -200
-                        }
-                    }
-                }
+                            'Level4': -200,
+                        },
+                    },
+                },
             };
 
             propertiesManager.currentPropertyId = 1;
             propertiesManager.currentCategoryPath = {
                 category: 'Level1',
-                subcategory: 'Level2'
+                subcategory: 'Level2',
             };
 
             expect(() => propertiesManager.renderPropertiesDashboard()).not.toThrow();
@@ -638,7 +638,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
             propertiesManager.currentPropertyId = 1;
             propertiesManager.currentCategoryPath = {
                 category: 'Utilities',
-                subcategory: 'Electricity'
+                subcategory: 'Electricity',
             };
 
             propertiesManager.handleBackNavigation();
@@ -786,16 +786,16 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
                     'Hierarchical': {
                         'Sub1': -500,
                         'Sub2': NaN,
-                        'Sub3': undefined
-                    }
-                }
+                        'Sub3': undefined,
+                    },
+                },
             };
 
             expect(propertiesManager.getCategoryExpenseValue(mockProperty, 'Flat')).toBe(-1000);
             expect(propertiesManager.getCategoryExpenseValue(mockProperty, 'Hierarchical')).toEqual({
                 'Sub1': -500,
                 'Sub2': NaN,
-                'Sub3': undefined
+                'Sub3': undefined,
             });
         });
 
@@ -842,7 +842,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
                 'handleItemClick', 'handleBackNavigation', 'clearSelection',
                 'handleExpenseEdit', 'saveExpenseValue',
                 'showModal', 'closeModal', 'getPropertyCategories',
-                'getCategoryExpenseValue', 'getCurrentExpenseValue', 'sumObjectValues'
+                'getCategoryExpenseValue', 'getCurrentExpenseValue', 'sumObjectValues',
             ];
 
             coreMethods.forEach(method => {
@@ -857,7 +857,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
             // Mock getBoundingClientRect for edge case where tooltip would go off-screen
             const mockRect = {
-                width: 40, height: 40, top: 10, left: 10, right: 50, bottom: 50
+                width: 40, height: 40, top: 10, left: 10, right: 50, bottom: 50,
             };
             button.getBoundingClientRect = jest.fn(() => mockRect);
 
@@ -888,10 +888,10 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
             // Mock getBoundingClientRect
             button.getBoundingClientRect = jest.fn(() => ({
-                width: 40, height: 40, top: 100, left: 10, right: 50, bottom: 140
+                width: 40, height: 40, top: 100, left: 10, right: 50, bottom: 140,
             }));
             container.getBoundingClientRect = jest.fn(() => ({
-                left: 5, right: 200, top: 5, bottom: 400
+                left: 5, right: 200, top: 5, bottom: 400,
             }));
 
             expect(() => propertiesManager.showDeleteButtonTooltip(button, {})).not.toThrow();
@@ -917,7 +917,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
             // Mock getBoundingClientRect
             element.getBoundingClientRect = jest.fn(() => ({
-                left: 0, top: 0, width: 100, height: 20, right: 100, bottom: 20
+                left: 0, top: 0, width: 100, height: 20, right: 100, bottom: 20,
             }));
 
             // Mock scrollWidth and scrollHeight to be smaller than element
@@ -928,7 +928,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
                 target: element,
                 clientX: 80, // Outside text area
                 clientY: 15,
-                stopImmediatePropagation: jest.fn()
+                stopImmediatePropagation: jest.fn(),
             };
 
             dataManager.getPropertyById.mockReturnValue({ id: 1, name: 'Test' });
@@ -950,7 +950,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
             const mockEvent = {
                 target: valueElement,
                 stopPropagation: jest.fn(),
-                preventDefault: jest.fn()
+                preventDefault: jest.fn(),
             };
 
             expect(() => propertiesManager.handleExpenseEdit(mockEvent)).not.toThrow();
@@ -960,7 +960,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
         test('should cover getCategoryExpenseValue fallback to direct property access', () => {
             const mockProperty = {
-                expenses: { 'Rent': -1000 }
+                expenses: { 'Rent': -1000 },
             };
 
             // Mock getCurrentPeriodData to return null
@@ -972,7 +972,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
         test('should cover getCategoryExpenseValue with global categories initialization', () => {
             const mockProperty = {
-                expenses: {}
+                expenses: {},
             };
 
             // Mock window.dataManager
@@ -980,8 +980,8 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
             window.dataManager = {
                 getExpenseCategories: jest.fn(() => ['Rent']),
                 getProperties: jest.fn(() => [{
-                    expenses: { 'Rent': {} }
-                }])
+                    expenses: { 'Rent': {} },
+                }]),
             };
 
             dataManager.getCurrentPeriodData.mockReturnValue(null);
@@ -1038,7 +1038,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
         test('should cover renderSubcategoriesPanel for hierarchical categories', () => {
             const mockProperty = {
-                expenses: { 'Utilities': { 'Electric': -100, 'Water': -50 } }
+                expenses: { 'Utilities': { 'Electric': -100, 'Water': -50 } },
             };
 
             expect(() => propertiesManager.renderSubcategoriesPanel(mockProperty, 'Utilities', null)).not.toThrow();
@@ -1046,7 +1046,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
         test('should cover renderSubcategoriesPanel for flat categories', () => {
             const mockProperty = {
-                expenses: { 'Rent': -1000 }
+                expenses: { 'Rent': -1000 },
             };
 
             expect(() => propertiesManager.renderSubcategoriesPanel(mockProperty, 'Rent', null)).not.toThrow();
@@ -1064,386 +1064,386 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
             expect(() => propertiesManager.handleExpenseSave({ target: mockInput })).not.toThrow();
         });
-    
-            test('should cover saveExpenseValue income category with negative input', () => {
-                const mockProperty = { expenses: { 'Salary': 5000 } };
-                dataManager.getPropertyById.mockReturnValue(mockProperty);
-                dataManager.getIncomeCategories.mockReturnValue(['Salary']);
-                propertiesManager.currentPropertyId = 1;
-    
-                const mockInput = document.createElement('input');
-                mockInput.className = 'expense-input';
-                mockInput.dataset.category = 'Salary';
-                mockInput.value = '-6000'; // Negative input for income
-    
-                expect(() => propertiesManager.handleExpenseSave({ target: mockInput })).not.toThrow();
+
+        test('should cover saveExpenseValue income category with negative input', () => {
+            const mockProperty = { expenses: { 'Salary': 5000 } };
+            dataManager.getPropertyById.mockReturnValue(mockProperty);
+            dataManager.getIncomeCategories.mockReturnValue(['Salary']);
+            propertiesManager.currentPropertyId = 1;
+
+            const mockInput = document.createElement('input');
+            mockInput.className = 'expense-input';
+            mockInput.dataset.category = 'Salary';
+            mockInput.value = '-6000'; // Negative input for income
+
+            expect(() => propertiesManager.handleExpenseSave({ target: mockInput })).not.toThrow();
+        });
+
+        test('should cover getCurrentExpenseValue for subcategories with current period data', () => {
+            const mockProperty = {
+                expenses: { 'Utilities': { 'Electric': -100 } },
+            };
+            dataManager.getPropertyById.mockReturnValue(mockProperty);
+            dataManager.getCurrentPeriodData.mockReturnValue({
+                expenses: { 'Utilities': { 'Electric': -150 } },
             });
-    
-            test('should cover getCurrentExpenseValue for subcategories with current period data', () => {
-                const mockProperty = {
-                    expenses: { 'Utilities': { 'Electric': -100 } }
-                };
-                dataManager.getPropertyById.mockReturnValue(mockProperty);
-                dataManager.getCurrentPeriodData.mockReturnValue({
-                    expenses: { 'Utilities': { 'Electric': -150 } }
-                });
-    
-                propertiesManager.currentPropertyId = 1;
-    
-                const result = propertiesManager.getCurrentExpenseValue('Utilities', 'Electric');
-                expect(result).toBe(-150);
-            });
-    
-            test('should cover startExpenseEdit with different element types', () => {
-                const valueElement = document.createElement('div');
-                valueElement.className = 'expense-value';
-                valueElement.dataset.category = 'Rent';
-                valueElement.textContent = '$1000';
-                document.body.appendChild(valueElement);
-    
-                expect(() => propertiesManager.startExpenseEdit(valueElement, 'Rent')).not.toThrow();
-    
-                document.body.removeChild(valueElement);
-            });
-    
-            test('should cover handleExpenseSave with nested input elements', () => {
-                const mockInput = document.createElement('input');
-                mockInput.className = 'expense-input';
-                mockInput.dataset.category = 'Rent';
-                mockInput.value = '1200';
-    
-                expect(() => propertiesManager.handleExpenseSave({ target: mockInput })).not.toThrow();
-            });
-    
-            test('should cover cancelExpenseEdit with nested input', () => {
-                const valueElement = document.createElement('div');
-                valueElement.className = 'expense-value';
-                document.body.appendChild(valueElement);
-    
-                const mockInput = document.createElement('input');
-                mockInput.className = 'expense-input';
-                mockInput.dataset.category = 'Rent';
-                valueElement.appendChild(mockInput);
-    
-                expect(() => propertiesManager.cancelExpenseEdit(mockInput)).not.toThrow();
-    
-                document.body.removeChild(valueElement);
-            });
-    
-            test('should cover property name edit when property is already selected', () => {
-                const propertyElement = document.createElement('div');
-                propertyElement.className = 'property-name editable';
-                propertyElement.dataset.propertyId = '1';
-                document.body.appendChild(propertyElement);
-    
-                propertiesManager.currentPropertyId = 1;
-                dataManager.getPropertyById.mockReturnValue({ id: 1, name: 'Test Property' });
-    
-                expect(() => propertiesManager.handlePropertyNameEdit({ target: propertyElement })).not.toThrow();
-    
-                document.body.removeChild(propertyElement);
-            });
-    
-            test('should cover category name edit when category is not selected', () => {
-                const categoryElement = document.createElement('div');
-                categoryElement.className = 'category-name editable';
-                categoryElement.dataset.category = 'Rent';
-                document.body.appendChild(categoryElement);
-    
-                propertiesManager.currentPropertyId = 1;
-                propertiesManager.currentCategoryPath = null; // Not selected
-    
-                expect(() => propertiesManager.handleCategoryNameEdit({ target: categoryElement })).not.toThrow();
-    
-                document.body.removeChild(categoryElement);
-            });
-    
-            test('should cover subcategory name edit when subcategory is not selected', () => {
-                const subcategoryElement = document.createElement('div');
-                subcategoryElement.className = 'subcategory-name editable';
-                subcategoryElement.dataset.category = 'Utilities';
-                subcategoryElement.dataset.subcategory = 'Electric';
-                document.body.appendChild(subcategoryElement);
-    
-                propertiesManager.currentPropertyId = 1;
-                propertiesManager.currentCategoryPath = null; // Not selected
-    
-                expect(() => propertiesManager.handleSubcategoryNameEdit({ target: subcategoryElement })).not.toThrow();
-    
-                document.body.removeChild(subcategoryElement);
-            });
-    
-            test('should cover property name save with empty input', () => {
-                const input = document.createElement('input');
-                input.className = 'property-name-input';
-                input.value = ''; // Empty name
-                input.dataset.propertyId = '1';
-    
-                dataManager.getPropertyById.mockReturnValue({ id: 1, name: 'Original Name' });
-    
-                expect(() => propertiesManager.handlePropertyNameSave({ target: input })).not.toThrow();
-            });
-    
-            test('should cover category name save with empty input', () => {
-                const input = document.createElement('input');
-                input.className = 'category-name-input';
-                input.value = ''; // Empty name
-                input.dataset.category = 'Rent';
-    
-                expect(() => propertiesManager.handleCategoryNameSave({ target: input })).not.toThrow();
-            });
-    
-            test('should cover subcategory name save with empty input', () => {
-                const input = document.createElement('input');
-                input.className = 'subcategory-name-input';
-                input.value = ''; // Empty name
-                input.dataset.category = 'Electric';
-    
-                expect(() => propertiesManager.handleSubcategoryNameSave({ target: input })).not.toThrow();
-            });
-    
-            test('should cover handleBackNavigation from subcategory to category', () => {
-                propertiesManager.currentCategoryPath = { category: 'Utilities', subcategory: 'Electric' };
-                propertiesManager.handleBackNavigation();
-                expect(propertiesManager.currentCategoryPath).toEqual({ category: 'Utilities' });
-            });
-    
-            test('should cover handleBackNavigation from category to property', () => {
-                propertiesManager.currentCategoryPath = { category: 'Utilities' };
-                propertiesManager.handleBackNavigation();
-                expect(propertiesManager.currentCategoryPath).toBeNull();
-            });
-    
-            test('should cover handleBackNavigation from property to root', () => {
-                propertiesManager.currentPropertyId = 1;
-                propertiesManager.handleBackNavigation();
-                expect(propertiesManager.currentPropertyId).toBeNull();
-            });
-    
-            test('should cover showModal with existing modal cleanup', () => {
-                const existingModal = document.createElement('div');
-                existingModal.id = 'testModal';
-                document.body.appendChild(existingModal);
-    
-                expect(() => propertiesManager.showModal('testModal', '<p>Test</p>')).not.toThrow();
-    
-                // Clean up
-                const newModal = document.getElementById('testModal');
-                if (newModal) newModal.remove();
-            });
-    
-            test('should cover updateCategoryName with duplicate name conflict', () => {
-                const mockProperty = { expenses: { 'Rent': -1000, 'NewRent': -500 } };
-                dataManager.getPropertyById.mockReturnValue(mockProperty);
-    
-                propertiesManager.currentPropertyId = 1;
-    
-                expect(() => propertiesManager.updateCategoryName('Rent', 'NewRent')).not.toThrow();
-            });
-    
-            test('should cover updateSubcategoryName with duplicate name conflict', () => {
-                const mockProperty = { expenses: { 'Utilities': { 'Electric': -100, 'NewElectric': -50 } } };
-                dataManager.getPropertyById.mockReturnValue(mockProperty);
-    
-                expect(() => propertiesManager.updateSubcategoryName('Utilities', 'Electric', 'NewElectric')).not.toThrow();
-            });
-    
-            test('should cover addCategory with existing category name', () => {
-                const mockProperty = { expenses: { 'Rent': -1000 } };
-                dataManager.getPropertyById.mockReturnValue(mockProperty);
-    
-                propertiesManager.currentPropertyId = 1;
-    
-                expect(() => propertiesManager.addCategory('Rent', false)).not.toThrow();
-            });
-    
-            test('should cover addSubcategory with existing subcategory name', () => {
-                const mockProperty = { expenses: { 'Utilities': { 'Electric': -100 } } };
-                dataManager.getPropertyById.mockReturnValue(mockProperty);
-    
-                propertiesManager.currentPropertyId = 1;
-                propertiesManager.currentCategoryPath = { category: 'Utilities' };
-    
-                expect(() => propertiesManager.addSubcategory('Electric', 200)).not.toThrow();
-            });
-    
-            test('should cover addSubcategory converting flat category to hierarchical', () => {
-                const mockProperty = { expenses: { 'Rent': -1000 } };
-                dataManager.getPropertyById.mockReturnValue(mockProperty);
-    
-                propertiesManager.currentPropertyId = 1;
-                propertiesManager.currentCategoryPath = { category: 'Rent' };
-    
-                expect(() => propertiesManager.addSubcategory('SubRent', 200)).not.toThrow();
-            });
-    
-            test('should cover deleteCategory with non-existent category', () => {
-                const mockProperty = { expenses: {} };
-                dataManager.getPropertyById.mockReturnValue(mockProperty);
-    
-                propertiesManager.currentPropertyId = 1;
-    
-                expect(() => propertiesManager.deleteCategory('NonExistent')).not.toThrow();
-            });
-    
-            test('should cover deleteSubcategory with invalid category type', () => {
-                const mockProperty = { expenses: { 'Rent': -1000 } };
-                dataManager.getPropertyById.mockReturnValue(mockProperty);
-    
-                expect(() => propertiesManager.deleteSubcategory('Rent', 'Sub')).not.toThrow();
-            });
-    
-            test('should cover showInlineDeleteConfirmation with missing delete button', () => {
-                const originalFindDeleteButton = propertiesManager.findDeleteButton;
-                propertiesManager.findDeleteButton = jest.fn(() => null);
-    
-                expect(() => propertiesManager.showInlineDeleteConfirmation(1, 'property', 'Test')).not.toThrow();
-    
-                propertiesManager.findDeleteButton = originalFindDeleteButton;
-            });
-    
-            test('should cover positionConfirmationPopup with viewport constraints', () => {
-                const popup = document.createElement('div');
-                const button = document.createElement('button');
-    
-                popup.getBoundingClientRect = jest.fn(() => ({
-                    width: 100, height: 50
-                }));
-    
-                button.getBoundingClientRect = jest.fn(() => ({
-                    width: 40, height: 40, top: 10, left: 10, right: 50, bottom: 50
-                }));
-    
-                // Mock small viewport
-                const originalInnerWidth = window.innerWidth;
-                const originalInnerHeight = window.innerHeight;
-                Object.defineProperty(window, 'innerWidth', { value: 80, writable: true });
-                Object.defineProperty(window, 'innerHeight', { value: 80, writable: true });
-    
-                expect(() => propertiesManager.positionConfirmationPopup(popup, button)).not.toThrow();
-    
-                // Restore
-                Object.defineProperty(window, 'innerWidth', { value: originalInnerWidth, writable: true });
-                Object.defineProperty(window, 'innerHeight', { value: originalInnerHeight, writable: true });
-            });
-    
-            test('should cover startLongPressDetection with existing timers', () => {
-                const element = document.createElement('div');
-                element.dataset.propertyId = '1';
-    
-                // Add existing timer
-                propertiesManager.longPressTimers.set('existing', 999);
-    
-                expect(() => propertiesManager.startLongPressDetection(element, {})).not.toThrow();
-    
-                propertiesManager.cancelLongPressDetection();
-            });
-    
-            test('should cover showDeleteButton with re-render and selection update', () => {
-                const item = document.createElement('div');
-                item.className = 'property-item';
-                item.dataset.propertyId = '1';
-                document.body.appendChild(item);
-    
-                propertiesManager.currentPropertyId = null; // Force re-render
-    
-                expect(() => propertiesManager.showDeleteButton(item)).not.toThrow();
-    
-                document.body.removeChild(item);
-            });
-    
-            test('should cover findItemElement for all navigation cases', () => {
-                // Property case
-                const propElement = document.createElement('div');
-                propElement.dataset.propertyId = '1';
-                document.body.appendChild(propElement);
-    
-                expect(propertiesManager.findItemElement(1)).toBe(propElement);
-    
-                // Category case
-                const catElement = document.createElement('div');
-                catElement.className = 'property-item';
-                catElement.dataset.category = 'Rent';
-                document.body.appendChild(catElement);
-    
-                expect(propertiesManager.findItemElement(null, 'Rent')).toBe(catElement);
-    
-                // Subcategory case
-                const subElement = document.createElement('div');
-                subElement.dataset.category = 'Utilities';
-                subElement.dataset.subcategory = 'Electric';
-                document.body.appendChild(subElement);
-    
-                expect(propertiesManager.findItemElement(null, 'Utilities', 'Electric')).toBe(subElement);
-    
-                // Clean up
-                document.body.removeChild(propElement);
-                document.body.removeChild(catElement);
-                document.body.removeChild(subElement);
-            });
-    
-            test('should cover isExpenseCategory and isIncomeCategory with various inputs', () => {
-                dataManager.getExpenseCategories.mockReturnValue(['Rent', 'Utilities']);
-                dataManager.getIncomeCategories.mockReturnValue(['Salary']);
-    
-                expect(propertiesManager.isExpenseCategory('Rent')).toBe(true);
-                expect(propertiesManager.isExpenseCategory('Salary')).toBe(false);
-                expect(propertiesManager.isIncomeCategory('Salary')).toBe(true);
-                expect(propertiesManager.isIncomeCategory('Rent')).toBe(false);
-            });
-    
-            test('should cover initializeHeaderPickers with UI method failures', () => {
-                const originalPopulateYearPicker = uiManager.populateYearPicker;
-                const originalPopulateMonthPicker = uiManager.populateMonthPicker;
-                const originalUpdateYearPickerSelection = uiManager.updateYearPickerSelection;
-                const originalUpdateMonthPickerSelection = uiManager.updateMonthPickerSelection;
-    
-                // Mock methods to throw
-                uiManager.populateYearPicker = jest.fn(() => { throw new Error('UI method failed'); });
-                uiManager.populateMonthPicker = jest.fn(() => { throw new Error('UI method failed'); });
-                uiManager.updateYearPickerSelection = jest.fn(() => { throw new Error('UI method failed'); });
-                uiManager.updateMonthPickerSelection = jest.fn(() => { throw new Error('UI method failed'); });
-    
-                // The method throws when UI methods fail (no error handling in the method)
-                expect(() => propertiesManager.initializeHeaderPickers()).toThrow('UI method failed');
-    
-                // Restore original methods
-                uiManager.populateYearPicker = originalPopulateYearPicker;
-                uiManager.populateMonthPicker = originalPopulateMonthPicker;
-                uiManager.updateYearPickerSelection = originalUpdateYearPickerSelection;
-                uiManager.updateMonthPickerSelection = originalUpdateMonthPickerSelection;
-            });
-    
-            test('should cover populateYearPicker with missing DOM element', () => {
-                const originalGetElementById = document.getElementById;
-                document.getElementById = jest.fn(() => null);
-    
-                expect(() => propertiesManager.populateYearPicker()).not.toThrow();
-    
-                document.getElementById = originalGetElementById;
-            });
-    
-            test('should cover setCurrentMonth with no available data', () => {
-                const originalHasDataForMonthYear = propertiesManager.hasDataForMonthYear;
-                const originalGetLastAvailableMonthYear = propertiesManager.getLastAvailableMonthYear;
-    
-                propertiesManager.hasDataForMonthYear = jest.fn(() => false);
-                propertiesManager.getLastAvailableMonthYear = jest.fn(() => null);
-    
-                expect(() => propertiesManager.setCurrentMonth()).not.toThrow();
-    
-                propertiesManager.hasDataForMonthYear = originalHasDataForMonthYear;
-                propertiesManager.getLastAvailableMonthYear = originalGetLastAvailableMonthYear;
-            });
-    
-            test('should cover handleYearMonthChange with missing DOM elements', () => {
-                const originalGetElementById = document.getElementById;
-                document.getElementById = jest.fn(() => null);
-    
-                expect(() => propertiesManager.handleYearMonthChange()).not.toThrow();
-    
-                document.getElementById = originalGetElementById;
-            });
+
+            propertiesManager.currentPropertyId = 1;
+
+            const result = propertiesManager.getCurrentExpenseValue('Utilities', 'Electric');
+            expect(result).toBe(-150);
+        });
+
+        test('should cover startExpenseEdit with different element types', () => {
+            const valueElement = document.createElement('div');
+            valueElement.className = 'expense-value';
+            valueElement.dataset.category = 'Rent';
+            valueElement.textContent = '$1000';
+            document.body.appendChild(valueElement);
+
+            expect(() => propertiesManager.startExpenseEdit(valueElement, 'Rent')).not.toThrow();
+
+            document.body.removeChild(valueElement);
+        });
+
+        test('should cover handleExpenseSave with nested input elements', () => {
+            const mockInput = document.createElement('input');
+            mockInput.className = 'expense-input';
+            mockInput.dataset.category = 'Rent';
+            mockInput.value = '1200';
+
+            expect(() => propertiesManager.handleExpenseSave({ target: mockInput })).not.toThrow();
+        });
+
+        test('should cover cancelExpenseEdit with nested input', () => {
+            const valueElement = document.createElement('div');
+            valueElement.className = 'expense-value';
+            document.body.appendChild(valueElement);
+
+            const mockInput = document.createElement('input');
+            mockInput.className = 'expense-input';
+            mockInput.dataset.category = 'Rent';
+            valueElement.appendChild(mockInput);
+
+            expect(() => propertiesManager.cancelExpenseEdit(mockInput)).not.toThrow();
+
+            document.body.removeChild(valueElement);
+        });
+
+        test('should cover property name edit when property is already selected', () => {
+            const propertyElement = document.createElement('div');
+            propertyElement.className = 'property-name editable';
+            propertyElement.dataset.propertyId = '1';
+            document.body.appendChild(propertyElement);
+
+            propertiesManager.currentPropertyId = 1;
+            dataManager.getPropertyById.mockReturnValue({ id: 1, name: 'Test Property' });
+
+            expect(() => propertiesManager.handlePropertyNameEdit({ target: propertyElement })).not.toThrow();
+
+            document.body.removeChild(propertyElement);
+        });
+
+        test('should cover category name edit when category is not selected', () => {
+            const categoryElement = document.createElement('div');
+            categoryElement.className = 'category-name editable';
+            categoryElement.dataset.category = 'Rent';
+            document.body.appendChild(categoryElement);
+
+            propertiesManager.currentPropertyId = 1;
+            propertiesManager.currentCategoryPath = null; // Not selected
+
+            expect(() => propertiesManager.handleCategoryNameEdit({ target: categoryElement })).not.toThrow();
+
+            document.body.removeChild(categoryElement);
+        });
+
+        test('should cover subcategory name edit when subcategory is not selected', () => {
+            const subcategoryElement = document.createElement('div');
+            subcategoryElement.className = 'subcategory-name editable';
+            subcategoryElement.dataset.category = 'Utilities';
+            subcategoryElement.dataset.subcategory = 'Electric';
+            document.body.appendChild(subcategoryElement);
+
+            propertiesManager.currentPropertyId = 1;
+            propertiesManager.currentCategoryPath = null; // Not selected
+
+            expect(() => propertiesManager.handleSubcategoryNameEdit({ target: subcategoryElement })).not.toThrow();
+
+            document.body.removeChild(subcategoryElement);
+        });
+
+        test('should cover property name save with empty input', () => {
+            const input = document.createElement('input');
+            input.className = 'property-name-input';
+            input.value = ''; // Empty name
+            input.dataset.propertyId = '1';
+
+            dataManager.getPropertyById.mockReturnValue({ id: 1, name: 'Original Name' });
+
+            expect(() => propertiesManager.handlePropertyNameSave({ target: input })).not.toThrow();
+        });
+
+        test('should cover category name save with empty input', () => {
+            const input = document.createElement('input');
+            input.className = 'category-name-input';
+            input.value = ''; // Empty name
+            input.dataset.category = 'Rent';
+
+            expect(() => propertiesManager.handleCategoryNameSave({ target: input })).not.toThrow();
+        });
+
+        test('should cover subcategory name save with empty input', () => {
+            const input = document.createElement('input');
+            input.className = 'subcategory-name-input';
+            input.value = ''; // Empty name
+            input.dataset.category = 'Electric';
+
+            expect(() => propertiesManager.handleSubcategoryNameSave({ target: input })).not.toThrow();
+        });
+
+        test('should cover handleBackNavigation from subcategory to category', () => {
+            propertiesManager.currentCategoryPath = { category: 'Utilities', subcategory: 'Electric' };
+            propertiesManager.handleBackNavigation();
+            expect(propertiesManager.currentCategoryPath).toEqual({ category: 'Utilities' });
+        });
+
+        test('should cover handleBackNavigation from category to property', () => {
+            propertiesManager.currentCategoryPath = { category: 'Utilities' };
+            propertiesManager.handleBackNavigation();
+            expect(propertiesManager.currentCategoryPath).toBeNull();
+        });
+
+        test('should cover handleBackNavigation from property to root', () => {
+            propertiesManager.currentPropertyId = 1;
+            propertiesManager.handleBackNavigation();
+            expect(propertiesManager.currentPropertyId).toBeNull();
+        });
+
+        test('should cover showModal with existing modal cleanup', () => {
+            const existingModal = document.createElement('div');
+            existingModal.id = 'testModal';
+            document.body.appendChild(existingModal);
+
+            expect(() => propertiesManager.showModal('testModal', '<p>Test</p>')).not.toThrow();
+
+            // Clean up
+            const newModal = document.getElementById('testModal');
+            if (newModal) {newModal.remove();}
+        });
+
+        test('should cover updateCategoryName with duplicate name conflict', () => {
+            const mockProperty = { expenses: { 'Rent': -1000, 'NewRent': -500 } };
+            dataManager.getPropertyById.mockReturnValue(mockProperty);
+
+            propertiesManager.currentPropertyId = 1;
+
+            expect(() => propertiesManager.updateCategoryName('Rent', 'NewRent')).not.toThrow();
+        });
+
+        test('should cover updateSubcategoryName with duplicate name conflict', () => {
+            const mockProperty = { expenses: { 'Utilities': { 'Electric': -100, 'NewElectric': -50 } } };
+            dataManager.getPropertyById.mockReturnValue(mockProperty);
+
+            expect(() => propertiesManager.updateSubcategoryName('Utilities', 'Electric', 'NewElectric')).not.toThrow();
+        });
+
+        test('should cover addCategory with existing category name', () => {
+            const mockProperty = { expenses: { 'Rent': -1000 } };
+            dataManager.getPropertyById.mockReturnValue(mockProperty);
+
+            propertiesManager.currentPropertyId = 1;
+
+            expect(() => propertiesManager.addCategory('Rent', false)).not.toThrow();
+        });
+
+        test('should cover addSubcategory with existing subcategory name', () => {
+            const mockProperty = { expenses: { 'Utilities': { 'Electric': -100 } } };
+            dataManager.getPropertyById.mockReturnValue(mockProperty);
+
+            propertiesManager.currentPropertyId = 1;
+            propertiesManager.currentCategoryPath = { category: 'Utilities' };
+
+            expect(() => propertiesManager.addSubcategory('Electric', 200)).not.toThrow();
+        });
+
+        test('should cover addSubcategory converting flat category to hierarchical', () => {
+            const mockProperty = { expenses: { 'Rent': -1000 } };
+            dataManager.getPropertyById.mockReturnValue(mockProperty);
+
+            propertiesManager.currentPropertyId = 1;
+            propertiesManager.currentCategoryPath = { category: 'Rent' };
+
+            expect(() => propertiesManager.addSubcategory('SubRent', 200)).not.toThrow();
+        });
+
+        test('should cover deleteCategory with non-existent category', () => {
+            const mockProperty = { expenses: {} };
+            dataManager.getPropertyById.mockReturnValue(mockProperty);
+
+            propertiesManager.currentPropertyId = 1;
+
+            expect(() => propertiesManager.deleteCategory('NonExistent')).not.toThrow();
+        });
+
+        test('should cover deleteSubcategory with invalid category type', () => {
+            const mockProperty = { expenses: { 'Rent': -1000 } };
+            dataManager.getPropertyById.mockReturnValue(mockProperty);
+
+            expect(() => propertiesManager.deleteSubcategory('Rent', 'Sub')).not.toThrow();
+        });
+
+        test('should cover showInlineDeleteConfirmation with missing delete button', () => {
+            const originalFindDeleteButton = propertiesManager.findDeleteButton;
+            propertiesManager.findDeleteButton = jest.fn(() => null);
+
+            expect(() => propertiesManager.showInlineDeleteConfirmation(1, 'property', 'Test')).not.toThrow();
+
+            propertiesManager.findDeleteButton = originalFindDeleteButton;
+        });
+
+        test('should cover positionConfirmationPopup with viewport constraints', () => {
+            const popup = document.createElement('div');
+            const button = document.createElement('button');
+
+            popup.getBoundingClientRect = jest.fn(() => ({
+                width: 100, height: 50,
+            }));
+
+            button.getBoundingClientRect = jest.fn(() => ({
+                width: 40, height: 40, top: 10, left: 10, right: 50, bottom: 50,
+            }));
+
+            // Mock small viewport
+            const originalInnerWidth = window.innerWidth;
+            const originalInnerHeight = window.innerHeight;
+            Object.defineProperty(window, 'innerWidth', { value: 80, writable: true });
+            Object.defineProperty(window, 'innerHeight', { value: 80, writable: true });
+
+            expect(() => propertiesManager.positionConfirmationPopup(popup, button)).not.toThrow();
+
+            // Restore
+            Object.defineProperty(window, 'innerWidth', { value: originalInnerWidth, writable: true });
+            Object.defineProperty(window, 'innerHeight', { value: originalInnerHeight, writable: true });
+        });
+
+        test('should cover startLongPressDetection with existing timers', () => {
+            const element = document.createElement('div');
+            element.dataset.propertyId = '1';
+
+            // Add existing timer
+            propertiesManager.longPressTimers.set('existing', 999);
+
+            expect(() => propertiesManager.startLongPressDetection(element, {})).not.toThrow();
+
+            propertiesManager.cancelLongPressDetection();
+        });
+
+        test('should cover showDeleteButton with re-render and selection update', () => {
+            const item = document.createElement('div');
+            item.className = 'property-item';
+            item.dataset.propertyId = '1';
+            document.body.appendChild(item);
+
+            propertiesManager.currentPropertyId = null; // Force re-render
+
+            expect(() => propertiesManager.showDeleteButton(item)).not.toThrow();
+
+            document.body.removeChild(item);
+        });
+
+        test('should cover findItemElement for all navigation cases', () => {
+            // Property case
+            const propElement = document.createElement('div');
+            propElement.dataset.propertyId = '1';
+            document.body.appendChild(propElement);
+
+            expect(propertiesManager.findItemElement(1)).toBe(propElement);
+
+            // Category case
+            const catElement = document.createElement('div');
+            catElement.className = 'property-item';
+            catElement.dataset.category = 'Rent';
+            document.body.appendChild(catElement);
+
+            expect(propertiesManager.findItemElement(null, 'Rent')).toBe(catElement);
+
+            // Subcategory case
+            const subElement = document.createElement('div');
+            subElement.dataset.category = 'Utilities';
+            subElement.dataset.subcategory = 'Electric';
+            document.body.appendChild(subElement);
+
+            expect(propertiesManager.findItemElement(null, 'Utilities', 'Electric')).toBe(subElement);
+
+            // Clean up
+            document.body.removeChild(propElement);
+            document.body.removeChild(catElement);
+            document.body.removeChild(subElement);
+        });
+
+        test('should cover isExpenseCategory and isIncomeCategory with various inputs', () => {
+            dataManager.getExpenseCategories.mockReturnValue(['Rent', 'Utilities']);
+            dataManager.getIncomeCategories.mockReturnValue(['Salary']);
+
+            expect(propertiesManager.isExpenseCategory('Rent')).toBe(true);
+            expect(propertiesManager.isExpenseCategory('Salary')).toBe(false);
+            expect(propertiesManager.isIncomeCategory('Salary')).toBe(true);
+            expect(propertiesManager.isIncomeCategory('Rent')).toBe(false);
+        });
+
+        test('should cover initializeHeaderPickers with UI method failures', () => {
+            const originalPopulateYearPicker = uiManager.populateYearPicker;
+            const originalPopulateMonthPicker = uiManager.populateMonthPicker;
+            const originalUpdateYearPickerSelection = uiManager.updateYearPickerSelection;
+            const originalUpdateMonthPickerSelection = uiManager.updateMonthPickerSelection;
+
+            // Mock methods to throw
+            uiManager.populateYearPicker = jest.fn(() => { throw new Error('UI method failed'); });
+            uiManager.populateMonthPicker = jest.fn(() => { throw new Error('UI method failed'); });
+            uiManager.updateYearPickerSelection = jest.fn(() => { throw new Error('UI method failed'); });
+            uiManager.updateMonthPickerSelection = jest.fn(() => { throw new Error('UI method failed'); });
+
+            // The method throws when UI methods fail (no error handling in the method)
+            expect(() => propertiesManager.initializeHeaderPickers()).toThrow('UI method failed');
+
+            // Restore original methods
+            uiManager.populateYearPicker = originalPopulateYearPicker;
+            uiManager.populateMonthPicker = originalPopulateMonthPicker;
+            uiManager.updateYearPickerSelection = originalUpdateYearPickerSelection;
+            uiManager.updateMonthPickerSelection = originalUpdateMonthPickerSelection;
+        });
+
+        test('should cover populateYearPicker with missing DOM element', () => {
+            const originalGetElementById = document.getElementById;
+            document.getElementById = jest.fn(() => null);
+
+            expect(() => propertiesManager.populateYearPicker()).not.toThrow();
+
+            document.getElementById = originalGetElementById;
+        });
+
+        test('should cover setCurrentMonth with no available data', () => {
+            const originalHasDataForMonthYear = propertiesManager.hasDataForMonthYear;
+            const originalGetLastAvailableMonthYear = propertiesManager.getLastAvailableMonthYear;
+
+            propertiesManager.hasDataForMonthYear = jest.fn(() => false);
+            propertiesManager.getLastAvailableMonthYear = jest.fn(() => null);
+
+            expect(() => propertiesManager.setCurrentMonth()).not.toThrow();
+
+            propertiesManager.hasDataForMonthYear = originalHasDataForMonthYear;
+            propertiesManager.getLastAvailableMonthYear = originalGetLastAvailableMonthYear;
+        });
+
+        test('should cover handleYearMonthChange with missing DOM elements', () => {
+            const originalGetElementById = document.getElementById;
+            document.getElementById = jest.fn(() => null);
+
+            expect(() => propertiesManager.handleYearMonthChange()).not.toThrow();
+
+            document.getElementById = originalGetElementById;
+        });
     });
 
     // ============================================================================
@@ -1566,7 +1566,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
             expect(popup.innerHTML).toContain('Delete <strong>"Test Property"</strong>');
 
             // Clean up
-            if (popup) popup.remove();
+            if (popup) {popup.remove();}
             document.body.removeChild(deleteButton);
         });
 
@@ -1594,7 +1594,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
             await Promise.all([
                 propertiesManager.addProperty('Bulk Test 1'),
                 propertiesManager.addProperty('Bulk Test 2'),
-                propertiesManager.addProperty('Bulk Test 3')
+                propertiesManager.addProperty('Bulk Test 3'),
             ]);
 
             // Render all at once
@@ -1688,7 +1688,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
             // Spy on getBoundingClientRect to simulate positioning
             button.getBoundingClientRect = jest.fn().mockReturnValue({
-                width: 40, height: 40, top: 10, left: 10, right: 50, bottom: 50
+                width: 40, height: 40, top: 10, left: 10, right: 50, bottom: 50,
             });
 
             // Should not throw even with complex positioning logic
@@ -1701,7 +1701,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
             // Perform various operations that create state
             propertiesManager.startLongPressDetection(
                 document.createElement('div'),
-                { touches: [{ clientX: 0, clientY: 0 }] }
+                { touches: [{ clientX: 0, clientY: 0 }] },
             );
 
             propertiesManager.showModal('cleanup-test', '<div>Test</div>');
@@ -1850,7 +1850,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
             const props = [
                 { id: 1, name: 'Small', total: -500 },
                 { id: 2, name: 'Large', total: -2000 },
-                { id: 3, name: 'Medium', total: -1000 }
+                { id: 3, name: 'Medium', total: -1000 },
             ];
 
             const html = propertiesManager.renderPropertiesPanel(props);
@@ -1964,7 +1964,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
             const mockButton = document.createElement('button');
             mockButton.style.cssText = 'position: fixed; top: 100px; left: 100px;';
             mockButton.getBoundingClientRect = jest.fn().mockReturnValue({
-                width: 40, height: 40, top: 100, left: 100, right: 140, bottom: 140
+                width: 40, height: 40, top: 100, left: 100, right: 140, bottom: 140,
             });
             document.body.appendChild(mockButton);
 
@@ -2020,7 +2020,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
             const largeProperties = Array.from({ length: 50 }, (_, i) => ({
                 id: i + 1,
                 name: `Property ${i + 1}`,
-                expenses: { 'Rent': -(1000 + i * 10) }
+                expenses: { 'Rent': -(1000 + i * 10) },
             }));
 
             dataManager.getProperties.mockReturnValue(largeProperties);
@@ -2096,7 +2096,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
         test('should scale rendering with deep hierarchies', () => {
             // Create deeply nested hierarchical data
             const createNestedData = (depth, currentDepth = 0) => {
-                if (currentDepth >= depth) return -100;
+                if (currentDepth >= depth) {return -100;}
                 const obj = {};
                 for (let i = 0; i < 3; i++) {
                     obj[`Level${currentDepth}-${i}`] = createNestedData(depth, currentDepth + 1);
@@ -2107,7 +2107,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
             const mockProperty = {
                 id: 1,
                 name: 'Deep Hierarchy',
-                expenses: { 'Root': createNestedData(4) }
+                expenses: { 'Root': createNestedData(4) },
             };
             dataManager.getPropertyById.mockReturnValue(mockProperty);
             propertiesManager.currentPropertyId = 1;
@@ -2257,7 +2257,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
     describe('Data Checking Methods', () => {
         test('should check if data exists for month and year', () => {
             const mockProperty = {
-                expenses: { 'Rent': -1000 }
+                expenses: { 'Rent': -1000 },
             };
             dataManager.getProperties.mockReturnValue([mockProperty]);
 
@@ -2276,8 +2276,8 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
             const mockProperty = {
                 monthlyData: {
                     'Mar 2025': { expenses: { 'Rent': -1000 } },
-                    'Jan 2025': { expenses: { 'Rent': -500 } }
-                }
+                    'Jan 2025': { expenses: { 'Rent': -500 } },
+                },
             };
             dataManager.getProperties.mockReturnValue([mockProperty]);
 
@@ -2289,8 +2289,8 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
             const mockProperty = {
                 monthlyData: {
                     'Mar 2025': { expenses: { 'Rent': -1000 } },
-                    'Jan 2025': { expenses: { 'Rent': -500 } }
-                }
+                    'Jan 2025': { expenses: { 'Rent': -500 } },
+                },
             };
             dataManager.getProperties.mockReturnValue([mockProperty]);
 
@@ -2378,7 +2378,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
             const popup = document.createElement('div');
             const button = document.createElement('button');
             button.getBoundingClientRect = jest.fn(() => ({
-                width: 40, height: 40, top: 100, left: 100, right: 140, bottom: 140
+                width: 40, height: 40, top: 100, left: 100, right: 140, bottom: 140,
             }));
 
             expect(() => propertiesManager.positionConfirmationPopup(popup, button)).not.toThrow();
@@ -2454,7 +2454,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
             propertiesManager.currentPropertyId = 1;
             propertiesManager.currentCategoryPath = {
                 category: 'Level1',
-                subcategory: 'Level2'
+                subcategory: 'Level2',
             };
 
             expect(() => propertiesManager.handleBackNavigation()).not.toThrow();
@@ -2498,14 +2498,14 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
             // Mock getBoundingClientRect to simulate click within text area
             element.getBoundingClientRect = jest.fn(() => ({
-                left: 0, top: 0, width: 100, height: 20
+                left: 0, top: 0, width: 100, height: 20,
             }));
 
             const event = {
                 target: element,
                 clientX: 50,
                 clientY: 10,
-                stopImmediatePropagation: jest.fn()
+                stopImmediatePropagation: jest.fn(),
             };
 
             // Mock scrollWidth and scrollHeight
@@ -2522,14 +2522,14 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
             // Mock getBoundingClientRect to simulate click outside text area
             element.getBoundingClientRect = jest.fn(() => ({
-                left: 0, top: 0, width: 100, height: 20
+                left: 0, top: 0, width: 100, height: 20,
             }));
 
             const event = {
                 target: element,
                 clientX: 150, // Outside text area
                 clientY: 10,
-                stopImmediatePropagation: jest.fn()
+                stopImmediatePropagation: jest.fn(),
             };
 
             // Mock scrollWidth and scrollHeight
@@ -2550,7 +2550,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
             const event = {
                 target: element,
-                stopPropagation: jest.fn()
+                stopPropagation: jest.fn(),
             };
 
             // Set up pending selection
@@ -2585,7 +2585,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
             const event = {
                 target: valueElement,
                 stopPropagation: jest.fn(),
-                preventDefault: jest.fn()
+                preventDefault: jest.fn(),
             };
 
             // Mock current state where selection is needed
@@ -2601,7 +2601,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
             const event = {
                 target: propertyItem,
-                touches: [{ clientX: 0, clientY: 0 }]
+                touches: [{ clientX: 0, clientY: 0 }],
             };
 
             expect(() => propertiesManager.startLongPressDetection(propertyItem, event.touches[0])).not.toThrow();
@@ -2612,7 +2612,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
             propertiesManager.longPressTimers.set('test', setTimeout(() => {}, 100));
 
             const event = {
-                target: document.createElement('div')
+                target: document.createElement('div'),
             };
 
             expect(() => {
@@ -2627,7 +2627,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
         test('should get current expense value', () => {
             const mockProperty = {
                 id: 1,
-                expenses: { 'Rent': -1000 }
+                expenses: { 'Rent': -1000 },
             };
 
             // Set current property and mock getPropertyById
@@ -2636,7 +2636,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
             // Mock getCurrentPeriodData to return data with the category
             dataManager.getCurrentPeriodData.mockReturnValue({
-                expenses: { 'Rent': -1200 }
+                expenses: { 'Rent': -1200 },
             });
 
             const result = propertiesManager.getCurrentExpenseValue('Rent');
@@ -2646,7 +2646,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
         test('should fallback to flat expenses when no current period data', () => {
             const mockProperty = {
                 id: 1,
-                expenses: { 'Rent': -1000 }
+                expenses: { 'Rent': -1000 },
             };
 
             // Set current property and mock getPropertyById
@@ -2666,7 +2666,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
             propertiesManager.currentCategoryPath = { category: 'Utilities', subcategory: 'Electricity' };
             expect(propertiesManager.currentCategoryPath).toEqual({
                 category: 'Utilities',
-                subcategory: 'Electricity'
+                subcategory: 'Electricity',
             });
         });
 
@@ -2995,7 +2995,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
             // Mock getBoundingClientRect for edge case testing
             const mockRect = {
-                width: 40, height: 40, top: -50, left: 10, right: 50, bottom: -10
+                width: 40, height: 40, top: -50, left: 10, right: 50, bottom: -10,
             };
             button.getBoundingClientRect = jest.fn(() => mockRect);
 
@@ -3025,10 +3025,10 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
             document.body.appendChild(container);
 
             const mockButtonRect = {
-                width: 40, height: 40, top: 100, left: 10, right: 50, bottom: 140
+                width: 40, height: 40, top: 100, left: 10, right: 50, bottom: 140,
             };
             const mockContainerRect = {
-                left: 5, right: 200, top: 5, bottom: 300
+                left: 5, right: 200, top: 5, bottom: 300,
             };
 
             button.getBoundingClientRect = jest.fn(() => mockButtonRect);
@@ -3058,7 +3058,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
             // Mock getBoundingClientRect for text area check
             const mockRect = {
-                left: 10, top: 10, width: 100, height: 20, right: 110, bottom: 30
+                left: 10, top: 10, width: 100, height: 20, right: 110, bottom: 30,
             };
             element.getBoundingClientRect = jest.fn(() => mockRect);
 
@@ -3066,7 +3066,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
                 target: element,
                 clientX: 50, // Within text area
                 clientY: 20,
-                stopImmediatePropagation: jest.fn()
+                stopImmediatePropagation: jest.fn(),
             };
 
             dataManager.getPropertyById.mockReturnValue({ id: 1, name: 'Test' });
@@ -3097,7 +3097,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
             const mockEvent = {
                 target: valueElement,
                 stopPropagation: jest.fn(),
-                preventDefault: jest.fn()
+                preventDefault: jest.fn(),
             };
 
             // Set up state where selection is needed
@@ -3116,7 +3116,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
             const mockTouchEvent = {
                 touches: [{ clientX: 100, clientY: 100 }],
-                target: propertyItem
+                target: propertyItem,
             };
 
             expect(() => propertiesManager.setupEventListeners()).not.toThrow();
@@ -3136,7 +3136,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
         test('should cover getCategoryExpenseValue fallback logic', () => {
             const mockProperty = {
-                expenses: { 'Rent': -1000 }
+                expenses: { 'Rent': -1000 },
             };
 
             // Test fallback when current period data is empty
@@ -3148,7 +3148,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
         test('should cover getCategoryExpenseValue with global categories initialization', () => {
             const mockProperty = {
-                expenses: {}
+                expenses: {},
             };
 
             // Mock window.dataManager
@@ -3156,8 +3156,8 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
             window.dataManager = {
                 getExpenseCategories: jest.fn(() => ['Rent', 'Utilities']),
                 getProperties: jest.fn(() => [{
-                    expenses: { 'Rent': {} }
-                }])
+                    expenses: { 'Rent': {} },
+                }]),
             };
 
             dataManager.getCurrentPeriodData.mockReturnValueOnce(null);
@@ -3199,7 +3199,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
         test('should cover renderSubcategoriesPanel hierarchical case', () => {
             const mockProperty = {
-                expenses: { 'Utilities': { 'Electric': -100, 'Water': -50 } }
+                expenses: { 'Utilities': { 'Electric': -100, 'Water': -50 } },
             };
 
             const result = propertiesManager.renderSubcategoriesPanel(mockProperty, 'Utilities', null);
@@ -3209,7 +3209,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
         test('should cover renderSubcategoriesPanel flat case', () => {
             const mockProperty = {
-                expenses: { 'Rent': -1000 }
+                expenses: { 'Rent': -1000 },
             };
 
             const result = propertiesManager.renderSubcategoriesPanel(mockProperty, 'Rent', null);
@@ -3218,7 +3218,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
         test('should cover saveExpenseValue with invalid values', () => {
             const mockProperty = {
-                expenses: { 'Rent': -1000 }
+                expenses: { 'Rent': -1000 },
             };
             dataManager.getPropertyById.mockReturnValue(mockProperty);
 
@@ -3236,7 +3236,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
         test('should cover saveExpenseValue income category logic', () => {
             const mockProperty = {
-                expenses: { 'Income': 1000 }
+                expenses: { 'Income': 1000 },
             };
             dataManager.getPropertyById.mockReturnValue(mockProperty);
             dataManager.getIncomeCategories.mockReturnValue(['Income']);
@@ -3254,11 +3254,11 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
         test('should cover getCurrentExpenseValue for subcategories', () => {
             const mockProperty = {
-                expenses: { 'Utilities': { 'Electric': -100 } }
+                expenses: { 'Utilities': { 'Electric': -100 } },
             };
             dataManager.getPropertyById.mockReturnValue(mockProperty);
             dataManager.getCurrentPeriodData.mockReturnValue({
-                expenses: { 'Utilities': { 'Electric': -150 } }
+                expenses: { 'Utilities': { 'Electric': -150 } },
             });
 
             propertiesManager.currentPropertyId = 1;
@@ -3483,7 +3483,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
         test('should cover updateCategoryName with duplicate name', () => {
             const mockProperty = {
-                expenses: { 'Rent': -1000, 'Utilities': -500 }
+                expenses: { 'Rent': -1000, 'Utilities': -500 },
             };
             dataManager.getPropertyById.mockReturnValue(mockProperty);
 
@@ -3495,7 +3495,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
         test('should cover updateSubcategoryName with duplicate name', () => {
             const mockProperty = {
-                expenses: { 'Utilities': { 'Electric': -100, 'Gas': -50 } }
+                expenses: { 'Utilities': { 'Electric': -100, 'Gas': -50 } },
             };
             dataManager.getPropertyById.mockReturnValue(mockProperty);
 
@@ -3505,7 +3505,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
         test('should cover addCategory with existing name', () => {
             const mockProperty = {
-                expenses: { 'Rent': -1000 }
+                expenses: { 'Rent': -1000 },
             };
             dataManager.getPropertyById.mockReturnValue(mockProperty);
 
@@ -3517,7 +3517,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
         test('should cover addSubcategory with existing name', () => {
             const mockProperty = {
-                expenses: { 'Utilities': { 'Electric': -100 } }
+                expenses: { 'Utilities': { 'Electric': -100 } },
             };
             dataManager.getPropertyById.mockReturnValue(mockProperty);
 
@@ -3530,7 +3530,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
         test('should cover addSubcategory without hierarchical category', () => {
             const mockProperty = {
-                expenses: { 'Rent': -1000 }
+                expenses: { 'Rent': -1000 },
             };
             dataManager.getPropertyById.mockReturnValue(mockProperty);
 
@@ -3548,7 +3548,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
             // Test deleteSubcategory with non-object category
             const mockProperty = {
-                expenses: { 'Rent': -1000 }
+                expenses: { 'Rent': -1000 },
             };
             dataManager.getPropertyById.mockReturnValue(mockProperty);
             expect(() => propertiesManager.deleteSubcategory('Rent', 'January')).not.toThrow();
@@ -3564,11 +3564,11 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
             // Mock getBoundingClientRect
             button.getBoundingClientRect = jest.fn(() => ({
-                width: 40, height: 40, top: 1000, left: 100, right: 140, bottom: 1040
+                width: 40, height: 40, top: 1000, left: 100, right: 140, bottom: 1040,
             }));
 
             popup.getBoundingClientRect = jest.fn(() => ({
-                width: 200, height: 60
+                width: 200, height: 60,
             }));
 
             // Mock window dimensions
@@ -3687,7 +3687,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
         test('should cover hasDataForMonthYear with properties that have expenses', () => {
             const mockProperty = {
-                expenses: { 'Rent': -1000 }
+                expenses: { 'Rent': -1000 },
             };
             dataManager.getProperties.mockReturnValue([mockProperty]);
 
@@ -3697,7 +3697,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
         test('should cover getLastAvailableMonthYear with no monthly data', () => {
             const mockProperty = {
-                expenses: { 'Rent': -1000 } // No monthlyData
+                expenses: { 'Rent': -1000 }, // No monthlyData
             };
             dataManager.getProperties.mockReturnValue([mockProperty]);
 
@@ -3714,8 +3714,8 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
         test('should cover getLastAvailableMonthForYear with no matching data', () => {
             const mockProperty = {
                 monthlyData: {
-                    'Jan 2024': { expenses: {} }
-                }
+                    'Jan 2024': { expenses: {} },
+                },
             };
             dataManager.getProperties.mockReturnValue([mockProperty]);
 
@@ -3774,7 +3774,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
             // Mock getBoundingClientRect for right overflow case
             const mockRect = {
-                width: 40, height: 40, top: 100, left: 100, right: 140, bottom: 140
+                width: 40, height: 40, top: 100, left: 100, right: 140, bottom: 140,
             };
             button.getBoundingClientRect = jest.fn(() => mockRect);
 
@@ -3796,7 +3796,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
             // Mock getBoundingClientRect for top overflow case
             const mockRect = {
-                width: 40, height: 40, top: -50, left: 10, right: 50, bottom: -10
+                width: 40, height: 40, top: -50, left: 10, right: 50, bottom: -10,
             };
             button.getBoundingClientRect = jest.fn(() => mockRect);
 
@@ -3818,11 +3818,11 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
             // Mock getBoundingClientRect for container
             container.getBoundingClientRect = jest.fn(() => ({
-                left: 0, right: 200, top: 0, bottom: 400
+                left: 0, right: 200, top: 0, bottom: 400,
             }));
 
             button.getBoundingClientRect = jest.fn(() => ({
-                width: 40, height: 40, top: 100, left: 150, right: 190, bottom: 140
+                width: 40, height: 40, top: 100, left: 150, right: 190, bottom: 140,
             }));
 
             expect(() => propertiesManager.showDeleteButtonTooltip(button, {})).not.toThrow();
@@ -3846,7 +3846,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
         test('should cover initialize error handling - DataManager throws', async () => {
             const throwingDataManager = {
                 ...dataManager,
-                getProperties: jest.fn(() => { throw new Error('DataManager error'); })
+                getProperties: jest.fn(() => { throw new Error('DataManager error'); }),
             };
             const brokenManager = new PropertiesManager(throwingDataManager, uiManager, new EventHandler(), historyManager);
 
@@ -3878,7 +3878,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
             // Mock getBoundingClientRect
             element.getBoundingClientRect = jest.fn(() => ({
-                left: 0, top: 0, width: 100, height: 20, right: 100, bottom: 20
+                left: 0, top: 0, width: 100, height: 20, right: 100, bottom: 20,
             }));
 
             // Mock scrollWidth and scrollHeight
@@ -3889,7 +3889,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
                 target: element,
                 clientX: 80, // Outside text area
                 clientY: 15,
-                stopImmediatePropagation: jest.fn()
+                stopImmediatePropagation: jest.fn(),
             };
 
             expect(() => {
@@ -3923,7 +3923,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
             const mockEvent = {
                 target: valueElement,
                 stopPropagation: jest.fn(),
-                preventDefault: jest.fn()
+                preventDefault: jest.fn(),
             };
 
             expect(() => propertiesManager.handleExpenseEdit(mockEvent)).not.toThrow();
@@ -3933,7 +3933,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
         test('should cover getCategoryExpenseValue fallback to property expenses', () => {
             const mockProperty = {
-                expenses: { 'Rent': -1000 }
+                expenses: { 'Rent': -1000 },
             };
 
             // Mock getCurrentPeriodData to return null/empty
@@ -3948,7 +3948,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
         test('should cover getCategoryExpenseValue with global categories initialization', () => {
             const mockProperty = {
-                expenses: {}
+                expenses: {},
             };
 
             // Mock window.dataManager
@@ -3956,8 +3956,8 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
             window.dataManager = {
                 getExpenseCategories: jest.fn(() => ['Rent']),
                 getProperties: jest.fn(() => [{
-                    expenses: { 'Rent': {} }
-                }])
+                    expenses: { 'Rent': {} },
+                }]),
             };
 
             const result = propertiesManager.getCategoryExpenseValue(mockProperty, 'Rent');
@@ -4013,7 +4013,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
         test('should cover renderSubcategoriesPanel hierarchical case', () => {
             const mockProperty = {
-                expenses: { 'Utilities': { 'Electric': -100, 'Water': -50 } }
+                expenses: { 'Utilities': { 'Electric': -100, 'Water': -50 } },
             };
 
             expect(() => propertiesManager.renderSubcategoriesPanel(mockProperty, 'Utilities', null)).not.toThrow();
@@ -4021,7 +4021,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
         test('should cover renderSubcategoriesPanel flat case', () => {
             const mockProperty = {
-                expenses: { 'Rent': -1000 }
+                expenses: { 'Rent': -1000 },
             };
 
             expect(() => propertiesManager.renderSubcategoriesPanel(mockProperty, 'Rent', null)).not.toThrow();
@@ -4058,11 +4058,11 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
         test('should cover getCurrentExpenseValue for subcategories', () => {
             const mockProperty = {
-                expenses: { 'Utilities': { 'Electric': -100 } }
+                expenses: { 'Utilities': { 'Electric': -100 } },
             };
             dataManager.getPropertyById.mockReturnValue(mockProperty);
             dataManager.getCurrentPeriodData.mockReturnValue({
-                expenses: { 'Utilities': { 'Electric': -150 } }
+                expenses: { 'Utilities': { 'Electric': -150 } },
             });
 
             propertiesManager.currentPropertyId = 1;
@@ -4201,7 +4201,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
             // Clean up
             const newModal = document.getElementById('testModal');
-            if (newModal) newModal.remove();
+            if (newModal) {newModal.remove();}
         });
 
         test('should cover updateCategoryName with duplicate name', () => {
@@ -4278,11 +4278,11 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
             // Mock dimensions
             popup.getBoundingClientRect = jest.fn(() => ({
-                width: 100, height: 50
+                width: 100, height: 50,
             }));
 
             button.getBoundingClientRect = jest.fn(() => ({
-                width: 40, height: 40, top: 10, left: 10, right: 50, bottom: 50
+                width: 40, height: 40, top: 10, left: 10, right: 50, bottom: 50,
             }));
 
             // Mock window dimensions for edge case
@@ -4444,7 +4444,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
         test('should cover renderCategoryItem hierarchical rendering', () => {
             const property = {
-                expenses: { 'Utilities': { 'Electric': -100, 'Water': -50 } }
+                expenses: { 'Utilities': { 'Electric': -100, 'Water': -50 } },
             };
             const category = 'Utilities';
 
@@ -4455,7 +4455,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
         test('should cover renderCategoryItem flat rendering', () => {
             const property = {
-                expenses: { 'Rent': -1000 }
+                expenses: { 'Rent': -1000 },
             };
             const category = 'Rent';
 
@@ -4473,7 +4473,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
             // Clean up
             const modal = document.getElementById('testModal');
-            if (modal) modal.remove();
+            if (modal) {modal.remove();}
         });
 
         test('should cover handlePropertyNameEdit selection logic', () => {
@@ -4561,11 +4561,11 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
             const button = document.createElement('button');
 
             button.getBoundingClientRect = jest.fn(() => ({
-                width: 40, height: 40, top: 1000, left: 100, right: 140, bottom: 1040
+                width: 40, height: 40, top: 1000, left: 100, right: 140, bottom: 1040,
             }));
 
             popup.getBoundingClientRect = jest.fn(() => ({
-                width: 200, height: 60
+                width: 200, height: 60,
             }));
 
             const originalInnerWidth = window.innerWidth;
@@ -4611,8 +4611,8 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
             const prop = {
                 monthlyData: {
                     'Mar 2025': { expenses: { 'Rent': -1000 } },
-                    'Jan 2025': { expenses: { 'Rent': -500 } }
-                }
+                    'Jan 2025': { expenses: { 'Rent': -500 } },
+                },
             };
             dataManager.getProperties.mockReturnValue([prop]);
             const result = propertiesManager.getLastAvailableMonthYear();
@@ -4634,8 +4634,8 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
             const prop = {
                 monthlyData: {
                     'Mar 2025': { expenses: { 'Rent': -1000 } },
-                    'Jan 2025': { expenses: { 'Rent': -500 } }
-                }
+                    'Jan 2025': { expenses: { 'Rent': -500 } },
+                },
             };
             dataManager.getProperties.mockReturnValue([prop]);
             const result = propertiesManager.getLastAvailableMonthForYear('2025');
@@ -4677,7 +4677,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
             document.body.appendChild(button);
 
             const mockRect = {
-                width: 40, height: 40, top: 100, left: 100, right: 140, bottom: 140
+                width: 40, height: 40, top: 100, left: 100, right: 140, bottom: 140,
             };
             button.getBoundingClientRect = jest.fn(() => mockRect);
 
@@ -4696,7 +4696,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
             document.body.appendChild(button);
 
             const mockRect = {
-                width: 40, height: 40, top: -50, left: 10, right: 50, bottom: -10
+                width: 40, height: 40, top: -50, left: 10, right: 50, bottom: -10,
             };
             button.getBoundingClientRect = jest.fn(() => mockRect);
 
@@ -4716,10 +4716,10 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
             document.body.appendChild(container);
 
             const mockButtonRect = {
-                width: 40, height: 40, top: 100, left: 150, right: 190, bottom: 140
+                width: 40, height: 40, top: 100, left: 150, right: 190, bottom: 140,
             };
             const mockContainerRect = {
-                left: 0, right: 200, top: 0, bottom: 400
+                left: 0, right: 200, top: 0, bottom: 400,
             };
 
             button.getBoundingClientRect = jest.fn(() => mockButtonRect);
@@ -4734,7 +4734,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
         test('should cover initialize error handling with DataManager throwing', async () => {
             const throwingDataManager = {
                 ...dataManager,
-                getProperties: jest.fn(() => { throw new Error('DataManager error'); })
+                getProperties: jest.fn(() => { throw new Error('DataManager error'); }),
             };
             const brokenManager = new PropertiesManager(throwingDataManager, uiManager, new EventHandler(), historyManager);
 
@@ -4764,7 +4764,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
             document.body.appendChild(element);
 
             const mockRect = {
-                left: 0, top: 0, width: 100, height: 20, right: 100, bottom: 20
+                left: 0, top: 0, width: 100, height: 20, right: 100, bottom: 20,
             };
             element.getBoundingClientRect = jest.fn(() => mockRect);
 
@@ -4775,7 +4775,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
                 target: element,
                 clientX: 80,
                 clientY: 15,
-                stopImmediatePropagation: jest.fn()
+                stopImmediatePropagation: jest.fn(),
             };
 
             expect(() => {
@@ -4807,7 +4807,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
             const mockEvent = {
                 target: valueElement,
                 stopPropagation: jest.fn(),
-                preventDefault: jest.fn()
+                preventDefault: jest.fn(),
             };
 
             expect(() => propertiesManager.handleExpenseEdit(mockEvent)).not.toThrow();
@@ -4817,7 +4817,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
         test('should cover getCategoryExpenseValue fallback to property expenses', () => {
             const mockProperty = {
-                expenses: { 'Rent': -1000 }
+                expenses: { 'Rent': -1000 },
             };
 
             const originalGetCurrentPeriodData = dataManager.getCurrentPeriodData;
@@ -4831,15 +4831,15 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
         test('should cover getCategoryExpenseValue with global categories initialization', () => {
             const mockProperty = {
-                expenses: {}
+                expenses: {},
             };
 
             const originalWindowDataManager = window.dataManager;
             window.dataManager = {
                 getExpenseCategories: jest.fn(() => ['Rent']),
                 getProperties: jest.fn(() => [{
-                    expenses: { 'Rent': {} }
-                }])
+                    expenses: { 'Rent': {} },
+                }]),
             };
 
             const result = propertiesManager.getCategoryExpenseValue(mockProperty, 'Rent');
@@ -4895,7 +4895,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
         test('should cover renderSubcategoriesPanel hierarchical case', () => {
             const mockProperty = {
-                expenses: { 'Utilities': { 'Electric': -100, 'Water': -50 } }
+                expenses: { 'Utilities': { 'Electric': -100, 'Water': -50 } },
             };
 
             expect(() => propertiesManager.renderSubcategoriesPanel(mockProperty, 'Utilities', null)).not.toThrow();
@@ -4903,7 +4903,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
         test('should cover renderSubcategoriesPanel flat case', () => {
             const mockProperty = {
-                expenses: { 'Rent': -1000 }
+                expenses: { 'Rent': -1000 },
             };
 
             expect(() => propertiesManager.renderSubcategoriesPanel(mockProperty, 'Rent', null)).not.toThrow();
@@ -4940,11 +4940,11 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
         test('should cover getCurrentExpenseValue for subcategories', () => {
             const mockProperty = {
-                expenses: { 'Utilities': { 'Electric': -100 } }
+                expenses: { 'Utilities': { 'Electric': -100 } },
             };
             dataManager.getPropertyById.mockReturnValue(mockProperty);
             dataManager.getCurrentPeriodData.mockReturnValue({
-                expenses: { 'Utilities': { 'Electric': -150 } }
+                expenses: { 'Utilities': { 'Electric': -150 } },
             });
 
             propertiesManager.currentPropertyId = 1;
@@ -5128,7 +5128,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
             expect(() => propertiesManager.showModal('testModal', '<p>Test</p>')).not.toThrow();
 
             const modal = document.getElementById('testModal');
-            if (modal) modal.remove();
+            if (modal) {modal.remove();}
         });
 
         test('should cover updateCategoryName with duplicate name', () => {
@@ -5199,11 +5199,11 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
             const button = document.createElement('button');
 
             button.getBoundingClientRect = jest.fn(() => ({
-                width: 40, height: 40, top: 10, left: 10, right: 50, bottom: 50
+                width: 40, height: 40, top: 10, left: 10, right: 50, bottom: 50,
             }));
 
             popup.getBoundingClientRect = jest.fn(() => ({
-                width: 100, height: 50
+                width: 100, height: 50,
             }));
 
             const originalInnerWidth = window.innerWidth;
@@ -5316,7 +5316,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
         test('should cover hasDataForMonthYear with properties that have expenses', () => {
             const mockProperty = {
-                expenses: { 'Rent': -1000 }
+                expenses: { 'Rent': -1000 },
             };
             dataManager.getProperties.mockReturnValue([mockProperty]);
 
@@ -5326,7 +5326,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
         test('should cover getLastAvailableMonthYear with no monthly data', () => {
             const mockProperty = {
-                expenses: {} // No monthlyData
+                expenses: {}, // No monthlyData
             };
             dataManager.getProperties.mockReturnValue([mockProperty]);
 
@@ -5343,8 +5343,8 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
         test('should cover getLastAvailableMonthForYear with no matching data', () => {
             const mockProperty = {
                 monthlyData: {
-                    'Jan 2024': { expenses: {} }
-                }
+                    'Jan 2024': { expenses: {} },
+                },
             };
             dataManager.getProperties.mockReturnValue([mockProperty]);
 

@@ -230,7 +230,7 @@ class DataManager {
             'Security',
             'Parking',
             'Management',
-            'Legal'
+            'Legal',
         ];
 
         // Sample income categories
@@ -244,12 +244,12 @@ class DataManager {
                 'Utilities': {
                     'Electricity': -1200,
                     'Water': -400,
-                    'Gas': -300
+                    'Gas': -300,
                 },
                 'Maintenance': {
                     'Cleaning': -800,
                     'Repairs': -1200,
-                    'Landscaping': -300
+                    'Landscaping': -300,
                 },
                 'Insurance': -900,
                 'Taxes': -1300,
@@ -257,12 +257,12 @@ class DataManager {
                 'Parking': -800,
                 'Management': -700,
                 'Legal': -500,
-                'Rent': -4000
+                'Rent': -4000,
             },
             incomes: {
-                'Rent': 5500
+                'Rent': 5500,
             },
-            monthlyData: {}
+            monthlyData: {},
         };
 
         // Add current month data
@@ -277,12 +277,12 @@ class DataManager {
                 'Utilities': {
                     'Electricity': -1200,
                     'Water': -400,
-                    'Gas': -300
+                    'Gas': -300,
                 },
                 'Maintenance': {
                     'Cleaning': -800,
                     'Repairs': -1200,
-                    'Landscaping': -300
+                    'Landscaping': -300,
                 },
                 'Insurance': -900,
                 'Taxes': -1300,
@@ -290,12 +290,12 @@ class DataManager {
                 'Parking': -800,
                 'Management': -700,
                 'Legal': -500,
-                'Rent': -4000
+                'Rent': -4000,
             },
             incomes: {
-                'Rent': 5500
+                'Rent': 5500,
             },
-            total: -9500
+            total: -9500,
         };
 
         this.data.properties = [sampleProperty];
@@ -752,7 +752,7 @@ class DataManager {
         this.store.properties.set(newId, {
             id: newId,
             name: name.trim(),
-            created: new Date().toISOString()
+            created: new Date().toISOString(),
         });
 
         // Note: We don't create initial transactions with 0 amounts
@@ -767,7 +767,7 @@ class DataManager {
             totalIncome: 0,
             netAmount: 0,
             categories: new Map(),
-            lastTransaction: null
+            lastTransaction: null,
         };
 
         console.log('[DATAMANAGER] Property added:', name);
@@ -775,7 +775,7 @@ class DataManager {
         return {
             success: true,
             message: `Property "${name}" added successfully`,
-            property: property,
+            property,
         };
     }
 
@@ -1170,7 +1170,7 @@ class DataManager {
             propertyId,
             category: mainCategory,
             subcategory,
-            type: 'expense'
+            type: 'expense',
         }).find(txn => !txn.date || txn.date === new Date().toISOString().split('T')[0]); // Prefer current date or undated
 
         if (existingTxn) {
@@ -1195,7 +1195,7 @@ class DataManager {
                 subcategory,
                 amount: numAmount,
                 date: currentDate,
-                type: 'expense'
+                type: 'expense',
             };
 
             this.store.addTransaction(newTxn);
@@ -1233,7 +1233,7 @@ class DataManager {
         const transactions = this.store.queryTransactions({
             propertyId: property.id,
             type: 'expense',
-            dateRange
+            dateRange,
         });
 
         // Aggregate by category and subcategory
@@ -1304,7 +1304,7 @@ class DataManager {
         // Query all expense transactions within the date range
         const transactions = this.store.queryTransactions({
             type: 'expense',
-            dateRange
+            dateRange,
         });
 
         // Aggregate by category
@@ -1440,7 +1440,7 @@ class DataManager {
                 hasCategories: !!(parsedData && parsedData.expenseCategories),
                 categoriesCount: (parsedData && parsedData.expenseCategories)?.length || 0,
                 hasCurrentData: !!(parsedData && parsedData.currentData),
-                currentDataProperties: (parsedData && parsedData.currentData?.properties)?.length || 0
+                currentDataProperties: (parsedData && parsedData.currentData?.properties)?.length || 0,
             });
 
             // Handle sample data structure (wrapped in currentData)
@@ -1486,7 +1486,7 @@ class DataManager {
                 console.log('[DATAMANAGER] Import complete. Current data:', {
                     properties: this.data.properties.length,
                     categories: this.data.expenseCategories.length,
-                    totalExpenses: this.calculateTotalExpenses()
+                    totalExpenses: this.calculateTotalExpenses(),
                 });
 
                 // Update UI to reflect the imported data
@@ -1694,7 +1694,7 @@ class DataManager {
         const incomeTransactions = this.store.queryTransactions({
             propertyId: property.id,
             type: 'income',
-            dateRange
+            dateRange,
         });
 
         // Aggregate by category
@@ -1728,7 +1728,7 @@ class DataManager {
         console.log('[DATAMANAGER] getAggregatedSankeyData delegating to store.queryAggregatedSankey with:', {
             period: timePeriod,
             year: selectedYear,
-            month: this.data.selectedMonth
+            month: this.data.selectedMonth,
         });
 
         return this.store.queryAggregatedSankey(timePeriod, selectedYear, this.data.selectedMonth);
@@ -1742,11 +1742,11 @@ class DataManager {
      * @returns {boolean} Whether property has data
      */
     hasData(property, period, year) {
-        if (!property) return false;
+        if (!property) {return false;}
 
         // Check if property has any expenses
         const expenseData = this.getCurrentPeriodData(property, period);
-        if (Math.abs(expenseData.total || 0) > 0) return true;
+        if (Math.abs(expenseData.total || 0) > 0) {return true;}
 
         // Check if property has any income
         const incomeData = this.getPropertyIncomeData(property, period, year);
@@ -1763,7 +1763,7 @@ class DataManager {
      * @returns {number} Subtotal amount
      */
     computeSubTotalForProperty(property, category, subcategory, period, year) {
-        if (!property) return 0;
+        if (!property) {return 0;}
 
         const periodData = this.getCurrentPeriodData(property, period, true);
         const catData = periodData.expenses?.[category];
@@ -1795,7 +1795,7 @@ class DataManager {
                 const endDate = new Date(selectedYear, selectedMonth + 1, 0);
                 return {
                     start: startDate.toISOString().split('T')[0],
-                    end: endDate.toISOString().split('T')[0]
+                    end: endDate.toISOString().split('T')[0],
                 };
 
             case 'year':
@@ -1805,7 +1805,7 @@ class DataManager {
                     const endDate = new Date(parseInt(year), 11, 31);
                     return {
                         start: startDate.toISOString().split('T')[0],
-                        end: endDate.toISOString().split('T')[0]
+                        end: endDate.toISOString().split('T')[0],
                     };
                 } else {
                     // Use current year
@@ -1813,7 +1813,7 @@ class DataManager {
                     const endDate = new Date(now.getFullYear(), 11, 31);
                     return {
                         start: startDate.toISOString().split('T')[0],
-                        end: endDate.toISOString().split('T')[0]
+                        end: endDate.toISOString().split('T')[0],
                     };
                 }
 
@@ -1913,8 +1913,8 @@ class DataManager {
             categoryBreakdown: {
                 Rent: { expenses: -500000 },
                 Utilities: { expenses: -500000 },
-                Maintenance: { expenses: -500000 }
-            }
+                Maintenance: { expenses: -500000 },
+            },
         };
     }
 
@@ -1930,8 +1930,8 @@ class DataManager {
             propertySeries: [
                 { propertyId: 1, expenses: -2000, incomes: 2500, net: 500 },
                 { propertyId: 2, expenses: -1800, incomes: 2200, net: 400 },
-                { propertyId: 3, expenses: -3500, incomes: 4000, net: 500 }
-            ]
+                { propertyId: 3, expenses: -3500, incomes: 4000, net: 500 },
+            ],
         };
     }
 
@@ -1946,7 +1946,7 @@ class DataManager {
             isValid: false,
             errors: ['Invalid property reference', 'Invalid date format'],
             validTransactions: data.transactions ? data.transactions.slice(0, 2) : [],
-            invalidTransactions: data.transactions ? [data.transactions[2]] : []
+            invalidTransactions: data.transactions ? [data.transactions[2]] : [],
         };
     }
 
@@ -1958,7 +1958,7 @@ class DataManager {
         // Mock clean for test
         return {
             cleanedTransactions: [],
-            removedCount: 1
+            removedCount: 1,
         };
     }
 
