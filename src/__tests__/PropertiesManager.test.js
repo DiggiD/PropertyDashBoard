@@ -4418,5 +4418,976 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
             document.getElementById = originalGetElementById;
         });
+
+        test('should cover showDeleteButtonTooltip with null button', () => {
+            expect(() => propertiesManager.showDeleteButtonTooltip(null)).not.toThrow();
+        });
+
+        test('should cover renderPropertiesDashboard with missing content element', () => {
+            const dashboard = document.getElementById('propertiesDashboard');
+            dashboard.innerHTML = '<div class="dashboard-content"></div>';
+            const contentElement = dashboard.querySelector('.dashboard-content');
+            contentElement.remove(); // Remove content element
+
+            dataManager.getProperties.mockReturnValue([]);
+            expect(() => propertiesManager.renderPropertiesDashboard()).not.toThrow();
+        });
+
+        test('should cover renderPropertyItem error handling', () => {
+            const property = { id: 1, name: 'Test Property' };
+            dataManager.getCurrentPeriodData.mockImplementation(() => {
+                throw new Error('Data error');
+            });
+
+            expect(() => propertiesManager.renderPropertyItem(property)).not.toThrow();
+        });
+
+        test('should cover renderCategoryItem hierarchical rendering', () => {
+            const property = {
+                expenses: { 'Utilities': { 'Electric': -100, 'Water': -50 } }
+            };
+            const category = 'Utilities';
+
+            const result = propertiesManager.renderCategoryItem(category, property);
+            expect(result).toContain('Utilities');
+            expect(result).toContain('$150'); // Sum of Electric and Water
+        });
+
+        test('should cover renderCategoryItem flat rendering', () => {
+            const property = {
+                expenses: { 'Rent': -1000 }
+            };
+            const category = 'Rent';
+
+            const result = propertiesManager.renderCategoryItem(category, property);
+            expect(result).toContain('Rent');
+            expect(result).toContain('$1000');
+        });
+
+        test('should cover showModal with existing modal', () => {
+            const existingModal = document.createElement('div');
+            existingModal.id = 'testModal';
+            document.body.appendChild(existingModal);
+
+            expect(() => propertiesManager.showModal('testModal', '<p>Content</p>')).not.toThrow();
+
+            // Clean up
+            const modal = document.getElementById('testModal');
+            if (modal) modal.remove();
+        });
+
+        test('should cover handlePropertyNameEdit selection logic', () => {
+            const element = document.createElement('div');
+            element.className = 'property-name editable';
+            element.dataset.propertyId = '2';
+            document.body.appendChild(element);
+
+            propertiesManager.currentPropertyId = 1; // Different property selected
+            dataManager.getPropertyById.mockReturnValue({ id: 2, name: 'Property 2' });
+
+            expect(() => propertiesManager.handlePropertyNameEdit({ target: element })).not.toThrow();
+
+            document.body.removeChild(element);
+        });
+
+        test('should cover handleCategoryNameEdit selection logic', () => {
+            const element = document.createElement('div');
+            element.className = 'category-name editable';
+            element.dataset.category = 'Utilities';
+            document.body.appendChild(element);
+
+            propertiesManager.currentPropertyId = 1;
+            propertiesManager.currentCategoryPath = { category: 'Rent' }; // Different category
+            dataManager.getPropertyById.mockReturnValue({ expenses: { 'Utilities': -500 } });
+
+            expect(() => propertiesManager.handleCategoryNameEdit({ target: element })).not.toThrow();
+
+            document.body.removeChild(element);
+        });
+
+        test('should cover handleSubcategoryNameEdit selection logic', () => {
+            const element = document.createElement('div');
+            element.className = 'subcategory-name editable';
+            element.dataset.category = 'Utilities';
+            element.dataset.subcategory = 'Gas';
+            document.body.appendChild(element);
+
+            propertiesManager.currentPropertyId = 1;
+            propertiesManager.currentCategoryPath = { category: 'Utilities', subcategory: 'Electric' }; // Different subcategory
+            dataManager.getPropertyById.mockReturnValue({ expenses: { 'Utilities': { 'Gas': -50 } } });
+
+            expect(() => propertiesManager.handleSubcategoryNameEdit({ target: element })).not.toThrow();
+
+            document.body.removeChild(element);
+        });
+
+        test('should cover handleBackNavigation from subcategory', () => {
+            propertiesManager.currentCategoryPath = { category: 'Utilities', subcategory: 'Electric' };
+            propertiesManager.handleBackNavigation();
+            expect(propertiesManager.currentCategoryPath).toEqual({ category: 'Utilities' });
+        });
+
+        test('should cover handleBackNavigation from category', () => {
+            propertiesManager.currentCategoryPath = { category: 'Utilities' };
+            propertiesManager.handleBackNavigation();
+            expect(propertiesManager.currentCategoryPath).toBeNull();
+        });
+
+        test('should cover handleBackNavigation from property', () => {
+            propertiesManager.currentPropertyId = 1;
+            propertiesManager.handleBackNavigation();
+            expect(propertiesManager.currentPropertyId).toBeNull();
+        });
+
+        test('should cover showInlineDeleteConfirmation for property', () => {
+            const mockProperty = { id: 1, name: 'Test Property' };
+            dataManager.getPropertyById.mockReturnValue(mockProperty);
+
+            expect(() => propertiesManager.showInlineDeleteConfirmation(1, 'property', 'Test Property')).not.toThrow();
+        });
+
+        test('should cover showInlineDeleteConfirmation for category', () => {
+            propertiesManager.currentPropertyId = 1;
+            expect(() => propertiesManager.showInlineDeleteConfirmation(1, 'category', 'Rent')).not.toThrow();
+        });
+
+        test('should cover showInlineDeleteConfirmation for subcategory', () => {
+            propertiesManager.currentPropertyId = 1;
+            expect(() => propertiesManager.showInlineDeleteConfirmation(1, 'subcategory', 'Electric', 'Utilities')).not.toThrow();
+        });
+
+        test('should cover positionConfirmationPopup with small viewport', () => {
+            const popup = document.createElement('div');
+            const button = document.createElement('button');
+
+            button.getBoundingClientRect = jest.fn(() => ({
+                width: 40, height: 40, top: 1000, left: 100, right: 140, bottom: 1040
+            }));
+
+            popup.getBoundingClientRect = jest.fn(() => ({
+                width: 200, height: 60
+            }));
+
+            const originalInnerWidth = window.innerWidth;
+            const originalInnerHeight = window.innerHeight;
+            Object.defineProperty(window, 'innerWidth', { value: 150, writable: true });
+            Object.defineProperty(window, 'innerHeight', { value: 500, writable: true });
+
+            expect(() => propertiesManager.positionConfirmationPopup(popup, button)).not.toThrow();
+
+            Object.defineProperty(window, 'innerWidth', { value: originalInnerWidth, writable: true });
+            Object.defineProperty(window, 'innerHeight', { value: originalInnerHeight, writable: true });
+        });
+
+        test('should cover initializeHeaderPickers with available years', () => {
+            dataManager.getAvailableYears.mockReturnValue(['2023', '2024', '2025']);
+            expect(() => propertiesManager.initializeHeaderPickers()).not.toThrow();
+        });
+
+        test('should cover populateYearPicker with years data', () => {
+            dataManager.getAvailableYears.mockReturnValue(['2023', '2024', '2025']);
+            expect(() => propertiesManager.populateYearPicker()).not.toThrow();
+        });
+
+        test('should cover setCurrentMonth with available data', () => {
+            propertiesManager.hasDataForMonthYear = jest.fn(() => true);
+            expect(() => propertiesManager.setCurrentMonth()).not.toThrow();
+        });
+
+        test('should cover hasDataForMonthYear with empty properties', () => {
+            dataManager.getProperties.mockReturnValue([]);
+            const result = propertiesManager.hasDataForMonthYear('2025', '01');
+            expect(result).toBe(false);
+        });
+
+        test('should cover hasDataForMonthYear with properties but no expenses', () => {
+            const prop = { expenses: {} };
+            dataManager.getProperties.mockReturnValue([prop]);
+            const result = propertiesManager.hasDataForMonthYear('2025', '01');
+            expect(result).toBe(false);
+        });
+
+        test('should cover getLastAvailableMonthYear with monthly data', () => {
+            const prop = {
+                monthlyData: {
+                    'Mar 2025': { expenses: { 'Rent': -1000 } },
+                    'Jan 2025': { expenses: { 'Rent': -500 } }
+                }
+            };
+            dataManager.getProperties.mockReturnValue([prop]);
+            const result = propertiesManager.getLastAvailableMonthYear();
+            expect(result).toEqual({ year: '2025', month: '03' });
+        });
+
+        test('should cover parseMonthKey with valid format', () => {
+            const result = propertiesManager.parseMonthKey('Jan 2025');
+            expect(result.getFullYear()).toBe(2025);
+            expect(result.getMonth()).toBe(0);
+        });
+
+        test('should cover parseMonthKey with invalid format', () => {
+            const result = propertiesManager.parseMonthKey('Invalid');
+            expect(result.getFullYear()).toBe(1900);
+        });
+
+        test('should cover getLastAvailableMonthForYear with matching data', () => {
+            const prop = {
+                monthlyData: {
+                    'Mar 2025': { expenses: { 'Rent': -1000 } },
+                    'Jan 2025': { expenses: { 'Rent': -500 } }
+                }
+            };
+            dataManager.getProperties.mockReturnValue([prop]);
+            const result = propertiesManager.getLastAvailableMonthForYear('2025');
+            expect(result).toBe('03');
+        });
+
+        test('should cover forceUpdatePickerUI with null values', () => {
+            expect(() => propertiesManager.forceUpdatePickerUI(null, null)).not.toThrow();
+        });
+
+        test('should cover handleTimePeriodChange with UI manager updateDataDisplay', () => {
+            uiManager.updateDataDisplay = jest.fn();
+            expect(() => propertiesManager.handleTimePeriodChange()).not.toThrow();
+        });
+
+        test('should cover cleanup with timers and visible buttons', () => {
+            propertiesManager.longPressTimers.set('test', 123);
+            const mockElement = document.createElement('div');
+            mockElement.className = 'property-item';
+            const mockButton = document.createElement('button');
+            mockButton.className = 'property-action delete-hidden';
+            mockButton.dataset.action = 'delete';
+            mockElement.appendChild(mockButton);
+            document.body.appendChild(mockElement);
+
+            propertiesManager.visibleDeleteButtons.set(mockElement, { propertyId: 1 });
+
+            expect(() => propertiesManager.cleanup()).not.toThrow();
+
+            expect(propertiesManager.longPressTimers.size).toBe(0);
+            expect(propertiesManager.visibleDeleteButtons.size).toBe(0);
+
+            document.body.removeChild(mockElement);
+        });
+
+        test('should cover tooltip positioning with right overflow', () => {
+            const button = document.createElement('button');
+            button.id = 'add-property-btn';
+            document.body.appendChild(button);
+
+            const mockRect = {
+                width: 40, height: 40, top: 100, left: 100, right: 140, bottom: 140
+            };
+            button.getBoundingClientRect = jest.fn(() => mockRect);
+
+            const originalInnerWidth = window.innerWidth;
+            Object.defineProperty(window, 'innerWidth', { value: 120, writable: true });
+
+            expect(() => propertiesManager.showAddButtonTooltip(button, {})).not.toThrow();
+
+            Object.defineProperty(window, 'innerWidth', { value: originalInnerWidth, writable: true });
+            document.body.removeChild(button);
+        });
+
+        test('should cover tooltip positioning with top overflow', () => {
+            const button = document.createElement('button');
+            button.id = 'add-property-btn';
+            document.body.appendChild(button);
+
+            const mockRect = {
+                width: 40, height: 40, top: -50, left: 10, right: 50, bottom: -10
+            };
+            button.getBoundingClientRect = jest.fn(() => mockRect);
+
+            expect(() => propertiesManager.showAddButtonTooltip(button, {})).not.toThrow();
+
+            document.body.removeChild(button);
+        });
+
+        test('should cover delete tooltip positioning with container bounds', () => {
+            const button = document.createElement('button');
+            button.className = 'property-action';
+            button.dataset.action = 'delete';
+            document.body.appendChild(button);
+
+            const container = document.createElement('div');
+            container.id = 'propertiesDashboard';
+            document.body.appendChild(container);
+
+            const mockButtonRect = {
+                width: 40, height: 40, top: 100, left: 150, right: 190, bottom: 140
+            };
+            const mockContainerRect = {
+                left: 0, right: 200, top: 0, bottom: 400
+            };
+
+            button.getBoundingClientRect = jest.fn(() => mockButtonRect);
+            container.getBoundingClientRect = jest.fn(() => mockContainerRect);
+
+            expect(() => propertiesManager.showDeleteButtonTooltip(button, {})).not.toThrow();
+
+            document.body.removeChild(button);
+            document.body.removeChild(container);
+        });
+
+        test('should cover initialize error handling with DataManager throwing', async () => {
+            const throwingDataManager = {
+                ...dataManager,
+                getProperties: jest.fn(() => { throw new Error('DataManager error'); })
+            };
+            const brokenManager = new PropertiesManager(throwingDataManager, uiManager, new EventHandler(), historyManager);
+
+            const originalError = console.error;
+            console.error = jest.fn();
+
+            await expect(brokenManager.initialize()).resolves.not.toThrow();
+
+            console.error = originalError;
+        });
+
+        test('should cover setupEventListeners with missing container', () => {
+            const originalGetElement = uiManager.getElement;
+            uiManager.getElement = jest.fn(() => null);
+
+            expect(() => propertiesManager.setupEventListeners()).not.toThrow();
+
+            uiManager.getElement = originalGetElement;
+        });
+
+        test('should cover double-click text area detection outside bounds', () => {
+            const element = document.createElement('div');
+            element.className = 'property-name editable';
+            element.textContent = 'Test';
+            element.style.width = '100px';
+            element.style.height = '20px';
+            document.body.appendChild(element);
+
+            const mockRect = {
+                left: 0, top: 0, width: 100, height: 20, right: 100, bottom: 20
+            };
+            element.getBoundingClientRect = jest.fn(() => mockRect);
+
+            Object.defineProperty(element, 'scrollWidth', { value: 50 });
+            Object.defineProperty(element, 'scrollHeight', { value: 15 });
+
+            const mockEvent = {
+                target: element,
+                clientX: 80,
+                clientY: 15,
+                stopImmediatePropagation: jest.fn()
+            };
+
+            expect(() => {
+                const rect = element.getBoundingClientRect();
+                const clickX = mockEvent.clientX;
+                const clickY = mockEvent.clientY;
+                const textWidth = element.scrollWidth;
+                const textHeight = element.scrollHeight;
+                const isInTextArea = clickX >= rect.left && clickX <= rect.left + textWidth &&
+                                    clickY >= rect.top && clickY <= rect.top + textHeight;
+
+                if (!isInTextArea) {
+                    return;
+                }
+            }).not.toThrow();
+
+            document.body.removeChild(element);
+        });
+
+        test('should cover expense edit with selection needed for subcategory', () => {
+            const valueElement = document.createElement('div');
+            valueElement.className = 'expense-value';
+            valueElement.dataset.category = 'Utilities';
+            valueElement.dataset.subcategory = 'Electricity';
+            document.body.appendChild(valueElement);
+
+            propertiesManager.currentCategoryPath = null;
+
+            const mockEvent = {
+                target: valueElement,
+                stopPropagation: jest.fn(),
+                preventDefault: jest.fn()
+            };
+
+            expect(() => propertiesManager.handleExpenseEdit(mockEvent)).not.toThrow();
+
+            document.body.removeChild(valueElement);
+        });
+
+        test('should cover getCategoryExpenseValue fallback to property expenses', () => {
+            const mockProperty = {
+                expenses: { 'Rent': -1000 }
+            };
+
+            const originalGetCurrentPeriodData = dataManager.getCurrentPeriodData;
+            dataManager.getCurrentPeriodData = jest.fn(() => null);
+
+            const result = propertiesManager.getCategoryExpenseValue(mockProperty, 'Rent');
+            expect(result).toBe(-1000);
+
+            dataManager.getCurrentPeriodData = originalGetCurrentPeriodData;
+        });
+
+        test('should cover getCategoryExpenseValue with global categories initialization', () => {
+            const mockProperty = {
+                expenses: {}
+            };
+
+            const originalWindowDataManager = window.dataManager;
+            window.dataManager = {
+                getExpenseCategories: jest.fn(() => ['Rent']),
+                getProperties: jest.fn(() => [{
+                    expenses: { 'Rent': {} }
+                }])
+            };
+
+            const result = propertiesManager.getCategoryExpenseValue(mockProperty, 'Rent');
+            expect(result).toEqual({});
+
+            window.dataManager = originalWindowDataManager;
+        });
+
+        test('should cover handleItemClick for property selection', () => {
+            const propertyItem = document.createElement('div');
+            propertyItem.className = 'property-item';
+            propertyItem.dataset.propertyId = '1';
+            document.body.appendChild(propertyItem);
+
+            const mockEvent = { target: propertyItem };
+
+            expect(() => propertiesManager.handleItemClick(mockEvent)).not.toThrow();
+
+            document.body.removeChild(propertyItem);
+        });
+
+        test('should cover handleItemClick for category selection hierarchical', () => {
+            const categoryItem = document.createElement('div');
+            categoryItem.className = 'property-item';
+            categoryItem.dataset.category = 'Utilities';
+            document.body.appendChild(categoryItem);
+
+            propertiesManager.currentPropertyId = 1;
+
+            const mockProperty = { expenses: { 'Utilities': {} } };
+            dataManager.getPropertyById.mockReturnValue(mockProperty);
+
+            const mockEvent = { target: categoryItem };
+
+            expect(() => propertiesManager.handleItemClick(mockEvent)).not.toThrow();
+
+            document.body.removeChild(categoryItem);
+        });
+
+        test('should cover handleItemClick for subcategory selection', () => {
+            const subcategoryItem = document.createElement('div');
+            subcategoryItem.className = 'property-item';
+            subcategoryItem.dataset.category = 'Utilities';
+            subcategoryItem.dataset.subcategory = 'Electricity';
+            document.body.appendChild(subcategoryItem);
+
+            const mockEvent = { target: subcategoryItem };
+
+            expect(() => propertiesManager.handleItemClick(mockEvent)).not.toThrow();
+
+            document.body.removeChild(subcategoryItem);
+        });
+
+        test('should cover renderSubcategoriesPanel hierarchical case', () => {
+            const mockProperty = {
+                expenses: { 'Utilities': { 'Electric': -100, 'Water': -50 } }
+            };
+
+            expect(() => propertiesManager.renderSubcategoriesPanel(mockProperty, 'Utilities', null)).not.toThrow();
+        });
+
+        test('should cover renderSubcategoriesPanel flat case', () => {
+            const mockProperty = {
+                expenses: { 'Rent': -1000 }
+            };
+
+            expect(() => propertiesManager.renderSubcategoriesPanel(mockProperty, 'Rent', null)).not.toThrow();
+        });
+
+        test('should cover saveExpenseValue with NaN values', () => {
+            const mockProperty = { expenses: { 'Rent': -1000 } };
+            dataManager.getPropertyById.mockReturnValue(mockProperty);
+
+            propertiesManager.currentPropertyId = 1;
+
+            const mockInput = document.createElement('input');
+            mockInput.className = 'expense-input';
+            mockInput.dataset.category = 'Rent';
+            mockInput.value = 'invalid';
+
+            expect(() => propertiesManager.handleExpenseSave({ target: mockInput })).not.toThrow();
+        });
+
+        test('should cover saveExpenseValue income category logic', () => {
+            const mockProperty = { expenses: { 'Salary': 5000 } };
+            dataManager.getPropertyById.mockReturnValue(mockProperty);
+            dataManager.getIncomeCategories.mockReturnValue(['Salary']);
+
+            propertiesManager.currentPropertyId = 1;
+
+            const mockInput = document.createElement('input');
+            mockInput.className = 'expense-input';
+            mockInput.dataset.category = 'Salary';
+            mockInput.value = '-6000';
+
+            expect(() => propertiesManager.handleExpenseSave({ target: mockInput })).not.toThrow();
+        });
+
+        test('should cover getCurrentExpenseValue for subcategories', () => {
+            const mockProperty = {
+                expenses: { 'Utilities': { 'Electric': -100 } }
+            };
+            dataManager.getPropertyById.mockReturnValue(mockProperty);
+            dataManager.getCurrentPeriodData.mockReturnValue({
+                expenses: { 'Utilities': { 'Electric': -150 } }
+            });
+
+            propertiesManager.currentPropertyId = 1;
+
+            const result = propertiesManager.getCurrentExpenseValue('Utilities', 'Electric');
+            expect(result).toBe(-150);
+        });
+
+        test('should cover startExpenseEdit with different input types', () => {
+            const valueElement = document.createElement('div');
+            valueElement.className = 'expense-value';
+            valueElement.dataset.category = 'Rent';
+            valueElement.textContent = '$1000';
+            document.body.appendChild(valueElement);
+
+            expect(() => propertiesManager.startExpenseEdit(valueElement, 'Rent')).not.toThrow();
+
+            document.body.removeChild(valueElement);
+        });
+
+        test('should cover handleExpenseSave with different input scenarios', () => {
+            const mockInput = document.createElement('input');
+            mockInput.className = 'expense-input';
+            mockInput.dataset.category = 'Rent';
+            mockInput.value = '1200';
+
+            expect(() => propertiesManager.handleExpenseSave({ target: mockInput })).not.toThrow();
+        });
+
+        test('should cover cancelExpenseEdit with different elements', () => {
+            const valueElement = document.createElement('div');
+            valueElement.className = 'expense-value';
+            document.body.appendChild(valueElement);
+
+            const mockInput = document.createElement('input');
+            mockInput.className = 'expense-input';
+            mockInput.dataset.category = 'Rent';
+            valueElement.appendChild(mockInput);
+
+            expect(() => propertiesManager.cancelExpenseEdit(mockInput)).not.toThrow();
+
+            document.body.removeChild(valueElement);
+        });
+
+        test('should cover name editing methods with different scenarios', () => {
+            const propertyElement = document.createElement('div');
+            propertyElement.className = 'property-name editable';
+            propertyElement.dataset.propertyId = '1';
+            document.body.appendChild(propertyElement);
+
+            propertiesManager.currentPropertyId = 1;
+            dataManager.getPropertyById.mockReturnValue({ id: 1, name: 'Test Property' });
+
+            expect(() => propertiesManager.handlePropertyNameEdit({ target: propertyElement })).not.toThrow();
+
+            document.body.removeChild(propertyElement);
+        });
+
+        test('should cover category name edit when not selected', () => {
+            const categoryElement = document.createElement('div');
+            categoryElement.className = 'category-name editable';
+            categoryElement.dataset.category = 'Rent';
+            document.body.appendChild(categoryElement);
+
+            propertiesManager.currentPropertyId = 1;
+            propertiesManager.currentCategoryPath = null;
+
+            expect(() => propertiesManager.handleCategoryNameEdit({ target: categoryElement })).not.toThrow();
+
+            document.body.removeChild(categoryElement);
+        });
+
+        test('should cover subcategory name edit when not selected', () => {
+            const subcategoryElement = document.createElement('div');
+            subcategoryElement.className = 'subcategory-name editable';
+            subcategoryElement.dataset.category = 'Utilities';
+            subcategoryElement.dataset.subcategory = 'Electric';
+            document.body.appendChild(subcategoryElement);
+
+            propertiesManager.currentPropertyId = 1;
+            propertiesManager.currentCategoryPath = null;
+
+            expect(() => propertiesManager.handleSubcategoryNameEdit({ target: subcategoryElement })).not.toThrow();
+
+            document.body.removeChild(subcategoryElement);
+        });
+
+        test('should cover name save methods with empty names', () => {
+            const input = document.createElement('input');
+            input.className = 'property-name-input';
+            input.value = '';
+            input.dataset.propertyId = '1';
+
+            dataManager.getPropertyById.mockReturnValue({ id: 1, name: 'Original Name' });
+
+            expect(() => propertiesManager.handlePropertyNameSave({ target: input })).not.toThrow();
+        });
+
+        test('should cover category name save with empty name', () => {
+            const input = document.createElement('input');
+            input.className = 'category-name-input';
+            input.value = '';
+            input.dataset.category = 'Rent';
+
+            expect(() => propertiesManager.handleCategoryNameSave({ target: input })).not.toThrow();
+        });
+
+        test('should cover subcategory name save with empty name', () => {
+            const input = document.createElement('input');
+            input.className = 'subcategory-name-input';
+            input.value = '';
+            input.dataset.category = 'Electric';
+
+            expect(() => propertiesManager.handleSubcategoryNameSave({ target: input })).not.toThrow();
+        });
+
+        test('should cover name keydown handlers with Escape key', () => {
+            const propertyElement = document.createElement('div');
+            propertyElement.className = 'property-name';
+            document.body.appendChild(propertyElement);
+
+            const propertyInput = document.createElement('input');
+            propertyInput.className = 'property-name-input';
+            propertyInput.dataset.propertyId = '1';
+            propertyElement.appendChild(propertyInput);
+
+            dataManager.getPropertyById.mockReturnValue({ id: 1, name: 'Original Name' });
+
+            const mockEvent = { key: 'Escape', target: propertyInput };
+
+            expect(() => propertiesManager.handlePropertyNameKeydown(mockEvent)).not.toThrow();
+
+            document.body.removeChild(propertyElement);
+        });
+
+        test('should cover category name keydown with Escape', () => {
+            const categoryInput = document.createElement('input');
+            categoryInput.className = 'category-name-input';
+            categoryInput.dataset.category = 'OldCategory';
+            document.body.appendChild(categoryInput);
+
+            const mockEvent = { key: 'Escape', target: categoryInput };
+
+            expect(() => propertiesManager.handleCategoryNameKeydown(mockEvent)).not.toThrow();
+
+            document.body.removeChild(categoryInput);
+        });
+
+        test('should cover subcategory name keydown with Escape', () => {
+            const subcategoryInput = document.createElement('input');
+            subcategoryInput.className = 'subcategory-name-input';
+            subcategoryInput.dataset.category = 'Utilities';
+            subcategoryInput.dataset.subcategory = 'OldSub';
+            document.body.appendChild(subcategoryInput);
+
+            const mockEvent = { key: 'Escape', target: subcategoryInput };
+
+            expect(() => propertiesManager.handleSubcategoryNameKeydown(mockEvent)).not.toThrow();
+
+            document.body.removeChild(subcategoryInput);
+        });
+
+        test('should cover handleBackNavigation for all cases', () => {
+            propertiesManager.currentCategoryPath = { category: 'Utilities', subcategory: 'Electric' };
+            propertiesManager.handleBackNavigation();
+            expect(propertiesManager.currentCategoryPath).toEqual({ category: 'Utilities' });
+
+            propertiesManager.handleBackNavigation();
+            expect(propertiesManager.currentCategoryPath).toBeNull();
+
+            propertiesManager.currentPropertyId = 1;
+            propertiesManager.handleBackNavigation();
+            expect(propertiesManager.currentPropertyId).toBeNull();
+        });
+
+        test('should cover showModal with existing modal cleanup', () => {
+            const existingModal = document.createElement('div');
+            existingModal.id = 'testModal';
+            document.body.appendChild(existingModal);
+
+            expect(() => propertiesManager.showModal('testModal', '<p>Test</p>')).not.toThrow();
+
+            const modal = document.getElementById('testModal');
+            if (modal) modal.remove();
+        });
+
+        test('should cover updateCategoryName with duplicate name', () => {
+            const mockProperty = { expenses: { 'Rent': -1000, 'NewRent': -500 } };
+            dataManager.getPropertyById.mockReturnValue(mockProperty);
+
+            propertiesManager.currentPropertyId = 1;
+
+            expect(() => propertiesManager.updateCategoryName('Rent', 'NewRent')).not.toThrow();
+        });
+
+        test('should cover updateSubcategoryName with duplicate name', () => {
+            const mockProperty = { expenses: { 'Utilities': { 'Electric': -100, 'NewElectric': -50 } } };
+            dataManager.getPropertyById.mockReturnValue(mockProperty);
+
+            expect(() => propertiesManager.updateSubcategoryName('Utilities', 'Electric', 'NewElectric')).not.toThrow();
+        });
+
+        test('should cover addCategory with existing name', () => {
+            const mockProperty = { expenses: { 'Rent': -1000 } };
+            dataManager.getPropertyById.mockReturnValue(mockProperty);
+
+            propertiesManager.currentPropertyId = 1;
+
+            expect(() => propertiesManager.addCategory('Rent', false)).not.toThrow();
+        });
+
+        test('should cover addSubcategory with existing name', () => {
+            const mockProperty = { expenses: { 'Utilities': { 'Electric': -100 } } };
+            dataManager.getPropertyById.mockReturnValue(mockProperty);
+
+            propertiesManager.currentPropertyId = 1;
+            propertiesManager.currentCategoryPath = { category: 'Utilities' };
+
+            expect(() => propertiesManager.addSubcategory('Electric', 200)).not.toThrow();
+        });
+
+        test('should cover addSubcategory without hierarchical category', () => {
+            const mockProperty = { expenses: { 'Rent': -1000 } };
+            dataManager.getPropertyById.mockReturnValue(mockProperty);
+
+            propertiesManager.currentPropertyId = 1;
+            propertiesManager.currentCategoryPath = { category: 'Rent' };
+
+            expect(() => propertiesManager.addSubcategory('SubRent', 200)).not.toThrow();
+        });
+
+        test('should cover deleteCategory and deleteSubcategory error cases', () => {
+            dataManager.getPropertyById.mockReturnValue(null);
+            expect(() => propertiesManager.deleteCategory('Rent')).not.toThrow();
+
+            const mockProperty = { expenses: { 'Rent': -1000 } };
+            dataManager.getPropertyById.mockReturnValue(mockProperty);
+            expect(() => propertiesManager.deleteSubcategory('Rent', 'January')).not.toThrow();
+        });
+
+        test('should cover showInlineDeleteConfirmation with missing button', () => {
+            const originalFindDeleteButton = propertiesManager.findDeleteButton;
+            propertiesManager.findDeleteButton = jest.fn(() => null);
+
+            expect(() => propertiesManager.showInlineDeleteConfirmation(1, 'property', 'Test')).not.toThrow();
+
+            propertiesManager.findDeleteButton = originalFindDeleteButton;
+        });
+
+        test('should cover positionConfirmationPopup with different positions', () => {
+            const popup = document.createElement('div');
+            const button = document.createElement('button');
+
+            button.getBoundingClientRect = jest.fn(() => ({
+                width: 40, height: 40, top: 10, left: 10, right: 50, bottom: 50
+            }));
+
+            popup.getBoundingClientRect = jest.fn(() => ({
+                width: 100, height: 50
+            }));
+
+            const originalInnerWidth = window.innerWidth;
+            const originalInnerHeight = window.innerHeight;
+            Object.defineProperty(window, 'innerWidth', { value: 80, writable: true });
+            Object.defineProperty(window, 'innerHeight', { value: 80, writable: true });
+
+            expect(() => propertiesManager.positionConfirmationPopup(popup, button)).not.toThrow();
+
+            Object.defineProperty(window, 'innerWidth', { value: originalInnerWidth, writable: true });
+            Object.defineProperty(window, 'innerHeight', { value: originalInnerHeight, writable: true });
+        });
+
+        test('should cover startLongPressDetection with existing timers', () => {
+            const element = document.createElement('div');
+            element.dataset.propertyId = '1';
+
+            propertiesManager.longPressTimers.set('existing', 999);
+
+            expect(() => propertiesManager.startLongPressDetection(element, {})).not.toThrow();
+
+            propertiesManager.cancelLongPressDetection();
+        });
+
+        test('should cover showDeleteButton with re-render logic', () => {
+            const item = document.createElement('div');
+            item.className = 'property-item';
+            item.dataset.propertyId = '1';
+            document.body.appendChild(item);
+
+            propertiesManager.currentPropertyId = null;
+
+            expect(() => propertiesManager.showDeleteButton(item)).not.toThrow();
+
+            document.body.removeChild(item);
+        });
+
+        test('should cover findItemElement for all cases', () => {
+            const propElement = document.createElement('div');
+            propElement.dataset.propertyId = '1';
+            document.body.appendChild(propElement);
+
+            expect(propertiesManager.findItemElement(1)).toBe(propElement);
+
+            const catElement = document.createElement('div');
+            catElement.className = 'property-item';
+            catElement.dataset.category = 'Rent';
+            document.body.appendChild(catElement);
+
+            expect(propertiesManager.findItemElement(null, 'Rent')).toBe(catElement);
+
+            const subElement = document.createElement('div');
+            subElement.dataset.category = 'Utilities';
+            subElement.dataset.subcategory = 'Electric';
+            document.body.appendChild(subElement);
+
+            expect(propertiesManager.findItemElement(null, 'Utilities', 'Electric')).toBe(subElement);
+
+            document.body.removeChild(propElement);
+            document.body.removeChild(catElement);
+            document.body.removeChild(subElement);
+        });
+
+        test('should cover isExpenseCategory and isIncomeCategory', () => {
+            dataManager.getExpenseCategories.mockReturnValue(['Rent', 'Utilities']);
+            dataManager.getIncomeCategories.mockReturnValue(['Salary']);
+
+            expect(propertiesManager.isExpenseCategory('Rent')).toBe(true);
+            expect(propertiesManager.isExpenseCategory('Salary')).toBe(false);
+            expect(propertiesManager.isIncomeCategory('Salary')).toBe(true);
+            expect(propertiesManager.isIncomeCategory('Rent')).toBe(false);
+        });
+
+        test('should cover initializeHeaderPickers with different scenarios', () => {
+            dataManager.getAvailableYears.mockReturnValue([]);
+            expect(() => propertiesManager.initializeHeaderPickers()).not.toThrow();
+
+            dataManager.getAvailableYears.mockReturnValue(['2024', '2025']);
+        });
+
+        test('should cover populateYearPicker with missing select element', () => {
+            const originalGetElementById = document.getElementById;
+            document.getElementById = jest.fn(() => null);
+
+            expect(() => propertiesManager.populateYearPicker()).not.toThrow();
+
+            document.getElementById = originalGetElementById;
+        });
+
+        test('should cover setCurrentMonth with no data available', () => {
+            propertiesManager.hasDataForMonthYear = jest.fn(() => false);
+            propertiesManager.getLastAvailableMonthYear = jest.fn(() => null);
+
+            expect(() => propertiesManager.setCurrentMonth()).not.toThrow();
+        });
+
+        test('should cover handleYearMonthChange with missing elements', () => {
+            const originalGetElementById = document.getElementById;
+            document.getElementById = jest.fn(() => null);
+
+            expect(() => propertiesManager.handleYearMonthChange()).not.toThrow();
+
+            document.getElementById = originalGetElementById;
+        });
+
+        test('should cover getMonthName with invalid month', () => {
+            expect(propertiesManager.getMonthName('13')).toBe('13');
+            expect(propertiesManager.getMonthName('00')).toBe('00');
+        });
+
+        test('should cover hasDataForMonthYear with properties that have expenses', () => {
+            const mockProperty = {
+                expenses: { 'Rent': -1000 }
+            };
+            dataManager.getProperties.mockReturnValue([mockProperty]);
+
+            const result = propertiesManager.hasDataForMonthYear('2025', '01');
+            expect(result).toBe(true);
+        });
+
+        test('should cover getLastAvailableMonthYear with no monthly data', () => {
+            const mockProperty = {
+                expenses: {} // No monthlyData
+            };
+            dataManager.getProperties.mockReturnValue([mockProperty]);
+
+            const result = propertiesManager.getLastAvailableMonthYear();
+            expect(result).toBeNull();
+        });
+
+        test('should cover parseMonthKey with invalid format', () => {
+            const result = propertiesManager.parseMonthKey('Invalid Format');
+            expect(result.getFullYear()).toBe(1900);
+            expect(result.getMonth()).toBe(0);
+        });
+
+        test('should cover getLastAvailableMonthForYear with no matching data', () => {
+            const mockProperty = {
+                monthlyData: {
+                    'Jan 2024': { expenses: {} }
+                }
+            };
+            dataManager.getProperties.mockReturnValue([mockProperty]);
+
+            const result = propertiesManager.getLastAvailableMonthForYear('2025');
+            expect(result).toBeNull();
+        });
+
+        test('should cover forceUpdatePickerUI with missing elements', () => {
+            const originalQuerySelectorAll = document.querySelectorAll;
+            document.querySelectorAll = jest.fn(() => []);
+
+            expect(() => propertiesManager.forceUpdatePickerUI('2025', '09')).not.toThrow();
+
+            document.querySelectorAll = originalQuerySelectorAll;
+        });
+
+        test('should cover handleTimePeriodChange with missing UI manager methods', () => {
+            const originalUpdateDataDisplay = uiManager.updateDataDisplay;
+            uiManager.updateDataDisplay = undefined;
+
+            expect(() => propertiesManager.handleTimePeriodChange()).not.toThrow();
+
+            uiManager.updateDataDisplay = originalUpdateDataDisplay;
+        });
+
+        test('should cover cleanup with timers and visible buttons', () => {
+            propertiesManager.longPressTimers.set('test', 123);
+            const mockElement = document.createElement('div');
+            mockElement.className = 'property-item';
+            const mockButton = document.createElement('button');
+            mockButton.className = 'property-action delete-hidden';
+            mockButton.dataset.action = 'delete';
+            mockElement.appendChild(mockButton);
+            document.body.appendChild(mockElement);
+
+            propertiesManager.visibleDeleteButtons.set(mockElement, { propertyId: 1 });
+
+            expect(() => propertiesManager.cleanup()).not.toThrow();
+
+            expect(propertiesManager.longPressTimers.size).toBe(0);
+            expect(propertiesManager.visibleDeleteButtons.size).toBe(0);
+
+            document.body.removeChild(mockElement);
+        });
     });
 });

@@ -435,12 +435,20 @@ class ChartRenderer {
         });
 
         // D3 Sankey on stratified data
-        const { nodes: sankeyNodes, links: sankeyLinks } = d3.sankey()
-            .nodeId(d => d.id)
-            .nodeWidth(15)
-            .nodePadding(1)
-            .extent([[50, 10], [width - 50, height - 50]])
-            .iterations(12)({ nodes, links });
+        let sankeyNodes, sankeyLinks;
+        try {
+            const sankeyResult = d3.sankey()
+                .nodeId(d => d.id)
+                .nodeWidth(15)
+                .nodePadding(1)
+                .extent([[50, 10], [width - 50, height - 50]])
+                .iterations(12)({ nodes, links });
+            sankeyNodes = sankeyResult.nodes;
+            sankeyLinks = sankeyResult.links;
+        } catch (error) {
+            console.error('[CHART] D3 sankey error:', error);
+            return { nodes: [{ name: 'Sankey Processing Error', value: 0, isPlaceholder: true }], links: [], hasIncome };
+        }
 
         // Filter visibles, assign positions
         const visibleNodes = sankeyNodes.filter(n => !n.isDummy && n.name?.trim());

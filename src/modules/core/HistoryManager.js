@@ -480,6 +480,34 @@ class HistoryManager {
     }
 
     /**
+     * Reconstruct current full state from loaded history without modifying currentIndex
+     * Used during storage loading to preserve the loaded currentIndex value
+     * @private
+     */
+    _reconstructStateFromLoadedHistory() {
+        if (this.history.length === 0) {
+            this.fullState = null;
+            return;
+        }
+
+        // Start from the full state entry (should be at index 0)
+        if (this.history[0].fullState) {
+            this.fullState = this._shallowClone(this.history[0].fullState);
+        } else {
+            console.error('[HISTORY] No full state found at history[0]');
+            return;
+        }
+
+        // Apply deltas up to current index
+        for (let i = 1; i <= this.currentIndex; i++) {
+            const entry = this.history[i];
+            if (entry && entry.changes) {
+                this.fullState = this._applyDiff(this.fullState, entry.changes);
+            }
+        }
+    }
+
+    /**
      * Update undo/redo button states
      * @private
      */
@@ -539,8 +567,13 @@ class HistoryManager {
 
                   // Initialize currentIndex to 0 when history is loaded successfully
                   if (this.history.length > 0) {
-                      this.currentIndex = 0;
-                      this._reconstructState();
+                      // Ensure loaded currentIndex is within valid bounds
+                      if (this.currentIndex < 0 || this.currentIndex >= this.history.length) {
+                          this.currentIndex = 0;
+                      }
+
+                      // Reconstruct state from history
+                      this._reconstructStateFromLoadedHistory();
                       console.log(`[HISTORY] Loaded history: ${this.history.length} entries, currentIndex: ${this.currentIndex}`);
                   } else {
                       console.log('[HISTORY] No history entries found in storage');

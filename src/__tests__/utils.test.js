@@ -143,8 +143,7 @@ beforeAll(() => {
 afterAll(() => {
     global.Intl = originalIntl;
     // Restore setInterval
-    global.setInterval = global.originalSetInterval;
-    delete global.originalSetInterval;
+    jest.restoreAllMocks();
 });
 
 
@@ -156,14 +155,11 @@ describe('Utils Modules Tests', () => {
 
     beforeAll(() => {
         // Use real timers for accurate performance measurements
-
-        // Store original setInterval
-        global.originalSetInterval = global.setInterval;
     });
 
     beforeEach(async () => {
-        // Spy on setInterval for memory monitoring tests
-        jest.spyOn(global, 'setInterval').mockImplementation((callback, delay) => {
+        // Mock setInterval for memory monitoring tests
+        global.setInterval = jest.fn((callback, delay) => {
             // Return a mock interval ID
             return 12345;
         });
@@ -1606,57 +1602,83 @@ describe('Utils Modules Tests', () => {
                 });
 
                 describe('memory monitoring', () => {
+                    let testPerformanceOptimizer;
+
                     beforeEach(() => {
                         jest.useFakeTimers();
+                        // Create a fresh instance for memory monitoring tests
+                        testPerformanceOptimizer = new PerformanceOptimizer();
+
+                        // Ensure setInterval is properly mocked
+                        global.setInterval = jest.fn((callback, delay) => {
+                            return 12345;
+                        });
+
+                        // Ensure performance.memory is available
+                        global.performance = {
+                            now: jest.fn(() => Date.now()),
+                            memory: {
+                                usedJSHeapSize: 1000000,
+                                totalJSHeapSize: 2000000,
+                                jsHeapSizeLimit: 5000000,
+                            },
+                        };
                     });
 
                     afterEach(() => {
                         jest.useRealTimers();
-                        if (performanceOptimizer.memoryMonitoringInterval) {
-                            clearInterval(performanceOptimizer.memoryMonitoringInterval);
-                            performanceOptimizer.memoryMonitoringInterval = null;
+                        if (testPerformanceOptimizer && testPerformanceOptimizer.memoryMonitoringInterval) {
+                            clearInterval(testPerformanceOptimizer.memoryMonitoringInterval);
+                            testPerformanceOptimizer.memoryMonitoringInterval = null;
                         }
+                        if (testPerformanceOptimizer && testPerformanceOptimizer.cleanup) {
+                            testPerformanceOptimizer.cleanup();
+                        }
+                        // Restore global performance
+                        delete global.performance;
                     });
 
                     test('should start memory monitoring with performance.memory available', () => {
-                        performanceOptimizer.startMemoryMonitoring();
+                        testPerformanceOptimizer.startMemoryMonitoring();
                         // Test that the method runs without error
-                        expect(performanceOptimizer.startMemoryMonitoring).toBeDefined();
+                        expect(testPerformanceOptimizer.startMemoryMonitoring).toBeDefined();
                     });
 
                     test('should handle memory monitoring without performance.memory', () => {
                         const originalMemory = global.performance.memory;
                         delete global.performance.memory;
 
-                        expect(() => performanceOptimizer.startMemoryMonitoring()).not.toThrow();
-                        expect(performanceOptimizer.memoryMonitoringInterval).toBeUndefined();
+                        expect(() => testPerformanceOptimizer.startMemoryMonitoring()).not.toThrow();
+                        expect(testPerformanceOptimizer.memoryMonitoringInterval).toBeUndefined();
 
                         global.performance.memory = originalMemory;
                     });
 
                     test('should collect memory usage data during monitoring interval', () => {
-                        performanceOptimizer.startMemoryMonitoring();
+                        testPerformanceOptimizer.startMemoryMonitoring();
 
                         // Get the callback from setInterval calls
                         expect(global.setInterval).toHaveBeenCalledTimes(1);
+                        expect(global.setInterval).toHaveBeenCalledWith(expect.any(Function), 5000);
                         const intervalCallback = global.setInterval.mock.calls[0][0];
 
                         // Manually trigger the memory monitoring callback
                         intervalCallback();
 
                         // Check that memory usage data was collected
-                        expect(performanceOptimizer.metrics.memoryUsage.length).toBeGreaterThan(0);
-                        expect(performanceOptimizer.metrics.memoryUsage[0]).toHaveProperty('timestamp');
-                        expect(performanceOptimizer.metrics.memoryUsage[0]).toHaveProperty('used');
-                        expect(performanceOptimizer.metrics.memoryUsage[0]).toHaveProperty('total');
-                        expect(performanceOptimizer.metrics.memoryUsage[0]).toHaveProperty('limit');
+                        expect(testPerformanceOptimizer.metrics.memoryUsage.length).toBeGreaterThan(0);
+                        expect(testPerformanceOptimizer.metrics.memoryUsage[0]).toHaveProperty('timestamp');
+                        expect(testPerformanceOptimizer.metrics.memoryUsage[0]).toHaveProperty('used');
+                        expect(testPerformanceOptimizer.metrics.memoryUsage[0]).toHaveProperty('total');
+                        expect(testPerformanceOptimizer.metrics.memoryUsage[0]).toHaveProperty('limit');
                     });
 
                     test('should limit memory usage history to 100 entries', () => {
-                        performanceOptimizer.startMemoryMonitoring();
+                        testPerformanceOptimizer.startMemoryMonitoring();
 
                         // Get the callback from setInterval calls
                         expect(global.setInterval).toHaveBeenCalledTimes(1);
+                        expect(global.setInterval).toHaveBeenCalledWith(expect.any(Function), 5000);
                         const intervalCallback = global.setInterval.mock.calls[0][0];
 
                         // Simulate 105 intervals by manually calling the callback
@@ -1665,7 +1687,7 @@ describe('Utils Modules Tests', () => {
                         }
 
                         // Should only keep the last 100 entries
-                        expect(performanceOptimizer.metrics.memoryUsage.length).toBe(100);
+                        expect(testPerformanceOptimizer.metrics.memoryUsage.length).toBe(100);
                     });
                 });
 

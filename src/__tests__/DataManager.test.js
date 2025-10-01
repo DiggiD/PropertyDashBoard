@@ -266,6 +266,18 @@ describe('DataManager with Isolated Mocks (80%+ Coverage)', () => {
         mockTransactionStore.categories = new Set(['Rent', 'Utilities', 'Maintenance']);
         mockTransactionStore.incomeCategories = new Set(['Rent']);
 
+        // Add missing _queryCache property for cache clearing operations
+        mockTransactionStore._queryCache = new Map();
+
+        // Add missing _lastCacheInvalidation property for cache invalidation tracking
+        mockTransactionStore._lastCacheInvalidation = Date.now();
+
+        // Ensure transactions array exists for cache invalidation tracking
+        mockTransactionStore.transactions = [];
+
+        // Add missing getStatistics method for debug functionality
+        mockTransactionStore.getStatistics = jest.fn().mockReturnValue({ transactionCount: 0 });
+
         // Create DataManager with mocked dependencies
         dataManager = new DataManager(mockStorage, mockValidator, mockFormatter);
 
