@@ -20,6 +20,7 @@
     "test:debug": "jest --verbose --runInBand --detectOpenHandles",
     "test:sankey": "jest src/modules/core/__tests__/sankey-*.test.js",
     "test:watch": "jest --watch",
+    "test:changed": "jest --watch --onlyChanged --watchAll=false",
     "test:utils": "jest src/__tests__/utils.test.js",
     "test:formatter": "jest src/__tests__/Formatter.test.js",
     "test:validator": "jest src/__tests__/Validator.test.js",

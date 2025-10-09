@@ -24,14 +24,13 @@ export default {
   },
   setupFilesAfterEnv: ['<rootDir>/src/__tests__/setupTests.js'],
   clearMocks: true, // Enable for better cleanup and performance
-  maxWorkers: 2, // Fixed number instead of percentage for consistency
+  maxWorkers: 3, // Fixed number instead of percentage for consistency
   testTimeout: 10000, // Reduced from 60s to 10s for faster feedback
   forceExit: false, // Disable to avoid issues with async operations
   detectOpenHandles: false, // Disable for better performance
   cache: false, // Disable Jest cache for reliability and speed
   moduleNameMapper: {
     '^src/(.*)$': '<rootDir>/src/$1',
-    '@modules/(.*)': '<rootDir>/src/modules/$1',
-    '^src/modules/utils/(.*)': '<rootDir>/src/__mocks__/$1.js'
+    '@modules/(.*)': '<rootDir>/src/modules/$1'
   }
 };

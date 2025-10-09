@@ -332,5 +332,10 @@ const logger = new Logger();
 // Export for use in other modules
 export default logger;
 
-// Expose globally for easy access
-window.logger = logger;
+// Export the class for testing
+export { Logger };
+
+// Expose globally for easy access (if window is available)
+if (typeof window !== 'undefined') {
+    window.logger = logger;
+}
