@@ -8,6 +8,8 @@
  * - Responsive UI updates
  */
 
+import logger from '../utils/Logger.js';
+
 class UIManager {
     constructor(formatter, themeManager) {
         // Dependency injection with fallbacks
@@ -42,7 +44,9 @@ class UIManager {
 
         this._initialized = false;  // Prevent multiple initializations
 
-        console.log('[UI] UIManager initialized');
+        // Create module-specific logger
+        this.logger = logger.createModuleLogger('UI');
+        this.logger.info('UIManager initialized');
     }
 
     /**
@@ -55,8 +59,8 @@ class UIManager {
             getColorTheme: (name) => ({ name: name || 'Default' }),
             getColorThemeOptions: () => [{ id: 'default', name: 'Default' }],
             getCurrentColorTheme: () => 'default',
-            setColorTheme: (theme) => console.log(`[FALLBACK THEME] Setting color theme to: ${theme}`),
-            toggleDarkMode: () => console.log('[FALLBACK THEME] Toggling dark mode'),
+            setColorTheme: (theme) => this.logger.debug(`Setting color theme to: ${theme}`),
+            toggleDarkMode: () => this.logger.debug('Toggling dark mode'),
         };
     }
 
@@ -65,23 +69,19 @@ class UIManager {
      */
     async initialize() {
         if (this.initialized) {
-            console.log('[UI] UI manager already initialized, skipping');
+            this.logger.info('UI manager already initialized, skipping');
             return;
         }
 
         this.initialized = true; // Mark as initialized early to prevent re-entry
 
         await new Promise(r => setTimeout(r, 0)); // DOM ready
-        const commonIds = ['chart-container', 'tooltip', 'app'];
-        for (const id of commonIds) {
-            this.elements.set(id, document.getElementById(id) || document.createElement('div'));
-        }
 
         this.cacheElements();
         this.setupEventListeners();
         this.initializeUIState();
 
-        console.log('[UI] UI manager initialized with', this.elements.size, 'cached elements');
+        this.logger.info(`UI manager initialized with ${this.elements.size} cached elements`);
     }
 
     /**
@@ -94,18 +94,21 @@ class UIManager {
             'mainContent': '.main-content',
             'dashboardContainers': '.dashboard-containers',
 
+            // Chart containers
+            'chartContainer': '#chart-container',
+            'tooltip': '#tooltip',
+            'overviewChart': '#overviewChart',
+            'overviewChartContent': '#overviewChartContent',
+
             // Dashboard views
             'overviewDashboard': '#overviewDashboard',
             'propertiesDashboard': '#propertiesDashboard',
-
-            // Chart containers
-            'overviewChart': '#overviewChart',
-            'overviewChartContent': '#overviewChartContent',
 
             // Buttons
             'undoBtn': '#undoBtn',
             'redoBtn': '#redoBtn',
             'darkModeToggle': '#darkModeToggle',
+            'theme-toggle': '#darkModeToggle',
             'historyBtn': '#historyBtn',
 
             // Color theme dropdown
@@ -149,16 +152,19 @@ class UIManager {
             this.elementSelectors.set(key, selector);
         });
 
-        // Cache elements
+        // Cache elements with consolidated logging
         Object.entries(elementSelectors).forEach(([key, selector]) => {
             const element = document.querySelector(selector);
             if (element) {
                 this.elements.set(key, element);
-                console.log(`[UI] Cached element: ${key} -> ${selector}`);
+                logger.logElementCache(key, selector, true);
             } else {
-                console.warn(`[UI] Element not found: ${key} -> ${selector}`);
+                logger.logElementWarning(key, selector);
             }
         });
+
+        // Flush consolidated element cache logs
+        logger.flushElementCacheLogs('UI');
     }
 
     /**
@@ -173,7 +179,7 @@ class UIManager {
         if (!el) {
             el = document.getElementById(id) || document.querySelector(`#${id}`);
             if (!el && createIfMissing) { el = document.createElement('div'); el.id = id; el.style.display = 'none'; document.body.appendChild(el); }
-            if (el) {this.elements.set(id, el);} else { console.warn(`UI Element '${id}' missing; creating fallback.`); el = this.createFallbackElement(id); this.elements.set(id, el); }
+            if (el) {this.elements.set(id, el);} else { this.logger.warn(`Element '${id}' missing; creating fallback.`); el = this.createFallbackElement(id); this.elements.set(id, el); }
         }
         return el;
     }
@@ -199,7 +205,7 @@ class UIManager {
      */
     setupEventListeners() {
         if (this.eventListeners.size > 0) {
-            console.log('[UI] Event listeners already set up, skipping');
+            this.logger.info('Event listeners already set up, skipping');
             return;
         }
 
@@ -215,7 +221,7 @@ class UIManager {
         // Color theme change listener
         this.addEventListener(document, 'colorThemeChange', this.handleColorThemeChange.bind(this));
 
-        console.log('[UI] Event listeners setup complete');
+        this.logger.info('Event listeners setup complete');
     }
 
     /**
@@ -233,6 +239,17 @@ class UIManager {
             this.eventListeners.set(element, new Map());
         }
         this.eventListeners.get(element).set(event, handler);
+    }
+
+    /**
+     * Emit custom event
+     * @param {string} eventName - Event name
+     * @param {Object} detail - Event detail data
+     */
+    emit(eventName, detail = {}) {
+        const event = new CustomEvent(eventName, { detail });
+        document.dispatchEvent(event);
+        this.logger.debug(`Emitted event: ${eventName}`, detail);
     }
 
     /**
@@ -258,10 +275,16 @@ class UIManager {
 
         // Update button states
         this.updateUndoRedoButtons(false, false);
-        try { this.updateThemeToggle(); } catch(e) { console.error('Theme init failed:', e); this.setDefaultTheme(); } // Fallback: document.documentElement.setAttribute('data-theme', 'light');
+        try { this.updateThemeToggle(); } catch(e) { this.logger.error('Theme init failed', e); this.setDefaultTheme(); } // Fallback: document.documentElement.setAttribute('data-theme', 'light');
 
         // Setup color theme dropdown
         this.setupColorThemeDropdown();
+
+        // Ensure dropdown starts in closed state
+        this.closeDropdownDirect('colorThemeDropdown');
+
+        // Setup navigation event listeners
+        this.setupNavigationListeners();
 
         // Hide loading states
         this.hideLoadingState();
@@ -273,11 +296,11 @@ class UIManager {
      */
     async setupInitialState() {
         if (this.initialized) {
-            console.log('[UI] Initial state already set up, skipping');
+            this.logger.info('Initial state setup complete');
             return;
         }
         this.initializeUIState();
-        console.log('[UI] Initial state setup complete');
+        this.logger.info('Initial state setup complete');
     }
 
     /**
@@ -296,7 +319,7 @@ class UIManager {
         // Show selected dashboard
         this.showDashboard(view);
 
-        console.log(`[UI] Switched to view: ${view}`);
+        this.logger.info(`Switched to view: ${view}`);
     }
 
 
@@ -365,7 +388,7 @@ class UIManager {
             element.classList.remove('hidden');
             element.style.display = '';
             element.setAttribute('aria-hidden', 'false');
-            console.log(`[UI] Element shown: ${elementKey}`);
+            this.logger.debug(`Element shown: ${elementKey}`);
         }
     }
 
@@ -378,7 +401,7 @@ class UIManager {
         if (element) {
             element.classList.add('hidden');
             element.style.display = 'none';
-            console.log(`[UI] Element hidden: ${elementKey}`);
+            this.logger.debug(`Element hidden: ${elementKey}`);
         }
     }
 
@@ -407,7 +430,7 @@ class UIManager {
             }
         }
 
-        console.log(`[UI] Sidebar selection updated: ${activeView}`);
+        this.logger.debug(`Sidebar selection updated: ${activeView}`);
     }
 
     /**
@@ -415,7 +438,7 @@ class UIManager {
      * @param {string} activeView - Active view name
      */
     updateNavigationState(activeView) {
-        console.log(`[UI] Navigation state updated: ${activeView}`);
+        this.logger.debug(`Navigation state updated: ${activeView}`);
     }
 
     /**
@@ -423,7 +446,7 @@ class UIManager {
      * @param {Object} stats - Data statistics
      */
     updateDataDisplay(stats = {}) {
-        console.log('[UI] Updating data display with stats:', stats);
+        this.logger.debug('Updating data display with stats:', stats);
 
         // Show success message if data loaded
         if (stats.totalProperties > 0) {
@@ -435,7 +458,30 @@ class UIManager {
         // Force UI refresh
         this.hideLoadingState();
 
-        console.log('[UI] Data display updated');
+        this.logger.info('Data display updated');
+    }
+
+    /**
+     * Force complete UI refresh
+     */
+    forceUIRefresh() {
+        this.logger.info('Forcing complete UI refresh...');
+
+        // Hide loading states
+        this.hideLoadingState();
+
+        // Update all UI elements that depend on data
+        this.updateDataDisplay();
+
+        // Refresh any charts or visualizations
+        if (window.chartRenderer && typeof window.chartRenderer.renderOverviewSankey === 'function') {
+            window.chartRenderer.renderOverviewSankey();
+        }
+
+        // Update navigation state
+        this.updateNavigationState(this.currentView);
+
+        this.logger.info('UI refresh complete');
     }
 
     /**
@@ -447,7 +493,7 @@ class UIManager {
     populateYearPicker(availableYears, includeAll = true, selectedYear = null) {
         const yearPickerHeader = this.getElement('yearPickerHeader');
         if (!yearPickerHeader) {
-            console.warn('[UI] Year picker header not found');
+            this.logger.warn('Year picker header not found');
             return;
         }
 
@@ -486,7 +532,7 @@ class UIManager {
         // Ensure the selected year is properly highlighted
         this.handleYearSelection(selectedYear);
 
-        console.log(`[UI] Populated year picker with selected year: ${selectedYear}, stored: ${this.selectedYear}, showAll: ${showAllOption}, availableYears:`, availableYears);
+        this.logger.debug(`Populated year picker with selected year: ${selectedYear}, stored: ${this.selectedYear}, showAll: ${showAllOption}, availableYears:`, availableYears);
     }
 
     /**
@@ -517,7 +563,7 @@ class UIManager {
     createCompactYearPicker(container, availableYears, selectedYear) {
         // Handle null/undefined availableYears
         if (!availableYears || !Array.isArray(availableYears) || availableYears.length === 0) {
-            console.warn('[UI] No available years provided for compact year picker');
+            this.logger.warn('No available years provided for compact year picker');
             return;
         }
 
@@ -578,7 +624,7 @@ class UIManager {
     populateMonthPicker(includeAll = true, centerMonth = null, availableMonths = null) {
         const monthPickerHeader = this.getElement('monthPickerHeader');
         if (!monthPickerHeader) {
-            console.warn('[UI] Month picker header not found');
+            this.logger.warn('Month picker header not found');
             return;
         }
 
@@ -623,7 +669,7 @@ class UIManager {
             this.createCompactMonthPicker(monthPickerHeader, centerMonth);
         }
 
-        console.log('[UI] Populated month picker with center month:', centerMonth, 'stored:', this.selectedMonth, 'availableMonths:', availableMonths);
+        this.logger.debug('Populated month picker with center month:', centerMonth, 'stored:', this.selectedMonth, 'availableMonths:', availableMonths);
     }
 
     /**
@@ -730,7 +776,7 @@ class UIManager {
         });
         document.dispatchEvent(event);
 
-        console.log(`[UI] Month selected: ${selectedMonth}, stored for persistence`);
+        this.logger.debug(`Month selected: ${selectedMonth}, stored for persistence`);
     }
 
     /**
@@ -794,7 +840,7 @@ class UIManager {
         });
         document.dispatchEvent(event);
 
-        console.log(`[UI] Year selected: ${selectedYear}, stored for persistence`);
+        this.logger.debug(`Year selected: ${selectedYear}, stored for persistence`);
     }
 
     /**
@@ -806,7 +852,7 @@ class UIManager {
 
         if (this.selectedYear === selectedYear) {
 
-            console.log(`[UI] Year picker already updated to: ${selectedYear}, skipping`);
+            this.logger.info(`Year picker already updated to: ${selectedYear}, skipping`);
 
             return;
 
@@ -829,7 +875,7 @@ class UIManager {
             });
         }
 
-        console.log(`[UI] Year picker selection updated to: ${selectedYear}`);
+        this.logger.debug(`Year picker selection updated to: ${selectedYear}`);
     }
 
     /**
@@ -841,7 +887,7 @@ class UIManager {
 
         if (this.selectedMonth === selectedMonth) {
 
-            console.log(`[UI] Month picker already updated to: ${selectedMonth}, skipping`);
+            this.logger.info(`Month picker already updated to: ${selectedMonth}, skipping`);
 
             return;
 
@@ -864,7 +910,7 @@ class UIManager {
             });
         }
 
-        console.log(`[UI] Month picker selection updated to: ${selectedMonth}`);
+        this.logger.debug(`Month picker selection updated to: ${selectedMonth}`);
     }
 
     /**
@@ -874,7 +920,7 @@ class UIManager {
         const yearPicker = this.getElement('yearPicker');
         if (yearPicker) {
             yearPicker.style.display = 'flex';
-            console.log('[UI] Year picker shown');
+            this.logger.debug('Year picker shown');
         }
     }
 
@@ -885,7 +931,7 @@ class UIManager {
         const yearPicker = this.getElement('yearPicker');
         if (yearPicker) {
             yearPicker.style.display = 'none';
-            console.log('[UI] Year picker hidden');
+            this.logger.debug('Year picker hidden');
         }
     }
 
@@ -896,7 +942,7 @@ class UIManager {
         const monthPicker = this.getElement('monthPicker');
         if (monthPicker) {
             monthPicker.style.display = 'flex';
-            console.log('[UI] Month picker shown');
+            this.logger.debug('Month picker shown');
         }
     }
 
@@ -907,7 +953,7 @@ class UIManager {
         const monthPicker = this.getElement('monthPicker');
         if (monthPicker) {
             monthPicker.style.display = 'none';
-            console.log('[UI] Month picker hidden');
+            this.logger.debug('Month picker hidden');
         }
     }
 
@@ -957,7 +1003,7 @@ class UIManager {
         // Disable interactions during loading
         this.setLoadingState(true);
 
-        console.log(`[UI] Showing loading state: ${message}`);
+        this.logger.info(`Showing loading state: ${message}`);
     }
 
     /**
@@ -979,7 +1025,7 @@ class UIManager {
         // Re-enable interactions
         this.setLoadingState(false);
 
-        console.log('[UI] Loading state hidden');
+        this.logger.info('Loading state hidden');
     }
 
     /**
@@ -1008,7 +1054,7 @@ class UIManager {
      * @param {string} title - Error title
      */
     showError(message, title = 'Error') {
-        console.error(`[UI] ${title}: ${message}`);
+        this.logger.error(`${title}: ${message}`);
 
         // Hide loading state
         this.hideLoadingState();
@@ -1058,7 +1104,7 @@ class UIManager {
             `;
         }
 
-        console.log('[UI] Empty state displayed');
+        this.logger.info('Empty state displayed');
     }
 
     /**
@@ -1096,7 +1142,7 @@ class UIManager {
             }, duration);
         }
 
-        console.log(`[UI] Toast shown: ${type} - ${message}`);
+        this.logger.debug(`Toast shown: ${type} - ${message}`);
     }
 
     /**
@@ -1120,7 +1166,7 @@ class UIManager {
             }
         }, 100);
 
-        console.log(`[UI] Modal opened: ${modalKey}`);
+        this.logger.debug(`Modal opened: ${modalKey}`);
     }
 
     /**
@@ -1142,7 +1188,7 @@ class UIManager {
             triggerBtn.focus();
         }
 
-        console.log(`[UI] Modal closed: ${modalKey}`);
+        this.logger.debug(`Modal closed: ${modalKey}`);
     }
 
     /**
@@ -1161,15 +1207,50 @@ class UIManager {
      * @param {string} dropdownKey - Dropdown element key
      */
     toggleDropdown(dropdownKey) {
-        const dropdown = this.getElement(dropdownKey);
-        if (!dropdown) {return;}
+        // Use direct DOM queries for reliability
+        const dropdown = document.getElementById(dropdownKey);
+        if (!dropdown) {
+            return;
+        }
 
         const isOpen = dropdown.classList.contains('open');
 
         if (isOpen) {
-            this.closeDropdown(dropdownKey);
+            this.closeDropdownDirect(dropdownKey);
         } else {
-            this.openDropdown(dropdownKey);
+            this.openDropdownDirect(dropdownKey);
+        }
+    }
+
+    /**
+     * Open dropdown using direct DOM queries
+     * @param {string} dropdownKey - Dropdown element key
+     */
+    openDropdownDirect(dropdownKey) {
+        const dropdown = document.getElementById(dropdownKey);
+        const dropdownMenu = document.getElementById(dropdownKey.replace('Dropdown', 'Menu'));
+        const dropdownBtn = document.getElementById(dropdownKey.replace('Dropdown', 'Btn'));
+
+        if (dropdown && dropdownMenu && dropdownBtn) {
+            dropdown.classList.add('open');
+            dropdownBtn.setAttribute('aria-expanded', 'true');
+            dropdownMenu.setAttribute('aria-hidden', 'false');
+        }
+    }
+
+    /**
+     * Close dropdown using direct DOM queries
+     * @param {string} dropdownKey - Dropdown element key
+     */
+    closeDropdownDirect(dropdownKey) {
+        const dropdown = document.getElementById(dropdownKey);
+        const dropdownMenu = document.getElementById(dropdownKey.replace('Dropdown', 'Menu'));
+        const dropdownBtn = document.getElementById(dropdownKey.replace('Dropdown', 'Btn'));
+
+        if (dropdown && dropdownMenu && dropdownBtn) {
+            dropdown.classList.remove('open');
+            dropdownBtn.setAttribute('aria-expanded', 'false');
+            dropdownMenu.setAttribute('aria-hidden', 'true');
         }
     }
 
@@ -1178,20 +1259,22 @@ class UIManager {
      * @param {string} dropdownKey - Dropdown element key
      */
     openDropdown(dropdownKey) {
+        this.logger.debug(`Opening dropdown: ${dropdownKey}`);
         const dropdown = this.getElement(dropdownKey);
         const dropdownMenu = this.getElement(dropdownKey.replace('Btn', 'Menu'));
         const dropdownBtn = this.getElement(dropdownKey);
+
+        this.logger.debug(`Dropdown elements:`, {
+            dropdown: !!dropdown,
+            dropdownMenu: !!dropdownMenu,
+            dropdownBtn: !!dropdownBtn,
+            dropdownMenuChildren: dropdownMenu ? dropdownMenu.children.length : 0
+        });
 
         if (dropdown && dropdownMenu && dropdownBtn) {
             dropdown.classList.add('open');
             dropdownBtn.setAttribute('aria-expanded', 'true');
             dropdownMenu.setAttribute('aria-hidden', 'false');
-
-            // Focus first menu item
-            const firstItem = dropdownMenu.querySelector('.dropdown-item');
-            if (firstItem) {
-                setTimeout(() => firstItem.focus(), 100);
-            }
         }
     }
 
@@ -1200,14 +1283,19 @@ class UIManager {
      * @param {string} dropdownKey - Dropdown element key
      */
     closeDropdown(dropdownKey) {
+        this.logger.debug(`Closing dropdown: ${dropdownKey}`);
         const dropdown = this.getElement(dropdownKey);
         const dropdownMenu = this.getElement(dropdownKey.replace('Btn', 'Menu'));
         const dropdownBtn = this.getElement(dropdownKey);
 
         if (dropdown && dropdownMenu && dropdownBtn) {
+            this.logger.debug(`Removing 'open' class from dropdown`);
             dropdown.classList.remove('open');
             dropdownBtn.setAttribute('aria-expanded', 'false');
             dropdownMenu.setAttribute('aria-hidden', 'true');
+            this.logger.debug(`Dropdown should now be closed`);
+        } else {
+            this.logger.error(`Missing dropdown elements for: ${dropdownKey}`);
         }
     }
 
@@ -1238,7 +1326,7 @@ class UIManager {
             }
         }
 
-        console.log(`[UI] Detail panel opened: ${title}`);
+        this.logger.debug(`Detail panel opened: ${title}`);
     }
 
     /**
@@ -1258,7 +1346,7 @@ class UIManager {
             }
         }
 
-        console.log('[UI] Detail panel closed');
+        this.logger.debug('Detail panel closed');
     }
 
     /**
@@ -1368,7 +1456,7 @@ class UIManager {
             appContainer.classList.toggle('desktop', !isMobile && !isTablet);
         }
 
-        console.log(`[UI] Responsive layout updated: ${isMobile ? 'mobile' : isTablet ? 'tablet' : 'desktop'}`);
+        this.logger.debug(`Responsive layout updated: ${isMobile ? 'mobile' : isTablet ? 'tablet' : 'desktop'}`);
     }
 
     /**
@@ -1384,7 +1472,7 @@ class UIManager {
         // Update any theme-aware elements
         this.updateThemeAwareElements(theme, colors);
 
-        console.log(`[UI] Theme changed to: ${theme}`);
+        this.logger.info(`Theme changed to: ${theme}`);
     }
 
     /**
@@ -1397,7 +1485,7 @@ class UIManager {
         // Update color theme button text
         this.updateColorThemeButton(theme);
 
-        console.log(`[UI] Color theme changed to: ${theme}`);
+        this.logger.info(`Color theme changed to: ${theme}`);
     }
 
     /**
@@ -1405,7 +1493,7 @@ class UIManager {
      * @param {string} themeName - Current color theme name
      */
     updateColorThemeButton(themeName) {
-        const colorThemeBtn = this.getElement('colorThemeBtn');
+        const colorThemeBtn = document.getElementById('colorThemeBtn');
         if (colorThemeBtn) {
             const themeData = this.themeManager.getColorTheme(themeName);
             const displayName = themeData ? themeData.name : 'Default';
@@ -1415,40 +1503,200 @@ class UIManager {
     }
 
     /**
+     * Setup navigation event listeners
+     */
+    setupNavigationListeners() {
+        this.logger.debug('Setting up navigation listeners...');
+
+        // Use direct DOM queries to ensure we find elements
+        const overviewBtn = document.getElementById('overviewBtn');
+        const propertiesBtn = document.getElementById('propertiesBtn');
+        const analyticsBtn = document.getElementById('analyticsBtn');
+        const darkModeToggle = document.getElementById('darkModeToggle');
+        const historyBtn = document.getElementById('historyBtn');
+        const undoBtn = document.getElementById('undoBtn');
+        const redoBtn = document.getElementById('redoBtn');
+        const colorThemeBtn = document.getElementById('colorThemeBtn');
+
+        this.logger.debug('Direct element queries:', {
+            overviewBtn: !!overviewBtn,
+            propertiesBtn: !!propertiesBtn,
+            analyticsBtn: !!analyticsBtn,
+            darkModeToggle: !!darkModeToggle,
+            historyBtn: !!historyBtn,
+            undoBtn: !!undoBtn,
+            redoBtn: !!redoBtn,
+            colorThemeBtn: !!colorThemeBtn
+        });
+
+        // Sidebar navigation
+        if (overviewBtn) {
+            overviewBtn.addEventListener('click', (e) => {
+                this.logger.debug('Overview button clicked');
+                e.preventDefault();
+                e.stopPropagation();
+                this.setCurrentView('overview');
+                this.emit('viewChange', { view: 'overview' });
+            });
+            this.logger.debug('Overview button listener attached');
+        } else {
+            this.logger.warn('Overview button not found');
+        }
+
+        if (propertiesBtn) {
+            propertiesBtn.addEventListener('click', (e) => {
+                this.logger.debug('Properties button clicked');
+                e.preventDefault();
+                e.stopPropagation();
+                this.setCurrentView('properties');
+                this.emit('viewChange', { view: 'properties' });
+            });
+            this.logger.debug('Properties button listener attached');
+        } else {
+            this.logger.warn('Properties button not found');
+        }
+
+        if (analyticsBtn) {
+            analyticsBtn.addEventListener('click', (e) => {
+                this.logger.debug('Analytics button clicked');
+                e.preventDefault();
+                e.stopPropagation();
+                this.setCurrentView('analytics');
+                this.emit('viewChange', { view: 'analytics' });
+            });
+            this.logger.debug('Analytics button listener attached');
+        } else {
+            this.logger.warn('Analytics button not found');
+        }
+
+        // Header actions
+        if (darkModeToggle) {
+            darkModeToggle.addEventListener('click', (e) => {
+                this.logger.debug('Dark mode toggle clicked');
+                e.preventDefault();
+                e.stopPropagation();
+                if (this.themeManager && this.themeManager.toggleTheme) {
+                    this.themeManager.toggleTheme();
+                }
+            });
+            this.logger.debug('Dark mode toggle listener attached');
+        }
+
+        if (historyBtn) {
+            historyBtn.addEventListener('click', (e) => {
+                this.logger.debug('History button clicked');
+                e.preventDefault();
+                e.stopPropagation();
+                this.emit('historyClick');
+            });
+            this.logger.debug('History button listener attached');
+        }
+
+        if (undoBtn) {
+            undoBtn.addEventListener('click', (e) => {
+                this.logger.debug('Undo button clicked');
+                e.preventDefault();
+                e.stopPropagation();
+                this.emit('undoClick');
+            });
+            this.logger.debug('Undo button listener attached');
+        }
+
+        if (redoBtn) {
+            redoBtn.addEventListener('click', (e) => {
+                this.logger.debug('Redo button clicked');
+                e.preventDefault();
+                e.stopPropagation();
+                this.emit('redoClick');
+            });
+            this.logger.debug('Redo button listener attached');
+        }
+
+        if (colorThemeBtn) {
+            this.logger.debug('Color theme button found, attaching listener');
+            this.logger.debug('Button attributes:', {
+                id: colorThemeBtn.id,
+                className: colorThemeBtn.className,
+                ariaExpanded: colorThemeBtn.getAttribute('aria-expanded'),
+                disabled: colorThemeBtn.disabled,
+                style: colorThemeBtn.style.pointerEvents
+            });
+
+            colorThemeBtn.addEventListener('click', (e) => {
+                this.logger.debug('Color theme button clicked - attempting to toggle dropdown');
+                this.logger.debug('Dropdown element exists:', !!document.getElementById('colorThemeDropdown'));
+                this.logger.debug('Dropdown menu exists:', !!document.getElementById('colorThemeMenu'));
+                e.preventDefault();
+                e.stopPropagation();
+                this.toggleDropdown('colorThemeDropdown');
+            });
+            this.logger.debug('Color theme button listener attached');
+        } else {
+            this.logger.warn('Color theme button not found');
+        }
+
+        // Also try to find and setup the dropdown menu click handlers
+        const colorThemeMenu = this.getElement('colorThemeMenu');
+        if (colorThemeMenu) {
+            this.logger.debug('Color theme menu found, children:', colorThemeMenu.children.length);
+            this.addEventListener(colorThemeMenu, 'click', (event) => {
+                const menuItem = event.target.closest('.dropdown-item');
+                if (menuItem) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    const themeName = menuItem.getAttribute('data-theme');
+                    this.logger.debug('Color theme menu item clicked:', themeName);
+                    if (themeName && this.themeManager) {
+                        this.themeManager.setColorTheme(themeName);
+                        this.closeDropdown('colorThemeDropdown');
+                    }
+                }
+            });
+            this.logger.debug('Color theme menu click listener attached');
+        } else {
+            this.logger.warn('Color theme menu not found');
+        }
+
+        this.logger.info('Navigation listeners setup complete');
+    }
+
+    /**
      * Setup color theme dropdown
      */
     setupColorThemeDropdown() {
-        const colorThemeBtn = this.getElement('colorThemeBtn');
-        const colorThemeMenu = this.getElement('colorThemeMenu');
+        const colorThemeBtn = document.getElementById('colorThemeBtn');
+        const colorThemeMenu = document.getElementById('colorThemeMenu');
 
         if (colorThemeBtn && colorThemeMenu) {
             // Generate dropdown options dynamically from theme definitions
             this.populateColorThemeDropdown();
 
             // Toggle dropdown on button click
-            this.addEventListener(colorThemeBtn, 'click', (event) => {
+            colorThemeBtn.addEventListener('click', (event) => {
                 event.preventDefault();
+                event.stopPropagation();
                 this.toggleDropdown('colorThemeDropdown');
             });
 
             // Handle menu item clicks (using event delegation for dynamic content)
-            this.addEventListener(colorThemeMenu, 'click', (event) => {
+            colorThemeMenu.addEventListener('click', (event) => {
                 const menuItem = event.target.closest('.dropdown-item');
                 if (menuItem) {
                     event.preventDefault();
+                    event.stopPropagation();
                     const themeName = menuItem.getAttribute('data-theme');
-                    if (themeName) {
+                    if (themeName && this.themeManager) {
                         this.themeManager.setColorTheme(themeName);
-                        this.closeDropdown('colorThemeDropdown');
+                        this.closeDropdownDirect('colorThemeDropdown');
                     }
                 }
             });
 
             // Close dropdown when clicking outside
-            this.addEventListener(document, 'click', (event) => {
-                const dropdown = this.getElement('colorThemeDropdown');
+            document.addEventListener('click', (event) => {
+                const dropdown = document.getElementById('colorThemeDropdown');
                 if (dropdown && !dropdown.contains(event.target)) {
-                    this.closeDropdown('colorThemeDropdown');
+                    this.closeDropdownDirect('colorThemeDropdown');
                 }
             });
 
@@ -1461,8 +1709,10 @@ class UIManager {
      * Populate color theme dropdown with options from theme definitions
      */
     populateColorThemeDropdown() {
-        const colorThemeMenu = this.getElement('colorThemeMenu');
-        if (!colorThemeMenu) {return;}
+        const colorThemeMenu = document.getElementById('colorThemeMenu');
+        if (!colorThemeMenu) {
+            return;
+        }
 
         // Clear existing options
         colorThemeMenu.innerHTML = '';
@@ -1480,8 +1730,6 @@ class UIManager {
 
             colorThemeMenu.appendChild(menuItem);
         });
-
-        console.log(`[UI] Populated color theme dropdown with ${themeOptions.length} themes`);
     }
 
     /**
@@ -1567,7 +1815,7 @@ class UIManager {
         if (el) {
             el.textContent = value;
         } else {
-            console.warn('Element not found');
+            this.logger.warn('Element not found');
         }
     }
 
@@ -1784,17 +2032,16 @@ class UIManager {
      */
     updateThemeToggle() {
         if (typeof this.themeManager?.isDarkModeActive !== 'function') {
-            console.warn('ThemeManager incomplete; defaulting to light.');
-            this.themeManager = { isDarkModeActive: () => false, setDarkMode: () => {} };
+            this.logger.warn('ThemeManager incomplete; defaulting to light.');
+            this.themeManager = { isDarkModeActive: () => false, toggleTheme: () => {} };
         }
         const isDark = this.themeManager.isDarkModeActive();
         const toggleEl = this.getElement('theme-toggle', true); // createIfMissing=true from prev.
         if (toggleEl) {
             toggleEl.classList.toggle('dark-mode', isDark);
-            toggleEl.innerHTML = isDark ? '☀️' : '🌙';
-            toggleEl.onclick = () => this.themeManager.setDarkMode(!isDark);
+            toggleEl.textContent = isDark ? 'Light' : 'Dark';
         } else {
-            console.warn('Theme toggle element missing.');
+            this.logger.warn('Theme toggle element missing.');
         }
     }
 
@@ -1836,21 +2083,171 @@ class UIManager {
 
         this._initialized = false;  // Reset for potential re-init
 
-        console.log('[UI] UI manager cleaned up');
+        this.logger.info('UI manager cleaned up');
+    }
+
+    /**
+     * Show onboarding tooltips for empty state
+     */
+    showOnboardingTooltips() {
+        this.logger.info('Showing onboarding tooltips for empty state');
+
+        // Remove any existing tooltips first
+        this.hideOnboardingTooltips();
+
+        // Create tooltip for history button (import data or snapshot)
+        const historyBtn = this.getElement('historyBtn');
+        if (historyBtn) {
+            this.createTooltip(historyBtn, 'Import data or snapshot', 'bottom', 'history-tooltip');
+        }
+
+        // Create tooltip for properties button (add property)
+        const propertiesBtn = this.getElement('propertiesBtn');
+        if (propertiesBtn) {
+            this.createTooltip(propertiesBtn, 'Add property', 'right', 'properties-tooltip');
+        }
+
+        this.logger.info('Onboarding tooltips displayed');
+    }
+
+    /**
+     * Hide onboarding tooltips
+     */
+    hideOnboardingTooltips() {
+        // Remove existing tooltips
+        const existingTooltips = document.querySelectorAll('.onboarding-tooltip');
+        existingTooltips.forEach(tooltip => tooltip.remove());
+
+        this.logger.info('Onboarding tooltips hidden');
+    }
+
+    /**
+     * Create a tooltip for an element
+     * @param {HTMLElement} targetElement - Element to attach tooltip to
+     * @param {string} text - Tooltip text
+     * @param {string} position - Tooltip position ('top', 'bottom', 'left', 'right')
+     * @param {string} tooltipId - Unique ID for the tooltip
+     */
+    createTooltip(targetElement, text, position = 'top', tooltipId = null) {
+        if (!targetElement) {
+            this.logger.warn('Cannot create tooltip: target element not found');
+            return;
+        }
+
+        // Create tooltip element
+        const tooltip = document.createElement('div');
+        tooltip.className = 'onboarding-tooltip';
+        tooltip.textContent = text;
+        tooltip.setAttribute('data-position', position);
+        if (tooltipId) {
+            tooltip.id = tooltipId;
+        }
+
+        // Position the tooltip
+        this.positionTooltip(tooltip, targetElement, position);
+
+        // Add to DOM
+        document.body.appendChild(tooltip);
+
+        // Add animation class after a brief delay
+        setTimeout(() => {
+            tooltip.classList.add('visible');
+        }, 100);
+
+        // Auto-hide after 10 seconds
+        setTimeout(() => {
+            this.hideTooltip(tooltip);
+        }, 10000);
+
+        // Hide on click
+        targetElement.addEventListener('click', () => {
+            this.hideTooltip(tooltip);
+        }, { once: true });
+
+        this.logger.debug(`Created tooltip: ${text} on ${targetElement.id || targetElement.className}`);
+    }
+
+    /**
+     * Position tooltip relative to target element
+     * @param {HTMLElement} tooltip - Tooltip element
+     * @param {HTMLElement} target - Target element
+     * @param {string} position - Position ('top', 'bottom', 'left', 'right')
+     */
+    positionTooltip(tooltip, target, position) {
+        const targetRect = target.getBoundingClientRect();
+        const tooltipRect = tooltip.getBoundingClientRect();
+
+        let top, left;
+
+        switch (position) {
+            case 'top':
+                top = targetRect.top - 10 - tooltipRect.height;
+                left = targetRect.left + (targetRect.width / 2) - (tooltipRect.width / 2);
+                break;
+            case 'bottom':
+                top = targetRect.bottom + 10;
+                left = targetRect.left + (targetRect.width / 2) - (tooltipRect.width / 2);
+                break;
+            case 'left':
+                top = targetRect.top + (targetRect.height / 2) - (tooltipRect.height / 2);
+                left = targetRect.left - 10 - tooltipRect.width;
+                break;
+            case 'right':
+                top = targetRect.top + (targetRect.height / 2) - (tooltipRect.height / 2);
+                left = targetRect.right + 10;
+                break;
+            default:
+                // Default to bottom
+                top = targetRect.bottom + 10;
+                left = targetRect.left + (targetRect.width / 2) - (tooltipRect.width / 2);
+        }
+
+        // Ensure tooltip stays within viewport
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+
+        if (left < 10) left = 10;
+        if (left + tooltipRect.width > viewportWidth - 10) {
+            left = viewportWidth - tooltipRect.width - 10;
+        }
+        if (top < 10) top = 10;
+        if (top + tooltipRect.height > viewportHeight - 10) {
+            top = viewportHeight - tooltipRect.height - 10;
+        }
+
+        tooltip.style.position = 'fixed';
+        tooltip.style.top = `${top}px`;
+        tooltip.style.left = `${left}px`;
+        tooltip.style.zIndex = '10000';
+    }
+
+    /**
+     * Hide a specific tooltip
+     * @param {HTMLElement} tooltip - Tooltip element to hide
+     */
+    hideTooltip(tooltip) {
+        if (tooltip && tooltip.parentNode) {
+            tooltip.classList.remove('visible');
+            setTimeout(() => {
+                if (tooltip.parentNode) {
+                    tooltip.parentNode.removeChild(tooltip);
+                }
+            }, 300); // Allow time for fade out animation
+        }
     }
 
     /**
      * Debug UI information
      */
     debug() {
-        console.log('[UI DEBUG] === UI MANAGER INFO ===');
-        console.log('[UI DEBUG] Cached elements:', this.elements.size);
-        console.log('[UI DEBUG] Active modals:', this.activeModals.size);
-        console.log('[UI DEBUG] Current view:', this.currentView);
-        console.log('[UI DEBUG] Is loading:', this.isLoading);
-        console.log('[UI DEBUG] Event listeners:', this.eventListeners.size);
-        console.log('[UI DEBUG] Statistics:', this.getUIStatistics());
-        console.log('[UI DEBUG] === END DEBUG ===');
+        this.logger.info('=== UI MANAGER INFO ===');
+        this.logger.info('Cached elements:', this.elements.size);
+        this.logger.info('Active modals:', this.activeModals.size);
+        this.logger.info('Current view:', this.currentView);
+        this.logger.info('Is loading:', this.isLoading);
+        this.logger.info('Event listeners:', this.eventListeners.size);
+        this.logger.info('Statistics:', this.getUIStatistics());
+        this.logger.info('=== END DEBUG ===');
     }
 }
 

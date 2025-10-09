@@ -7,6 +7,8 @@
  * - Percentage calculations
  */
 
+import logger from './Logger.js';
+
 class Formatter {
     constructor() {
         // Currency formatting options for Indian Rupees
@@ -26,6 +28,8 @@ class Formatter {
             notation: 'compact',
             compactDisplay: 'short',
         };
+
+        this.logger = logger.createModuleLogger('FORMATTER');
     }
 
     /**
@@ -45,7 +49,7 @@ class Formatter {
             // Preserve negative sign for display to maintain negative values
             return new Intl.NumberFormat('en-IN', options).format(amount);
         } catch (error) {
-            console.warn('Currency formatting failed, using fallback:', error);
+            this.logger.warn('Currency formatting failed, using fallback:', error);
             return `₹${Math.round(amount).toLocaleString('en-IN')}`;
         }
     }
@@ -161,32 +165,6 @@ class Formatter {
         return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
     }
 
-    /**
-     * Format a quarter string (e.g., "Q1 2023")
-     * @param {string} quarter - Quarter string
-     * @returns {string} Formatted quarter string
-     */
-    formatQuarter(quarter) {
-        if (!quarter || typeof quarter !== 'string') {
-            return '';
-        }
-
-        // Ensure proper format (Q1 2023)
-        if (!quarter.match(/^Q[1-4]\s\d{4}$/)) {
-            return quarter;
-        }
-
-        return quarter;
-    }
-
-    /**
-     * Get quarter name from quarter string
-     * @param {string} quarter - Quarter string (e.g., "Q1 2023")
-     * @returns {string} Quarter name (e.g., "Q1 2023")
-     */
-    getQuarterName(quarter) {
-        return this.formatQuarter(quarter);
-    }
 
     /**
      * Calculate and format percentage of total
@@ -257,7 +235,7 @@ class Formatter {
      */
     async initialize() {
         // No initialization needed for formatter
-        console.log('[FORMATTER] Formatter initialized');
+        this.logger.info('Formatter initialized');
     }
 }
 

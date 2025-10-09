@@ -4,6 +4,15 @@
  */
 
 import ThemeManager from '../modules/core/ThemeManager.js';
+import logger from '../modules/utils/Logger.js';
+
+// Mock logger
+jest.mock('../modules/utils/Logger.js', () => ({
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    debug: jest.fn(),
+}));
 
 describe('ThemeManager', () => {
     let themeManager;
@@ -583,15 +592,15 @@ describe('ThemeManager', () => {
         });
 
         test('should handle save with quota exceeded error and log', () => {
-            const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+            const loggerErrorSpy = jest.spyOn(logger, 'error').mockImplementation(() => {});
             localStorage.setItem.mockImplementation(() => {
                 throw new DOMException('QuotaExceededError', 'QuotaExceededError');
             });
 
             themeManager.savePreference();
 
-            expect(console.error).toHaveBeenCalledWith('Save failed');
-            consoleErrorSpy.mockRestore();
+            expect(logger.error).toHaveBeenCalledWith('THEME', 'Save failed');
+            loggerErrorSpy.mockRestore();
         });
 
         test('should toggle successfully multiple times without no-op', () => {

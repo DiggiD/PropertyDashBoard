@@ -685,10 +685,18 @@ describe('ModuleLoader', () => {
         });
 
         test('should debug module loader state', () => {
+            // Enable debug mode in logger to see debug messages
+            logger.setDebugMode(true);
+
             const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
             moduleLoader.debug();
-            expect(consoleSpy).toHaveBeenCalledWith('[MODULELOADER DEBUG] === MODULE LOADER STATUS ===');
+            expect(consoleSpy).toHaveBeenCalledWith(
+                expect.stringMatching(/\[.*\] \[DEBUG\] \[MODULELOADER\] === MODULE LOADER STATUS ===/)
+            );
             consoleSpy.mockRestore();
+
+            // Reset debug mode
+            logger.setDebugMode(false);
         });
 
         test('should reload module and call cleanup', async () => {

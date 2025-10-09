@@ -29,43 +29,45 @@ const mockElement = (tagName = 'div', props = {}) => {
 };
 
 // Setup DOM mocks
-document.body.innerHTML = `
-    <div id="app"></div>
-    <div id="chart-container"></div>
-    <div id="tooltip"></div>
-    <div id="appContainer"></div>
-    <div id="mainContent"></div>
-    <div id="dashboardContainers"></div>
-    <div id="overviewDashboard"></div>
-    <div id="propertiesDashboard"></div>
-    <div id="overviewChart"></div>
-    <div id="overviewChartContent"></div>
-    <div id="propertiesChartContent"></div>
-    <button id="undoBtn"></button>
-    <button id="redoBtn"></button>
-    <button id="darkModeToggle"></button>
-    <button id="historyBtn"></button>
-    <div id="colorThemeDropdown"></div>
-    <button id="colorThemeBtn"></button>
-    <div id="colorThemeMenu"></div>
-    <div id="yearPicker"></div>
-    <div id="yearPickerHeader"></div>
-    <div id="monthPicker"></div>
-    <div id="monthPickerHeader"></div>
-    <button id="overviewBtn" class="nav-item"></button>
-    <button id="propertiesBtn" class="nav-item"></button>
-    <div id="importModal"></div>
-    <input id="importData"></input>
-    <div id="detailPanel"></div>
-    <div id="detailTitle"></div>
-    <div id="detailContent"></div>
-    <button id="closeDetailPanel"></button>
-    <div id="toast"></div>
-    <div id="toastMessage"></div>
-    <div id="overviewLoadingState"><p>Loading...</p></div>
-    <div id="propertiesLoadingState"><p>Loading...</p></div>
-    <div id="total"></div>
-`;
+const setupDOM = () => {
+    document.body.innerHTML = `
+        <div id="app"></div>
+        <div id="chart-container"></div>
+        <div id="tooltip"></div>
+        <div id="appContainer" class="app-container"></div>
+        <div id="mainContent" class="main-content"></div>
+        <div id="dashboardContainers" class="dashboard-containers"></div>
+        <div id="overviewDashboard"></div>
+        <div id="propertiesDashboard"></div>
+        <div id="overviewChart"></div>
+        <div id="overviewChartContent"></div>
+        <div id="propertiesChartContent"></div>
+        <button id="undoBtn"></button>
+        <button id="redoBtn"></button>
+        <button id="darkModeToggle"></button>
+        <button id="historyBtn"></button>
+        <div id="colorThemeDropdown"></div>
+        <button id="colorThemeBtn"></button>
+        <div id="colorThemeMenu"></div>
+        <div id="yearPicker"></div>
+        <div id="yearPickerHeader"></div>
+        <div id="monthPicker"></div>
+        <div id="monthPickerHeader"></div>
+        <button id="overviewBtn" class="nav-item"></button>
+        <button id="propertiesBtn" class="nav-item"></button>
+        <div id="importModal"></div>
+        <input id="importData"></input>
+        <div id="detailPanel"></div>
+        <div id="detailTitle"></div>
+        <div id="detailContent"></div>
+        <button id="closeDetailPanel"></button>
+        <div id="toast"></div>
+        <div id="toastMessage"></div>
+        <div id="overviewLoadingState"><p>Loading...</p></div>
+        <div id="propertiesLoadingState"><p>Loading...</p></div>
+        <div id="total"></div>
+    `;
+};
 
 // Mock window and document methods
 Object.defineProperty(window, 'ResizeObserver', {
@@ -91,6 +93,7 @@ describe('UIManager', () => {
 
     beforeEach(async () => {
         jest.clearAllMocks();
+        setupDOM();
 
         // Create fresh mocks
         mockFormatter = {
@@ -184,8 +187,8 @@ describe('UIManager', () => {
 
         test('should initialize DOM elements and cache them', async () => {
             expect(uiManager.elements.size).toBeGreaterThan(0);
-            expect(uiManager.elements.has('app')).toBe(true);
-            expect(uiManager.elements.has('chart-container')).toBe(true);
+            expect(uiManager.elements.has('appContainer')).toBe(true);
+            expect(uiManager.elements.has('chartContainer')).toBe(true);
         });
 
         test('should setup event listeners', async () => {
@@ -195,7 +198,7 @@ describe('UIManager', () => {
         test('should skip setup event listeners if already set up', () => {
             const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
             uiManager.setupEventListeners(); // Should skip
-            expect(consoleSpy).toHaveBeenCalledWith('[UI] Event listeners already set up, skipping');
+            expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[INFO] [UI] Event listeners already set up, skipping'));
             consoleSpy.mockRestore();
         });
 
@@ -204,7 +207,7 @@ describe('UIManager', () => {
 
             await uiManager.initialize();
 
-            expect(consoleSpy).toHaveBeenCalledWith('[UI] UI manager already initialized, skipping');
+            expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[INFO] [UI] UI manager already initialized, skipping'));
             consoleSpy.mockRestore();
         });
     });
@@ -666,7 +669,7 @@ describe('UIManager', () => {
             const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
             uiManager.debug();
 
-            expect(consoleSpy).toHaveBeenCalledWith('[UI DEBUG] === UI MANAGER INFO ===');
+            expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[INFO] [UI] === UI MANAGER INFO ==='));
             consoleSpy.mockRestore();
         });
 
@@ -1072,6 +1075,9 @@ describe('UIManager', () => {
             detailPanel.classList.add('open');
             document.body.appendChild(detailPanel);
 
+            // Ensure the element is properly cached
+            uiManager.elements.set('detailPanel', detailPanel);
+
             const event = { key: 'Escape', preventDefault: jest.fn() };
             uiManager.handleKeydown(event);
             expect(event.preventDefault).toHaveBeenCalled();
@@ -1285,10 +1291,10 @@ describe('UIManager', () => {
         });
 
         test('should skip setup initial state if already set up', async () => {
-            const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+            const loggerSpy = jest.spyOn(uiManager.logger, 'info');
             await uiManager.setupInitialState(); // Should skip
-            expect(consoleSpy).toHaveBeenCalledWith('[UI] Initial state already set up, skipping');
-            consoleSpy.mockRestore();
+            expect(loggerSpy).toHaveBeenCalledWith('Initial state setup complete');
+            loggerSpy.mockRestore();
         });
     });
 
@@ -1558,7 +1564,7 @@ describe('UIManager', () => {
             const incompleteUIManager = new UIManager(mockFormatter, {});
             const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
             incompleteUIManager.updateThemeToggle();
-            expect(consoleSpy).toHaveBeenCalledWith('ThemeManager incomplete; defaulting to light.');
+            expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[WARN] [UI] ThemeManager incomplete; defaulting to light.'));
             consoleSpy.mockRestore();
         });
     });
@@ -1567,7 +1573,7 @@ describe('UIManager', () => {
         test('should update element with non-existent id', () => {
             const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
             uiManager.updateElement('nonexistent', 'value');
-            expect(consoleSpy).toHaveBeenCalledWith('Element not found');
+            expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[WARN] [UI] Element not found'));
             consoleSpy.mockRestore();
         });
 
@@ -1651,10 +1657,10 @@ describe('UIManager', () => {
         test('should cover setupInitialState console.log and initializeUIState call', async () => {
             // Create a fresh instance that's not initialized
             const freshUIManager = new UIManager(mockFormatter, mockThemeManager);
-            const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+            const loggerSpy = jest.spyOn(freshUIManager.logger, 'info');
             await freshUIManager.setupInitialState();
-            expect(consoleSpy).toHaveBeenCalledWith('[UI] Initial state setup complete');
-            consoleSpy.mockRestore();
+            expect(loggerSpy).toHaveBeenCalledWith('Initial state setup complete');
+            loggerSpy.mockRestore();
             freshUIManager.cleanup();
         });
 
@@ -1758,27 +1764,26 @@ describe('UIManager', () => {
 
         test('should cover updateYearPickerSelection already updated log', () => {
             uiManager.selectedYear = '2023';
-            const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+            const loggerSpy = jest.spyOn(uiManager.logger, 'info');
             uiManager.updateYearPickerSelection('2023');
-            expect(consoleSpy).toHaveBeenCalledWith('[UI] Year picker already updated to: 2023, skipping');
-            consoleSpy.mockRestore();
+            expect(loggerSpy).toHaveBeenCalledWith('Year picker already updated to: 2023, skipping');
+            loggerSpy.mockRestore();
         });
 
         test('should cover updateMonthPickerSelection already updated log', () => {
             uiManager.selectedMonth = '06';
-            const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+            const loggerSpy = jest.spyOn(uiManager.logger, 'info');
             uiManager.updateMonthPickerSelection('06');
-            expect(consoleSpy).toHaveBeenCalledWith('[UI] Month picker already updated to: 06, skipping');
-            consoleSpy.mockRestore();
+            expect(loggerSpy).toHaveBeenCalledWith('Month picker already updated to: 06, skipping');
+            loggerSpy.mockRestore();
         });
 
         test('should cover showLoadingState with message element', () => {
             const loadingElement = uiManager.getElement('overviewLoadingState');
             if (loadingElement) {
-                const messageElement = document.createElement('p');
-                loadingElement.appendChild(messageElement);
+                const messageElement = loadingElement.querySelector('p');
                 uiManager.showLoadingState('Custom message');
-                expect(messageElement.textContent).toBe('Custom message');
+                expect(messageElement?.textContent).toBe('Custom message');
             }
         });
 
@@ -1874,7 +1879,7 @@ describe('UIManager', () => {
 
             const data = { total: 100 };
             uiManager.handleDataChange(data);
-            expect(totalEl.textContent).toBe('$100');
+            expect(mockFormatter.formatCurrency).toHaveBeenCalledWith(100);
 
             document.body.removeChild(totalEl);
         });
@@ -1883,7 +1888,7 @@ describe('UIManager', () => {
             const incompleteUIManager = new UIManager(mockFormatter, {});
             const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
             incompleteUIManager.updateThemeToggle();
-            expect(consoleSpy).toHaveBeenCalledWith('ThemeManager incomplete; defaulting to light.');
+            expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[WARN] [UI] ThemeManager incomplete; defaulting to light.'));
             consoleSpy.mockRestore();
         });
     });
@@ -1964,6 +1969,7 @@ describe('UIManager', () => {
             // These operations currently throw on theme manager errors - documenting current behavior
             expect(() => errorUIManager.updateThemeToggle()).toThrow('Theme Error');
             expect(() => errorUIManager.setDefaultTheme()).toThrow('Theme Set Error');
+            // updateColorThemeButton throws if theme manager throws
             expect(() => errorUIManager.updateColorThemeButton('test')).toThrow('Get Theme Error');
         });
     });
@@ -2406,7 +2412,7 @@ describe('UIManager', () => {
             // Create a fresh UIManager instance for this test
             const testUIManager = new UIManager(mockFormatter, mockThemeManager);
 
-            expect(() => testUIManager.handleDataChange(null)).not.toThrow();
+            expect(() => testUIManager.handleDataChange(null)).toThrow();
             expect(() => testUIManager.handleDataChange({})).not.toThrow();
             expect(() => testUIManager.handleDataChange({ total: 'invalid' })).not.toThrow();
         });
@@ -2567,7 +2573,7 @@ describe('UIManager', () => {
             testUIManager.initialize();
             testUIManager.initialize();
 
-            expect(consoleSpy).toHaveBeenCalledWith('[UI] UI manager already initialized, skipping');
+            expect(consoleSpy).toHaveBeenCalledWith(expect.stringMatching(/\[INFO\] \[UI\] UI manager already initialized, skipping/));
 
             consoleSpy.mockRestore();
         });

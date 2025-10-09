@@ -201,7 +201,7 @@ describe('ChartRenderer with High Coverage', () => {
             chartRenderer.isInitialized = true;
             const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
             await chartRenderer.initialize();
-            expect(consoleSpy).toHaveBeenCalledWith('[CHART] Already initialized, skipping');
+            expect(consoleSpy).toHaveBeenCalledWith(expect.stringMatching(/\[.*\] \[INFO\] \[CHART\] Already initialized, skipping/));
             consoleSpy.mockRestore();
         });
 
@@ -222,7 +222,7 @@ describe('ChartRenderer with High Coverage', () => {
             const originalWarn = console.warn;
             console.warn = jest.fn();
             chartRenderer.setupChartContainers();
-            expect(console.warn).toHaveBeenCalledWith('[CHART] Container overviewChartContent not found');
+            expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('Container overviewChartContent not found'));
             console.warn = originalWarn;
         });
 
@@ -250,7 +250,7 @@ describe('ChartRenderer with High Coverage', () => {
             console.warn = jest.fn();
             mockUIManager.getElement.mockImplementation((id) => id === 'chart-container' ? mockContainer : null);
             chartRenderer.setupChartContainers();
-            expect(console.warn).toHaveBeenCalledWith('[CHART] Container overviewChartContent not found');
+            expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('Container overviewChartContent not found'));
             console.warn = originalWarn;
         });
     });
@@ -772,13 +772,16 @@ describe('ChartRenderer with High Coverage', () => {
         test('should hide tooltips', () => {
             // Mock the tooltip and persistentTooltip to avoid D3 chaining issues
             const mockTooltip = {
-                style: jest.fn(() => mockTooltip),
+                style: { opacity: '1' }, // Mock DOM element style
             };
             const mockPersistentTooltip = {
-                transition() { return this; },
-                duration() { return this; },
-                style() { return this; },
-                remove() { return this; },
+                transition: jest.fn(() => ({
+                    duration: jest.fn(() => ({
+                        style: jest.fn(() => ({
+                            remove: jest.fn(),
+                        })),
+                    })),
+                })),
             };
 
             chartRenderer.tooltip = mockTooltip;
@@ -787,7 +790,7 @@ describe('ChartRenderer with High Coverage', () => {
 
             chartRenderer.hideTooltip();
 
-            expect(mockTooltip.style).toHaveBeenCalledWith('opacity', 0);
+            expect(mockTooltip.style.opacity).toBe('0');
             expect(chartRenderer.persistentTooltip).toBeNull();
             expect(chartRenderer.persistentPos).toBeNull();
         });
@@ -1132,7 +1135,7 @@ describe('ChartRenderer with High Coverage', () => {
             mockUIManager.getElement.mockReturnValue(null);
             const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
             chartRenderer.showError('Test error');
-            expect(consoleSpy).toHaveBeenCalledWith('[CHART] Error placeholder not found, logging error:', 'Test error');
+            expect(consoleSpy).toHaveBeenCalledWith(expect.stringMatching(/\[.*\] \[ERROR\] \[CHART\] Error placeholder not found, logging error/), 'Test error');
             consoleSpy.mockRestore();
         });
 
@@ -1160,7 +1163,7 @@ describe('ChartRenderer with High Coverage', () => {
 
             chartRenderer.showError('Test error message');
 
-            expect(consoleSpy).toHaveBeenCalledWith('[CHART] Error displayed:', 'Test error message');
+            expect(consoleSpy).toHaveBeenCalledWith(expect.stringMatching(/\[.*\] \[ERROR\] \[CHART\] Error displayed/), 'Test error message');
             consoleSpy.mockRestore();
         });
 
@@ -1202,15 +1205,6 @@ describe('ChartRenderer with High Coverage', () => {
             chartRenderer.cleanup(); // Should not throw
         });
 
-        test('should debug chart information', () => {
-            const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-            chartRenderer.debug();
-
-            expect(consoleSpy).toHaveBeenCalledWith('[CHART DEBUG] === CHART RENDERER INFO ===');
-            expect(consoleSpy).toHaveBeenCalledWith('[CHART DEBUG] === END DEBUG ===');
-
-            consoleSpy.mockRestore();
-        });
 
         test('should zoom to bounding box', () => {
             const bbox = [[0, 0], [200, 100]];
@@ -1377,7 +1371,7 @@ describe('ChartRenderer with High Coverage', () => {
 
             await chartRenderer.renderOverviewSankey(mockContainer);
 
-            expect(consoleSpy).toHaveBeenCalledWith('[CHART] buildSankeyData error:', expect.any(Error));
+            expect(consoleSpy).toHaveBeenCalledWith(expect.stringMatching(/\[.*\] \[ERROR\] \[CHART\] buildSankeyData error/), expect.any(Error));
 
             // Restore
             chartRenderer.buildSankeyData = originalBuild;
@@ -1431,7 +1425,7 @@ describe('ChartRenderer with High Coverage', () => {
             chartRenderer.buildSankeyData = jest.fn(() => { throw new Error('Build error'); });
             const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
             await chartRenderer.renderOverviewSankey(mockContainer);
-            expect(consoleSpy).toHaveBeenCalledWith('[CHART] buildSankeyData error:', expect.any(Error));
+            expect(consoleSpy).toHaveBeenCalledWith(expect.stringMatching(/\[.*\] \[ERROR\] \[CHART\] buildSankeyData error/), expect.any(Error));
             chartRenderer.buildSankeyData = originalBuild;
             consoleSpy.mockRestore();
         });
@@ -1449,7 +1443,7 @@ describe('ChartRenderer with High Coverage', () => {
             chartRenderer.createSankey = jest.fn(() => { throw new Error('Render error'); });
             const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
             await chartRenderer.renderOverviewSankey(mockContainer);
-            expect(consoleSpy).toHaveBeenCalledWith('[CHART] Render error:', expect.any(Error));
+            expect(consoleSpy).toHaveBeenCalledWith(expect.stringMatching(/\[.*\] \[ERROR\] \[CHART\] Render error/), expect.any(Error));
             chartRenderer.createSankey = originalRender;
             consoleSpy.mockRestore();
         });

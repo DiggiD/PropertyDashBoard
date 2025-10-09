@@ -7,6 +7,8 @@
  * - Input sanitization
  */
 
+import logger from './Logger.js';
+
 class Validator {
     constructor() {
         // Validation rules
@@ -278,7 +280,7 @@ class Validator {
         }
 
         // Validate current time period
-        const validTimePeriods = ['all', 'year', 'quarter', 'month'];
+        const validTimePeriods = ['all', 'year', 'month'];
         if (data.currentTimePeriod && !validTimePeriods.includes(data.currentTimePeriod)) {
             errors.push(`Invalid time period: ${data.currentTimePeriod}`);
         }
@@ -383,7 +385,7 @@ class Validator {
      */
     async initialize() {
         // No initialization needed for validator
-        console.log('[VALIDATOR] Validator initialized');
+        logger.info('VALIDATOR', 'Validator initialized');
     }
 }
 

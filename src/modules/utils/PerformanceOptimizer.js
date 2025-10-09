@@ -7,6 +7,8 @@
  * - Performance monitoring
  */
 
+import logger from './Logger.js';
+
 class PerformanceOptimizer {
     constructor() {
         this.cacheMap = new Map();
@@ -20,17 +22,99 @@ class PerformanceOptimizer {
         };
 
         this.isEnabled = true;
-        console.log('[PERFORMANCE] PerformanceOptimizer initialized');
+        this.logger = logger.createModuleLogger('PERFORMANCE');
+        this.logger.info('PerformanceOptimizer initialized');
     }
 
     /**
-     * Initialize performance optimizer
+     * Initialize performance optimizer - ENHANCED with DataManager monitoring
      */
     async initialize() {
         this.startMemoryMonitoring();
         this.setupPerformanceObservers();
+        this.setupDataManagerMonitoring();
 
-        console.log('[PERFORMANCE] Performance optimizer initialized');
+        this.logger.info('Performance optimizer initialized with DataManager monitoring');
+    }
+
+    /**
+      * Setup DataManager specific performance monitoring - ENHANCED
+      */
+    setupDataManagerMonitoring() {
+        // Enhanced DataManager metrics tracking
+        this.dataManagerMetrics = {
+            initializationTime: 0,
+            queryTimes: new Map(),
+            cacheHitRate: 0,
+            sankeyGenerationTime: 0,
+            totalQueries: 0,
+            slowOperations: [],
+            storageLoadTime: 0,
+            dataReconstructionTime: 0,
+            transactionProcessingTime: 0,
+            cacheInvalidations: 0,
+            memoryUsage: [],
+        };
+
+        // Monitor long-running operations (>15ms - reduced threshold for better monitoring)
+        const operationObserver = new PerformanceObserver((list) => {
+            for (const entry of list.getEntries()) {
+                if (entry.duration > 15) { // Reduced from 30ms to catch more operations
+                    this.dataManagerMetrics.slowOperations.push({
+                        name: entry.name,
+                        duration: entry.duration,
+                        startTime: entry.startTime,
+                        timestamp: Date.now(),
+                    });
+
+                    // Keep only last 100 slow operations for better tracking
+                    if (this.dataManagerMetrics.slowOperations.length > 100) {
+                        this.dataManagerMetrics.slowOperations.shift();
+                    }
+
+                    // Enhanced logging with categorization
+                    if (entry.name.includes('sankey')) {
+                        this.logger.warn(`Slow Sankey operation: ${entry.name} took ${entry.duration.toFixed(2)}ms`);
+                    } else if (entry.name.includes('query')) {
+                        this.logger.warn(`Slow query: ${entry.name} took ${entry.duration.toFixed(2)}ms`);
+                    } else if (entry.name.includes('storage') || entry.name.includes('load')) {
+                        this.logger.warn(`Slow storage operation: ${entry.name} took ${entry.duration.toFixed(2)}ms`);
+                    } else {
+                        this.logger.warn(`Slow operation: ${entry.name} took ${entry.duration.toFixed(2)}ms`);
+                    }
+                }
+            }
+        });
+
+        if (operationObserver) {
+            operationObserver.observe({ entryTypes: ['measure'] });
+            this.observers.add(operationObserver);
+        }
+
+        // Add memory monitoring for DataManager operations
+        this.startDataManagerMemoryMonitoring();
+    }
+
+    /**
+      * Start memory monitoring specifically for DataManager operations
+      */
+    startDataManagerMemoryMonitoring() {
+        if (performance && performance.memory) {
+            this.dataManagerMemoryInterval = setInterval(() => {
+                const memoryInfo = performance.memory;
+                this.dataManagerMetrics.memoryUsage.push({
+                    timestamp: Date.now(),
+                    used: memoryInfo.usedJSHeapSize,
+                    total: memoryInfo.totalJSHeapSize,
+                    limit: memoryInfo.jsHeapSizeLimit,
+                });
+
+                // Keep only last 50 measurements
+                if (this.dataManagerMetrics.memoryUsage.length > 50) {
+                    this.dataManagerMetrics.memoryUsage.shift();
+                }
+            }, 2000); // Every 2 seconds for DataManager
+        }
     }
 
     /**
@@ -64,7 +148,7 @@ class PerformanceOptimizer {
             const longTaskObserver = new PerformanceObserver((list) => {
                 for (const entry of list.getEntries()) {
                     if (entry.duration > 50) { // Tasks longer than 50ms
-                        console.warn(`[PERFORMANCE] Long task detected: ${entry.duration.toFixed(2)}ms`);
+                        this.logger.warn(`Long task detected: ${entry.duration.toFixed(2)}ms`);
                         this.notifyObservers('longTask', {
                             duration: entry.duration,
                             startTime: entry.startTime,
@@ -85,7 +169,7 @@ class PerformanceOptimizer {
                 }
 
                 if (clsValue > 0.1) { // Significant layout shift
-                    console.warn(`[PERFORMANCE] Layout shift detected: ${clsValue.toFixed(4)}`);
+                    this.logger.warn(`Layout shift detected: ${clsValue.toFixed(4)}`);
                     this.notifyObservers('layoutShift', { value: clsValue });
                 }
             });
@@ -104,10 +188,10 @@ class PerformanceOptimizer {
         const loadTime = performance.now() - startTime;
         this.metrics.moduleLoadTime.set(moduleName, loadTime);
 
-        console.log(`[PERFORMANCE] Module ${moduleName} loaded in ${loadTime.toFixed(2)}ms`);
+        this.logger.info(`Module ${moduleName} loaded in ${loadTime.toFixed(2)}ms`);
 
         if (loadTime > 100) {
-            console.warn(`[PERFORMANCE] Slow module load: ${moduleName} took ${loadTime.toFixed(2)}ms`);
+            this.logger.warn(`Slow module load: ${moduleName} took ${loadTime.toFixed(2)}ms`);
         }
     }
 
@@ -129,7 +213,7 @@ class PerformanceOptimizer {
             this.metrics.methodExecutionTime.set(methodName, executionTime);
 
             if (executionTime > 100) {
-                console.warn(`[PERFORMANCE] Slow method: ${methodName} took ${executionTime.toFixed(2)}ms`);
+                this.logger.warn(`Slow method: ${methodName} took ${executionTime.toFixed(2)}ms`);
             }
         }
 
@@ -194,7 +278,7 @@ class PerformanceOptimizer {
             this.cacheMap.clear();
         }
 
-        console.log(`[PERFORMANCE] Cache cleared${pattern ? ` (pattern: ${pattern})` : ''}`);
+        this.logger.info(`Cache cleared${pattern ? ` (pattern: ${pattern})` : ''}`);
     }
 
     /**
@@ -310,7 +394,7 @@ class PerformanceOptimizer {
                     try {
                         cb();
                     } catch (error) {
-                        console.error('[PERFORMANCE] Error in render callback:', error);
+                        this.logger.error('Error in render callback:', error);
                     }
                 });
                 this.renderCallbacks = [];
@@ -398,10 +482,28 @@ class PerformanceOptimizer {
     }
 
     /**
-     * Get performance metrics
-     */
+      * Get performance metrics - ENHANCED with comprehensive DataManager metrics
+      */
     getMetrics() {
         const cacheHitRate = (this.metrics.cacheHits / (this.metrics.cacheHits + this.metrics.cacheMisses)) * 100;
+
+        // Calculate DataManager specific metrics
+        const avgQueryTime = this.dataManagerMetrics.queryTimes.size > 0
+            ? Array.from(this.dataManagerMetrics.queryTimes.values()).reduce((a, b) => a + b, 0) / this.dataManagerMetrics.queryTimes.size
+            : 0;
+
+        const slowOperationsCount = this.dataManagerMetrics.slowOperations.length;
+        const recentSlowOperations = this.dataManagerMetrics.slowOperations.slice(-10); // Last 10 slow operations
+
+        // Calculate memory usage trend
+        const memoryTrend = this.dataManagerMetrics.memoryUsage.length > 1
+            ? this.dataManagerMetrics.memoryUsage[this.dataManagerMetrics.memoryUsage.length - 1].used -
+              this.dataManagerMetrics.memoryUsage[0].used
+            : 0;
+
+        // Calculate cache invalidation rate
+        const cacheInvalidationRate = this.dataManagerMetrics.cacheInvalidations /
+            Math.max(1, (Date.now() - this.dataManagerMetrics.startTime) / 1000);
 
         return {
             moduleLoadTimes: Object.fromEntries(this.metrics.moduleLoadTime),
@@ -413,8 +515,85 @@ class PerformanceOptimizer {
                 hitRate: isNaN(cacheHitRate) ? 0 : cacheHitRate.toFixed(2) + '%',
                 size: this.cacheMap.size,
             },
+            dataManagerMetrics: {
+                initializationTime: this.dataManagerMetrics.initializationTime,
+                averageQueryTime: avgQueryTime.toFixed(2) + 'ms',
+                totalQueries: this.dataManagerMetrics.totalQueries,
+                slowOperationsCount,
+                recentSlowOperations,
+                sankeyGenerationTime: this.dataManagerMetrics.sankeyGenerationTime,
+                storageLoadTime: this.dataManagerMetrics.storageLoadTime,
+                dataReconstructionTime: this.dataManagerMetrics.dataReconstructionTime,
+                transactionProcessingTime: this.dataManagerMetrics.transactionProcessingTime,
+                cacheInvalidations: this.dataManagerMetrics.cacheInvalidations,
+                cacheInvalidationRate: cacheInvalidationRate.toFixed(2) + '/sec',
+                memoryTrend: memoryTrend,
+                memoryUsage: this.dataManagerMetrics.memoryUsage,
+            },
             cacheSize: this.cacheMap.size,
+            timestamp: Date.now(),
         };
+    }
+
+    /**
+      * Record DataManager operation metrics - ENHANCED
+      */
+    recordDataManagerOperation(operationName, duration) {
+        if (operationName.includes('query')) {
+            this.dataManagerMetrics.queryTimes.set(operationName, duration);
+            this.dataManagerMetrics.totalQueries++;
+        } else if (operationName.includes('sankey')) {
+            this.dataManagerMetrics.sankeyGenerationTime = duration;
+        } else if (operationName.includes('storage') || operationName.includes('load')) {
+            this.dataManagerMetrics.storageLoadTime = duration;
+        } else if (operationName.includes('reconstruct')) {
+            this.dataManagerMetrics.dataReconstructionTime = duration;
+        } else if (operationName.includes('transaction') || operationName.includes('process')) {
+            this.dataManagerMetrics.transactionProcessingTime = duration;
+        }
+
+        // Track cache invalidations
+        if (operationName.includes('invalidate') || operationName.includes('clear')) {
+            this.dataManagerMetrics.cacheInvalidations++;
+        }
+    }
+
+    /**
+     * Record DataManager initialization time
+     */
+    recordDataManagerInitialization(duration) {
+        this.dataManagerMetrics.initializationTime = duration;
+    }
+
+    /**
+     * Lazy load implementation for expensive operations
+     */
+    lazyLoad = (operation, delay = 100) => {
+        return new Promise((resolve) => {
+            setTimeout(async () => {
+                const startTime = performance.now();
+                const result = await operation();
+                const duration = performance.now() - startTime;
+
+                this.recordDataManagerOperation('lazyLoad', duration);
+                resolve(result);
+            }, delay);
+        });
+    }
+
+    /**
+     * Batch operations for better performance
+     */
+    batchOperations = (operations, batchSize = 10) => {
+        const batches = [];
+        for (let i = 0; i < operations.length; i += batchSize) {
+            batches.push(operations.slice(i, i + batchSize));
+        }
+
+        return Promise.all(batches.map(async (batch) => {
+            const results = await Promise.all(batch.map(op => op()));
+            return results;
+        }));
     }
 
     /**
@@ -447,12 +626,12 @@ class PerformanceOptimizer {
      */
     setEnabled(enabled) {
         this.isEnabled = enabled;
-        console.log(`[PERFORMANCE] Performance monitoring ${enabled ? 'enabled' : 'disabled'}`);
+        this.logger.info(`Performance monitoring ${enabled ? 'enabled' : 'disabled'}`);
     }
 
     /**
-     * Cleanup resources
-     */
+      * Cleanup resources - ENHANCED
+      */
     cleanup() {
         // Clear cache
         this.cacheMap.clear();
@@ -465,10 +644,15 @@ class PerformanceOptimizer {
         });
         this.observers.clear();
 
-        // Clear memory monitoring interval
+        // Clear memory monitoring intervals
         if (this.memoryMonitoringInterval) {
             clearInterval(this.memoryMonitoringInterval);
             this.memoryMonitoringInterval = null;
+        }
+
+        if (this.dataManagerMemoryInterval) {
+            clearInterval(this.dataManagerMemoryInterval);
+            this.dataManagerMemoryInterval = null;
         }
 
         // Clear metrics
@@ -478,7 +662,15 @@ class PerformanceOptimizer {
         this.metrics.cacheHits = 0;
         this.metrics.cacheMisses = 0;
 
-        console.log('[PERFORMANCE] Performance optimizer cleaned up');
+        // Clear DataManager metrics
+        if (this.dataManagerMetrics) {
+            this.dataManagerMetrics.queryTimes.clear();
+            this.dataManagerMetrics.slowOperations = [];
+            this.dataManagerMetrics.memoryUsage = [];
+            this.dataManagerMetrics.cacheInvalidations = 0;
+        }
+
+        this.logger.info('Performance optimizer cleaned up');
     }
 
     /**
@@ -487,32 +679,32 @@ class PerformanceOptimizer {
     debug() {
         const metrics = this.getMetrics();
 
-        console.log('[PERFORMANCE DEBUG] === PERFORMANCE METRICS ===');
-        console.log('[PERFORMANCE DEBUG] Module Load Times:');
+        this.logger.info('=== PERFORMANCE METRICS ===');
+        this.logger.info('Module Load Times:');
         Object.entries(metrics.moduleLoadTimes).forEach(([module, time]) => {
-            console.log(`[PERFORMANCE DEBUG]   ${module}: ${time.toFixed(2)}ms`);
+            this.logger.info(`  ${module}: ${time.toFixed(2)}ms`);
         });
 
-        console.log('[PERFORMANCE DEBUG] Method Execution Times:');
+        this.logger.info('Method Execution Times:');
         Object.entries(metrics.methodExecutionTimes).forEach(([method, time]) => {
-            console.log(`[PERFORMANCE DEBUG]   ${method}: ${time.toFixed(2)}ms`);
+            this.logger.info(`  ${method}: ${time.toFixed(2)}ms`);
         });
 
-        console.log('[PERFORMANCE DEBUG] Cache Stats:');
-        console.log(`[PERFORMANCE DEBUG]   Hits: ${metrics.cacheStats.hits}`);
-        console.log(`[PERFORMANCE DEBUG]   Misses: ${metrics.cacheStats.misses}`);
-        console.log(`[PERFORMANCE DEBUG]   Hit Rate: ${metrics.cacheStats.hitRate}`);
-        console.log(`[PERFORMANCE DEBUG]   Size: ${metrics.cacheStats.size}`);
+        this.logger.info('Cache Stats:');
+        this.logger.info(`  Hits: ${metrics.cacheStats.hits}`);
+        this.logger.info(`  Misses: ${metrics.cacheStats.misses}`);
+        this.logger.info(`  Hit Rate: ${metrics.cacheStats.hitRate}`);
+        this.logger.info(`  Size: ${metrics.cacheStats.size}`);
 
         if (metrics.memoryUsage.length > 0) {
             const latest = metrics.memoryUsage[metrics.memoryUsage.length - 1];
-            console.log('[PERFORMANCE DEBUG] Latest Memory Usage:');
-            console.log(`[PERFORMANCE DEBUG]   Used: ${(latest.used / 1024 / 1024).toFixed(2)}MB`);
-            console.log(`[PERFORMANCE DEBUG]   Total: ${(latest.total / 1024 / 1024).toFixed(2)}MB`);
-            console.log(`[PERFORMANCE DEBUG]   Limit: ${(latest.limit / 1024 / 1024).toFixed(2)}MB`);
+            this.logger.info('Latest Memory Usage:');
+            this.logger.info(`  Used: ${(latest.used / 1024 / 1024).toFixed(2)}MB`);
+            this.logger.info(`  Total: ${(latest.total / 1024 / 1024).toFixed(2)}MB`);
+            this.logger.info(`  Limit: ${(latest.limit / 1024 / 1024).toFixed(2)}MB`);
         }
 
-        console.log('[PERFORMANCE DEBUG] === END DEBUG ===');
+        this.logger.info('=== END DEBUG ===');
     }
 }
 

@@ -1,3 +1,4 @@
+import logger from '../utils/Logger.js';
 /**
  * ThemeManager Module
  * Handles dark/light mode functionality for the expense dashboard
@@ -296,7 +297,7 @@ class ThemeManager {
                 this.manualOverride = false;
             }
         } catch (error) {
-            console.warn('Failed to load theme preference:', error);
+            logger.warn('THEME', 'Failed to load theme preference', error);
             this.isDarkMode = this.systemPrefersDark;
         }
     }
@@ -308,7 +309,7 @@ class ThemeManager {
         try {
             localStorage.setItem(this.storageKey, this.isDarkMode.toString());
         } catch (error) {
-            console.error('Save failed');
+            logger.error('THEME', 'Save failed');
         }
     }
 
@@ -338,6 +339,14 @@ class ThemeManager {
     }
 
     /**
+     * Set dark mode explicitly (alias for setTheme)
+     * @param {boolean} isDark - Whether to set dark mode
+     */
+    setDarkMode(isDark) {
+        this.setTheme(isDark);
+    }
+
+    /**
      * Apply current theme to the document
      */
     applyCurrentTheme() {
@@ -356,7 +365,7 @@ class ThemeManager {
         // Update meta theme-color for mobile browsers
         this.updateMetaThemeColor(colors.primary);
 
-        console.log(`[THEME] Applied ${theme} theme`);
+        logger.info('THEME', `Applied ${theme} theme`);
     }
 
     /**
@@ -458,7 +467,7 @@ class ThemeManager {
             document.dispatchEvent(event);
         } catch (error) {
             // Fallback for environments that don't support CustomEvent
-            console.warn('[THEME] CustomEvent not supported, using fallback notification');
+            logger.warn('THEME', 'CustomEvent not supported, using fallback notification');
         }
 
         // Call any registered callbacks
@@ -584,7 +593,7 @@ class ThemeManager {
      */
     async loadPreferences() {
         // Preferences are already loaded in constructor via loadSavedPreference
-        console.log('[THEME] Theme preferences loaded');
+        logger.info('THEME', 'Theme preferences loaded');
     }
 
     /**
@@ -593,7 +602,7 @@ class ThemeManager {
      */
     async initialize() {
         // Theme manager initialization is already done in constructor
-        console.log('[THEME] Theme manager initialized');
+        logger.info('THEME', 'Theme manager initialized');
     }
 
     /**
@@ -608,7 +617,7 @@ class ThemeManager {
                 this.currentColorTheme = 'default';
             }
         } catch (error) {
-            console.warn('Failed to load color theme preference:', error);
+            logger.warn('THEME', 'Failed to load color theme preference', error);
             this.currentColorTheme = 'default';
         }
     }
@@ -620,7 +629,7 @@ class ThemeManager {
         try {
             localStorage.setItem(this.colorThemeStorageKey, this.currentColorTheme);
         } catch (error) {
-            console.warn('Failed to save color theme preference:', error);
+            logger.warn('THEME', 'Failed to save color theme preference', error);
         }
     }
 
@@ -630,7 +639,7 @@ class ThemeManager {
      */
     setColorTheme(themeName) {
         if (!this.colorThemes[themeName]) {
-            console.warn(`[THEME] Color theme '${themeName}' not found, using default`);
+            logger.warn('THEME', `Color theme '${themeName}' not found, using default`);
             themeName = 'default';
         }
 
@@ -638,7 +647,7 @@ class ThemeManager {
         this.saveColorThemePreference();
         this.notifyColorThemeChange();
 
-        console.log(`[THEME] Color theme changed to: ${themeName}`);
+        logger.info('THEME', `Color theme changed to: ${themeName}`);
     }
 
     /**
@@ -695,7 +704,7 @@ class ThemeManager {
             document.dispatchEvent(event);
         } catch (error) {
             // Fallback for environments that don't support CustomEvent
-            console.warn('[THEME] CustomEvent not supported, using fallback notification');
+            logger.warn('THEME', 'CustomEvent not supported, using fallback notification');
         }
 
         // Call any registered callbacks
@@ -753,15 +762,15 @@ class ThemeManager {
      * Debug theme information
      */
     debug() {
-        console.log('[THEME DEBUG] === THEME INFORMATION ===');
-        console.log('[THEME DEBUG] Current theme:', this.getCurrentTheme());
-        console.log('[THEME DEBUG] Is dark mode:', this.isDarkMode);
-        console.log('[THEME DEBUG] Manual override:', this.manualOverride);
-        console.log('[THEME DEBUG] System prefers dark:', this.systemPrefersDark);
-        console.log('[THEME DEBUG] Current colors:', this.getCurrentColors());
-        console.log('[THEME DEBUG] Current color theme:', this.currentColorTheme);
-        console.log('[THEME DEBUG] Color theme data:', this.getColorTheme());
-        console.log('[THEME DEBUG] === END DEBUG ===');
+        logger.debug('THEME', '=== THEME INFORMATION ===');
+        logger.debug('THEME', 'Current theme:', this.getCurrentTheme());
+        logger.debug('THEME', 'Is dark mode:', this.isDarkMode);
+        logger.debug('THEME', 'Manual override:', this.manualOverride);
+        logger.debug('THEME', 'System prefers dark:', this.systemPrefersDark);
+        logger.debug('THEME', 'Current colors:', this.getCurrentColors());
+        logger.debug('THEME', 'Current color theme:', this.currentColorTheme);
+        logger.debug('THEME', 'Color theme data:', this.getColorTheme());
+        logger.debug('THEME', '=== END DEBUG ===');
     }
 }
 

@@ -43,13 +43,15 @@
  */
 
 import * as d3 from 'd3';
+import { sankey, sankeyLinkHorizontal } from 'd3-sankey';
+import logger from '../utils/Logger.js';
 
 class ChartRenderer {
     static instance = null;
 
     constructor(dataManager, uiManager, formatter, themeManager) {
         if (ChartRenderer.instance) {
-            console.warn('[CHART] ChartRenderer already exists, returning existing instance');
+            logger.warn('CHART', 'ChartRenderer already exists, returning existing instance');
             return ChartRenderer.instance;
         }
         ChartRenderer.instance = this;
@@ -111,7 +113,7 @@ class ChartRenderer {
         this.isRendering = false;
         this.isRenderingOverview = false;
 
-        console.log('[CHART] ChartRenderer initialized');
+        logger.info('CHART', 'ChartRenderer initialized');
     }
 
     /**
@@ -153,9 +155,9 @@ class ChartRenderer {
      * Initialize chart renderer
      */
     async initialize() {
-        console.log('[CHART] Initializing chart renderer...');
+        logger.info('CHART', 'Initializing chart renderer...');
         if (this.isInitialized) {
-            console.log('[CHART] Already initialized, skipping');
+            logger.info('CHART', 'Already initialized, skipping');
             return;
         }
         // Cleanup old elements if exist
@@ -163,14 +165,14 @@ class ChartRenderer {
         d3.select('#overviewChartContent svg').remove();  // Clear old SVG
         this.isInitialized = true;
 
-        console.log('[CHART] Ensuring chart container is ready...');
+        logger.info('CHART', 'Ensuring chart container is ready...');
         await this.uiManager.getElement('chart-container'); // Ensures ready before setupChartContainers
-        console.log('[CHART] Creating tooltip...');
+        logger.info('CHART', 'Creating tooltip...');
         this.createTooltip();
-        console.log('[CHART] Setting up chart containers...');
+        logger.info('CHART', 'Setting up chart containers...');
         this.setupChartContainers();
 
-        console.log('[CHART] Chart renderer initialized successfully');
+        logger.info('CHART', 'Chart renderer initialized successfully');
     }
 
     /**
@@ -194,7 +196,8 @@ class ChartRenderer {
             .style('font-size', 'var(--font-size-sm)')
             .style('color', 'var(--color-text)')
             .style('z-index', 1000)
-            .style('max-width', '300px');
+            .style('max-width', '300px')
+            .node();
     }
 
     /**
@@ -224,11 +227,11 @@ class ChartRenderer {
                     container.style.width = '100%';
                     container.style.height = '100%';
                 } else {
-                    console.warn(`[CHART] Container ${containerId} not found`);
+                    logger.warn('CHART', `Container ${containerId} not found`);
                 }
             });
         } catch(e) {
-            console.error('Setup failed:', e);
+            logger.error('CHART', 'Setup failed', e);
             this.showError('UI setup error');
         }
     }
@@ -261,7 +264,7 @@ class ChartRenderer {
         this.resizeObserver.observe(container);
 
         try {
-            console.log('[CHART] Rendering...');
+            logger.info('CHART', 'Rendering...');
             const period = this.dataManager.getCurrentTimePeriod();
             const year = this.dataManager.getSelectedYear();
             const aggregatedData = this.dataManager.getAggregatedSankeyData(period, year);
@@ -279,7 +282,7 @@ class ChartRenderer {
             try {
                 data = this.buildSankeyData(properties, aggregatedData.sources, aggregatedData.propIncomes, aggregatedData.propExpenses, categories, aggregatedData.hasIncome, aggregatedData.catTotals, aggregatedData.subTotals, width, height);
             } catch (error) {
-                console.error('[CHART] buildSankeyData error:', error);
+                logger.error('CHART', 'buildSankeyData error', error);
                 this.showError('Failed to process chart data');
                 this.showOverviewPlaceholder(container);
                 return;
@@ -293,7 +296,7 @@ class ChartRenderer {
             this.createSankey(container, data);
             this.uiManager.hideLoadingState();
         } catch (error) {
-            console.error('[CHART] Render error:', error);
+            logger.error('CHART', 'Render error', error);
             this.showOverviewPlaceholder(container);
         } finally {
             this.isRendering = false;
@@ -314,7 +317,7 @@ class ChartRenderer {
     buildSankeyData(properties, sources, propIncomes, propExpenses, categories, hasIncome, catTotals, subTotals, width, height) {
         // Check for missing property expenses data
         if (!propExpenses) {
-            console.warn('[CHART] Missing property expenses data');
+            logger.warn('CHART', 'Missing property expenses data');
             return { nodes: [{ name: 'Missing Expense Data', value: 0, isPlaceholder: true }], links: [], hasIncome: false };
         }
 
@@ -330,11 +333,16 @@ class ChartRenderer {
                 if (total > 0) {
                     const id = `income-${source}`;
                     nodes.push({ id, name: source.toUpperCase(), type: 'income-source', level: 0, sortKey: sortKey++, color: this.getColor('categories', sortKey), total });
+                    logger.debug('CHART', `Added income source node: ${source.toUpperCase()}, value: ${total}`);
                 }
             });
             nodes.push({ id: 'earnings', name: 'EARNINGS', type: 'earnings', level: 1, sortKey: 0, color: '#059669', widthFactor: 2 });
+            logger.debug('CHART', 'Added earnings node');
             Object.entries(sources).forEach(([source, total]) => {
-                if (total > 0) {links.push({ source: `income-${source}`, target: 'earnings', value: total, type: 'income-to-earnings' });}
+                if (total > 0) {
+                    links.push({ source: `income-${source}`, target: 'earnings', value: total, type: 'income-to-earnings' });
+                    logger.debug('CHART', `Added income link: ${source} -> earnings, value: ${total}`);
+                }
             });
         } else {
             nodes.push({ id: 'dummy-source', name: '', type: 'dummy', level: 0, sortKey: -1, color: 'transparent', isDummy: true });
@@ -366,13 +374,13 @@ class ChartRenderer {
         // L4-5: Cats/Subs via D3 stratify (use pre-computed totals)
         const totalExpenses = Object.values(Object.fromEntries(catTotals)).reduce((sum, v) => sum + v, 0) || 0;
         if (!totalExpenses) {
-            console.warn('[CHART] No expense data available for stratification');
+            logger.warn('CHART', 'No expense data available for stratification');
             return { nodes: [{ name: 'No Expenses', value: 0, isPlaceholder: true }], links: [], hasIncome: false };
         }
 
         // Explicit check for missing expenses data
         if (!propExpenses || propExpenses.size === 0) {
-            console.warn('[CHART] Missing property expenses data');
+            logger.warn('CHART', 'Missing property expenses data');
             return { nodes: [{ name: 'Missing Expense Data', value: 0, isPlaceholder: true }], links: [], hasIncome: false };
         }
 
@@ -387,13 +395,13 @@ class ChartRenderer {
         });
         hierarchyArray.slice(1).sort((a, b) => b.value - a.value);
 
-        console.log('Stratify data:', hierarchyArray);
+        logger.debug('CHART', 'Stratify data:', hierarchyArray);
 
         let root;
         try {
-            root = d3.stratify().parentId(d => d.parent)(hierarchyArray);
+            root = d3.stratify().id(d => d.name).parentId(d => d.parent)(hierarchyArray);
         } catch (error) {
-            console.error('[CHART] Stratify error:', error);
+            logger.error('CHART', 'Stratify error', error);
             return { nodes: [{ name: 'Data Processing Error', value: 0, isPlaceholder: true }], links: [], hasIncome: false };
         }
         const expenseNodes = root.descendants();
@@ -441,7 +449,7 @@ class ChartRenderer {
         // D3 Sankey on stratified data
         let sankeyNodes, sankeyLinks;
         try {
-            const sankeyResult = d3.sankey()
+            const sankeyResult = sankey()
                 .nodeId(d => d.id)
                 .nodeWidth(15)
                 .nodePadding(1)
@@ -450,15 +458,52 @@ class ChartRenderer {
             sankeyNodes = sankeyResult.nodes;
             sankeyLinks = sankeyResult.links;
         } catch (error) {
-            console.error('[CHART] D3 sankey error:', error);
+            logger.error('CHART', 'D3 sankey error', error);
             return { nodes: [{ name: 'Sankey Processing Error', value: 0, isPlaceholder: true }], links: [], hasIncome };
         }
 
         // Filter visibles, assign positions
-        const visibleNodes = sankeyNodes.filter(n => !n.isDummy && n.name?.trim());
-        const visibleLinks = sankeyLinks.filter(l => !l.type?.includes('dummy') && l.target && !l.target.isDummy);
-        visibleNodes.forEach(n => { n.x0 ??= 0; n.y0 ??= 0; n.x1 = n.x0 + 15; n.y1 = n.y0 + Math.max(10, n.y1 - n.y0); });
-        visibleLinks.forEach(l => { l.width = Math.max(0.5, l.width); l.path = d3.sankeyLinkHorizontal()(l); });
+        const visibleNodes = sankeyNodes.filter(n => {
+            // Don't filter out income/expense nodes - they should always be visible
+            if (n.type === 'income-source' || n.type === 'earnings' || n.type === 'expenses' || n.type === 'profit') {
+                return true;
+            }
+            // For other nodes, ensure they have valid data
+            return !n.isDummy && n.name?.trim() && n.value > 0;
+        });
+        
+        const visibleLinks = sankeyLinks.filter(l => {
+            // Don't filter out income/expense related links
+            if (l.type?.includes('income') || l.type?.includes('earnings') || l.type?.includes('expenses') || l.type?.includes('profit')) {
+                return true;
+            }
+            // For other links, ensure they have valid targets and aren't dummy
+            return !l.type?.includes('dummy') && l.target && !l.target.isDummy && l.value > 0;
+        });
+
+        logger.debug('CHART', `Visible nodes: ${visibleNodes.length}, Visible links: ${visibleLinks.length}`);
+
+        // Debug: Log income/expense nodes specifically
+        const incomeExpenseNodes = visibleNodes.filter(n =>
+            n.type === 'income-source' || n.type === 'earnings' || n.type === 'expenses' || n.type === 'profit'
+        );
+        logger.debug('CHART', 'Income/Expense nodes:', incomeExpenseNodes.map(n => `${n.name}: ${n.value}`));
+        
+        visibleNodes.forEach(n => {
+            n.x0 ??= 0;
+            n.y0 ??= 0;
+            n.x1 = n.x0 + (n.width || 15);
+            n.y1 = n.y0 + Math.max(10, n.y1 - n.y0);
+        });
+        visibleLinks.forEach(l => {
+            l.width = Math.max(0.5, l.width);
+            try {
+                l.path = sankeyLinkHorizontal()(l);
+                logger.debug('CHART', `Link path generated: ${l.path ? 'success' : 'failed'}`);
+            } catch (error) {
+                logger.error('CHART', 'Error generating link path', error);
+            }
+        });
 
         // Scale wide nodes (Expenses spans props)
         const propLayer = visibleNodes.filter(n => n.level === levelOffset);
@@ -478,15 +523,10 @@ class ChartRenderer {
         const { width, height } = this.getDimensions(container);
         const svg = d3.select(container).append('svg')
             .attr('width', width).attr('height', height).attr('viewBox', `0 0 ${width} ${height}`)
-            .on('click', (e) => { if (e.target.tagName === 'svg') {this.clearSelection();} });
+            .on('click', (e) => { if (e.target.tagName === 'svg') {this.clearRipple();} });
 
         this.zoomBehavior = d3.zoom();
         svg.call(this.zoomBehavior);
-
-        // Initialize zoom transform property to prevent undefined errors
-        if (this.zoomBehavior && typeof this.zoomBehavior.transform !== 'undefined') {
-            this.zoomBehavior.transform = d3.zoomIdentity;
-        }
 
         // Shared gradients (limit types)
         const defs = svg.append('defs');
@@ -501,14 +541,43 @@ class ChartRenderer {
         requestAnimationFrame(() => {
             // Links: Animate "flow" in
             const linkG = svg.append('g').attr('class', 'links');
-            linkG.selectAll('path').data(data.links).enter().append('path')
-                .attr('d', d => d.path)
-                .attr('fill', 'none').attr('stroke', d => `url(#grad-${d.type.replace(/[^a-z]/g, '')})`)
-                .attr('stroke-width', d => d.width)
-                .style('opacity', 0).style('mix-blend-mode', 'multiply')
+
+            logger.debug('CHART', `Rendering links: ${data.links.length}`);
+            data.links.forEach((link, i) => {
+                logger.debug('CHART', `Link ${i}:`, {
+                    source: link.source?.name || link.source,
+                    target: link.target?.name || link.target,
+                    path: link.path,
+                    width: link.width,
+                    type: link.type
+                });
+            });
+
+            const linkSelection = linkG.selectAll('path').data(data.links);
+
+            linkSelection.enter().append('path')
+                .attr('d', d => {
+                    logger.debug('CHART', `Link d attribute: ${d.path}`);
+                    return d.path;
+                })
+                .attr('fill', 'none')
+                .attr('stroke', d => {
+                    const gradientId = `grad-${d.type.replace(/[^a-z]/g, '')}`;
+                    logger.debug('CHART', `Link stroke gradient: ${gradientId}`);
+                    return `url(#${gradientId})`;
+                })
+                .attr('stroke-width', d => {
+                    logger.debug('CHART', `Link stroke-width: ${d.width}`);
+                    return d.width;
+                })
+                .style('opacity', 0)
                 .classed('link', true)
                 .attr('data-type', d => d.type)
-                .each(function(d) { d.pathLength = this.getTotalLength(); })
+                .each(function(d) {
+                    const pathLength = this.getTotalLength();
+                    d.pathLength = pathLength;
+                    logger.debug('CHART', `Link pathLength: ${pathLength}`);
+                })
                 .on('mouseover', this.throttle((e, d) => {
                     if (this.hoverTimeout) {clearTimeout(this.hoverTimeout);}
                     this.hoverTimeout = setTimeout(() => this.handleInteraction(e, d, 'link', false), 100);
@@ -520,6 +589,8 @@ class ChartRenderer {
                 .on('click', this.throttle((e, d) => this.handleInteraction(e, d, 'link', true), 100))
                 .transition().delay((d, i) => d.source.level * 200).duration(1000).ease(d3.easeCubicInOut)
                 .style('opacity', 0.4).attrTween('stroke-dasharray', d => d3.interpolate(`0,${d.pathLength}`, `${d.pathLength},${d.pathLength}`));
+
+            linkSelection.exit().remove();
 
             // Nodes: Pulse on load
             const nodeG = svg.append('g').attr('class', 'nodes');
@@ -613,43 +684,49 @@ class ChartRenderer {
         const links = this.sankeyData.links;
         const startNode = type === 'link' ? item.source : item;
         const filterKey = item.property || item.category || item.name; // For property/cat-specific ripples
-
+    
+        // Clear any existing hover timeout to prevent conflicts
+        if (this.hoverTimeout) {
+            clearTimeout(this.hoverTimeout);
+            this.hoverTimeout = null;
+        }
+    
         // Memoize relatedIds per filterKey
         let relatedIds = this.relatedIdsCache.get(filterKey);
         if (!relatedIds) {
             relatedIds = this.sankeyData.relationIndex.get(filterKey) || new Set();
             this.relatedIdsCache.set(filterKey, relatedIds);
         }
-
+    
         const forces = this.rippleForces.get(type);
         forces.filter = d3.forceManyBody().strength(d => {
             const isRelated = relatedIds.has(d.id);
-            return isRelated ? 0 : -30; // Attract related, repel unrelated (fades them)
+            return isRelated ? 0 : -20; // Reduce repulsion strength for better visibility
         });
         forces.ripple = d3.forceRadial(50, startNode.x, startNode.y).strength(0.1); // Circular ripple from start
-
-        // State machine
+    
+        // State machine - improved logic
         if (isClick && this.interactionState === 'PINNED_SELECT' && this.isSameSelection(type, item)) {
             this.clearRipple();
             return;
         }
-
-        // For clicks, enable full sim
+    
+        // For clicks, enable full sim with improved alpha
         if (isClick) {
             sim.force('path', forces.path).force('filter', forces.filter).force('ripple', forces.ripple)
-                .alpha(0.3).alphaDecay(0.05).restart();
+                .alpha(0.3).alphaDecay(0.03).restart(); // Slower decay for smoother animation
         }
-
-        // Update visuals
+    
+        // Update visuals immediately for better responsiveness
         this.updateRippleVisuals(nodes, links, relatedIds, false, isClick);
-
+    
         // Update state
         this.interactionState = isClick ? 'PINNED_SELECT' : 'RIPPLE_HOVER';
         this.state[isClick ? 'selected' : 'highlighted'] = { type, item, startNode, filterKey, relatedIds: new Set(relatedIds) };
-
+    
         // Show enhanced tooltip (SVG-based for sleekness)
         this.showRippleTooltip(event, item, type, isClick);
-
+    
         // On click: Zoom to ripple bbox (elegant pan/zoom)
         if (isClick) {
             const rippleNodes = nodes.filter(n => relatedIds.has(n.id));
@@ -667,8 +744,8 @@ class ChartRenderer {
 
     // Declarative visual update (elegant: D3 transitions on sim positions)
     updateRippleVisuals(nodes, links, relatedIds, isFinal, isClick) {
-        const relatedNodes = nodes.filter(n => relatedIds.has(n.id));
-        const relatedLinks = links.filter(l => relatedIds.has(l.source.id) || relatedIds.has(l.target.id));
+        const relatedNodes = relatedIds ? nodes.filter(n => relatedIds.has(n.id)) : [];
+        const relatedLinks = relatedIds ? links.filter(l => relatedIds.has(l.source.id) || relatedIds.has(l.target.id)) : [];
 
         const t = this.sankeyData.svg.transition().duration(isFinal ? 500 : 300).ease(d3.easeCubicInOut);
 
@@ -677,8 +754,16 @@ class ChartRenderer {
             .data(links, d => d.index)
             .classed('related', d => relatedLinks.includes(d))
             .transition(t)
-            .attr('d', isClick ? d3.sankeyLinkHorizontal() : null)
-            .style('opacity', d => relatedLinks.includes(d) ? (this.interactionState === 'PINNED_SELECT' ? 1 : 0.8) : (this.interactionState === 'PINNED_SELECT' ? 0.05 : 0.3))
+            .attr('d', isClick ? sankeyLinkHorizontal() : null)
+            .style('opacity', d => {
+                if (relatedLinks.includes(d)) {
+                    // Related links should be fully visible but not too bright
+                    return this.interactionState === 'PINNED_SELECT' ? 0.9 : 0.7;
+                } else {
+                    // Unrelated links should be dim but still visible
+                    return this.interactionState === 'PINNED_SELECT' ? 0.3 : 0.5;
+                }
+            })
             .style('stroke-width', d => relatedLinks.includes(d) ? d.width * 1.2 : d.width);
 
         // Nodes: Scale/position with ripple, color tint
@@ -690,19 +775,31 @@ class ChartRenderer {
             .attr('height', d => (d.height || 20) * (relatedNodes.includes(d) ? 1.2 : 0.8))
             .style('fill', d => relatedNodes.includes(d) ? this.adjustColorBrightness(d.color, 0.2) : d.color)
             .style('opacity', d => relatedNodes.includes(d) ? 1 : (this.interactionState === 'PINNED_SELECT' ? 0.1 : 0.6))
-            .attr('x', isClick ? d => d.x - (d.width || 15)/2 : null)
-            .attr('y', isClick ? d => d.y - (d.height || 20)/2 : null);
+            .attr('x', isClick ? d => d.x - (d.width || 15)/2 : d => d.x0)
+            .attr('y', isClick ? d => d.y - (d.height || 20)/2 : d => d.y0);
     }
 
     // Clear: Fade back to idle
     clearRipple() {
+        // Clear any pending hover timeout
+        if (this.hoverTimeout) {
+            clearTimeout(this.hoverTimeout);
+            this.hoverTimeout = null;
+        }
+    
         this.interactionState = 'IDLE';
         this.state.selected = this.state.highlighted = null;
+        
         const sim = this.sankeyData.sim;
         sim.force('path', null).force('filter', null).force('ripple', null).alpha(0.1);
-        this.updateRippleVisuals(sim.nodes(), this.sankeyData.links, null, null, true);
+        
+        // Reset visuals with proper timing
+        this.updateRippleVisuals(sim.nodes(), this.sankeyData.links, null, true, false);
+        
         this.hideTooltip();
-        if (this.sankeyData.svg.call) {this.sankeyData.svg.call(this.zoomBehavior?.transform, d3.zoomIdentity);} // Reset zoom
+        if (this.sankeyData.svg.call) {
+            this.sankeyData.svg.call(this.zoomBehavior?.transform, d3.zoomIdentity); // Reset zoom
+        }
     }
 
     // Add helper method for tooltip content (similar to current DOM formatting)
@@ -743,7 +840,7 @@ class ChartRenderer {
             .attr('fill', 'var(--color-surface)')
             .attr('stroke', 'var(--color-border)')
             .attr('stroke-width', 1)
-            .attr('rx', 'var(--radius-base, 4)')
+            .attr('rx', 4)
             .attr('filter', persistent ? 'url(#glow)' : null); // Creative glow on persistent
 
         // Add glow filter if persistent (in defs if not exists)
@@ -805,18 +902,18 @@ class ChartRenderer {
     // Update hideTooltip to handle SVG (add after clearRipple)
     hideTooltip() {
         if (this.tooltip) {
-            this.tooltip.style('opacity', 0);
+            this.tooltip.style.opacity = '0';
         }
         if (this.persistentTooltip) {
             try {
                 this.persistentTooltip.transition().duration(200).style('opacity', 0).remove();
             } catch (error) {
-            // Fallback for mock environments where transition methods may not be fully implemented
+                // Fallback for mock environments where transition methods may not be fully implemented
                 try {
                     this.persistentTooltip.style('opacity', 0).remove();
                 } catch (fallbackError) {
-                // Last resort fallback - just null out the tooltip
-                    console.warn('[CHART] Could not properly hide persistent tooltip, clearing reference');
+                    // Last resort fallback - just null out the tooltip
+                    logger.warn('CHART', 'Could not properly hide persistent tooltip, clearing reference');
                 }
             }
             this.persistentTooltip = null;
@@ -947,9 +1044,9 @@ class ChartRenderer {
         if (errorElement) {
             errorElement.textContent = `Error: ${message}`;
             errorElement.style.display = 'block';
-            console.error('[CHART] Error displayed:', message);
+            logger.error('CHART', 'Error displayed', message);
         } else {
-            console.error('[CHART] Error placeholder not found, logging error:', message);
+            logger.error('CHART', 'Error placeholder not found, logging error', message);
         }
     }
 
@@ -960,7 +1057,7 @@ class ChartRenderer {
     setThemeManager(themeManager) {
         this.themeManager = themeManager;
         this.updateChartColors();
-        console.log('[CHART] Theme manager set');
+        logger.info('CHART', 'Theme manager set');
     }
 
     /**
@@ -991,14 +1088,14 @@ class ChartRenderer {
         document.documentElement.style.setProperty('--color-node-category', this.chartConfig.colors.categories[0]);
         document.documentElement.style.setProperty('--color-node-subcategory', this.chartConfig.colors.categories[1]);
 
-        console.log('[CHART] Updated chart colors from theme:', this.themeManager.getCurrentColorTheme());
+        logger.debug('CHART', 'Updated chart colors from theme:', this.themeManager.getCurrentColorTheme());
     }
 
     /**
      * Handle data change event
      */
     handleDataChange(data) {
-        console.log('[CHART] Data changed, re-rendering sankey');
+        logger.info('CHART', 'Data changed, re-rendering sankey');
         // Clear cached data and re-render
         if (this.dataManager) {
             this.dataManager.clearSankeyCache();
@@ -1012,7 +1109,7 @@ class ChartRenderer {
      * Handle color theme change event
      */
     handleColorThemeChange(event) {
-        console.log('[CHART] Color theme changed, updating chart colors');
+        logger.info('CHART', 'Color theme changed, updating chart colors');
         this.updateChartColors();
 
         // Update existing chart elements without full re-render
@@ -1083,22 +1180,22 @@ class ChartRenderer {
         this.sankeyData = null;
         this.state = { selected: null, highlighted: null, paths: { nodes: [], links: [] } };
         this.persistentPos = null;
-        console.log('[CHART] Chart renderer cleaned up');
+        logger.info('CHART', 'Chart renderer cleaned up');
     }
 
     /**
      * Debug chart information
      */
     debug() {
-        console.log('[CHART DEBUG] === CHART RENDERER INFO ===');
-        console.log('[CHART DEBUG] Current chart:', this.currentChart);
-        console.log('[CHART DEBUG] Tooltip available:', !!this.tooltip);
-        console.log('[CHART DEBUG] Legends count:', this.legends.size);
-        console.log('[CHART DEBUG] Chart config:', this.chartConfig);
-        console.log('[CHART DEBUG] Selected state:', this.state);
-        console.log('[CHART DEBUG] Sankey data available:', !!this.sankeyData);
-        console.log('[CHART DEBUG] Current color theme:', this.themeManager ? this.themeManager.getCurrentColorTheme() : 'N/A');
-        console.log('[CHART DEBUG] === END DEBUG ===');
+        logger.debug('CHART', '=== CHART RENDERER INFO ===');
+        logger.debug('CHART', 'Current chart:', this.currentChart);
+        logger.debug('CHART', 'Tooltip available:', !!this.tooltip);
+        logger.debug('CHART', 'Legends count:', this.legends.size);
+        logger.debug('CHART', 'Chart config:', this.chartConfig);
+        logger.debug('CHART', 'Selected state:', this.state);
+        logger.debug('CHART', 'Sankey data available:', !!this.sankeyData);
+        logger.debug('CHART', 'Current color theme:', this.themeManager ? this.themeManager.getCurrentColorTheme() : 'N/A');
+        logger.debug('CHART', '=== END DEBUG ===');
     }
 }  // Closing brace for class ChartRenderer
 

@@ -20,7 +20,7 @@
             <!-- Enhanced header with better accessibility -->
             <header class="header" role="banner">
                 <div class="header-left">
-                    <h1>RE.dash</h1>
+                    <h1>RE.Dash</h1>
                 </div>
 
                 <!-- Year/Month Picker - Visible on overview and properties dashboards -->
@@ -214,8 +214,36 @@
             window.testTimestamp = Date.now();
             console.log('[TEST] Timestamp:', window.testTimestamp);
 
+            // Test mode flag - set to true only when explicitly testing
+            window.testMode = false;
+            console.log('[TEST MODE] Test mode disabled by default. Use enableTestMode() to run tests.');
+
+            // Function to enable test mode and run tests
+            window.enableTestMode = function() {
+                console.log('[TEST MODE] Enabling test mode...');
+                window.testMode = true;
+
+                // Run all tests
+                setTimeout(() => {
+                    window.testSankey();
+                    window.testDirectSankey();
+                    // Test the container fix after ChartRenderer is loaded
+                    setTimeout(() => {
+                        if (window.chartRenderer) {
+                            window.testContainerFix();
+                        } else {
+                            console.log('[FIX TEST] ChartRenderer not available yet');
+                        }
+                    }, 500);
+                }, 1000);
+            };
+
             // Test the container bug fix
             window.testContainerFix = function () {
+                if (!window.testMode) {
+                    console.log('[FIX TEST] Skipping test - testMode is disabled');
+                    return;
+                }
                 console.log('[FIX TEST] Testing container bug fix...');
 
                 // Mock data
@@ -263,6 +291,10 @@
 
             // Simple test to check if sankey functionality is available
             window.testSankey = function () {
+                if (!window.testMode) {
+                    console.log('[TEST] Skipping test - testMode is disabled');
+                    return;
+                }
                 console.log('[TEST] Testing sankey functionality...');
 
                 if (typeof d3 !== 'undefined') {
@@ -289,22 +321,13 @@
                 }
             };
 
-            // Auto-run test after a short delay
-            setTimeout(() => {
-                window.testSankey();
-                window.testDirectSankey();
-                // Test the container fix after ChartRenderer is loaded
-                setTimeout(() => {
-                    if (window.chartRenderer) {
-                        window.testContainerFix();
-                    } else {
-                        console.log('[FIX TEST] ChartRenderer not available yet');
-                    }
-                }, 500);
-            }, 1000);
 
             // Direct test of sankey functionality
             window.testDirectSankey = function () {
+                if (!window.testMode) {
+                    console.log('[DIRECT TEST] Skipping test - testMode is disabled');
+                    return;
+                }
                 console.log('[DIRECT TEST] Testing sankey chart directly...');
 
                 try {

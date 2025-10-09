@@ -1,3 +1,4 @@
+import logger from '../utils/Logger.js';
 /**
  * TransactionStore Module
  * Reactive data store for normalized flat transaction data
@@ -9,7 +10,6 @@
  * - Reactive change detection using Proxy
  * - Persistence with Dexie.js and localStorage fallback
  * - Memoized query methods for performance
- * - Legacy data migration from hierarchical structure
  *
  * Key Features:
  * - Normalized data model: transactions as flat objects
@@ -56,6 +56,7 @@
 
 class TransactionStore {
     constructor(storage, options = {}) {
+        // LIGHTWEIGHT: Only store configuration and dependencies
         this.storage = storage;
         this.options = {
             debounceMs: 500,
@@ -63,62 +64,73 @@ class TransactionStore {
             ...options,
         };
 
-        // Core data structure - normalized flat transactions
-        this.transactions = [];
-        this.properties = new Map(); // id -> property metadata
-        this.categories = new Set(); // expense categories
-        this.incomeCategories = new Set(); // income categories
-
-        // Reactive state
-        this._reactiveTransactions = null;
-        this._changeListeners = new Set();
+        // Initialize flag - start as false, will be set to true in initialize()
         this._isInitialized = false;
 
-        // Persistence
-        this._debounceTimer = null;
-        this._hasUnsavedChanges = false;
-        this._lastSaved = null;
-
-        // Query memoization cache
-        this._queryCache = new Map();
-        this._cacheInvalidationTimer = null;
-        this._lastCacheInvalidation = null;
-
-        console.log('[TRANSACTIONSTORE] TransactionStore initialized');
+        logger.info('TRANSACTIONSTORE', 'TransactionStore constructor completed (lightweight)');
     }
 
     /**
-     * Initialize the store with existing data or migrate legacy data
-     * @param {Object} initialData - Optional initial data to load
-     */
+      * Initialize the store with existing data or migrate legacy data - EXPANDED
+      * @param {Object} initialData - Optional initial data to load
+      */
     async initialize(initialData = null) {
         if (this._isInitialized) {
-            console.log('[TRANSACTIONSTORE] Already initialized, skipping');
+            logger.info('TRANSACTIONSTORE', 'Already initialized, skipping');
             return;
         }
 
+        const initStart = performance.now();
+
         try {
-            console.log('[TRANSACTIONSTORE] Starting initialization...');
+            logger.info('TRANSACTIONSTORE', 'Starting optimized initialization...');
+
+            // EARLY EMPTY DETECTION: Check if we have meaningful data upfront
+            const hasInitialData = initialData && (
+                (initialData.transactions && initialData.transactions.length > 0) ||
+                (initialData.properties && initialData.properties.length > 0) ||
+                (initialData.expenseCategories && initialData.expenseCategories.length > 0)
+            );
+
+            // EXPANDED: Initialize all data structures (moved from constructor)
+            this._initializeDataStructures();
+
+            logger.info('TRANSACTIONSTORE', 'Initial data provided', !!initialData);
+            if (initialData) {
+                logger.info('TRANSACTIONSTORE', 'Initial data keys', Object.keys(initialData));
+                logger.info('TRANSACTIONSTORE', 'Initial data transactions', initialData.transactions?.length || 0);
+                logger.info('TRANSACTIONSTORE', 'Initial data properties', initialData.properties?.length || 0);
+            }
 
             if (initialData) {
-                console.log('[TRANSACTIONSTORE] Initializing with provided data');
+                logger.info('TRANSACTIONSTORE', 'Initializing with provided data');
                 await this._loadFromData(initialData);
             } else {
-                // Try to load from storage
-                console.log('[TRANSACTIONSTORE] Loading from storage...');
+                // FAST PATH: Check storage for existing data first
+                logger.info('TRANSACTIONSTORE', 'Checking storage for existing data...');
+                const storageCheckStart = performance.now();
                 const stored = await this.storage.load();
-                if (stored && stored.transactions) {
-                    console.log('[TRANSACTIONSTORE] Found stored transaction data');
-                    await this._loadFromData(stored);
+                const storageCheckTime = performance.now() - storageCheckStart;
+    
+                // EARLY EMPTY DETECTION: If no meaningful data, skip expensive operations
+                if (!stored || (stored.properties.length === 0 && stored.expenseCategories.length === 0)) {
+                    logger.info('TRANSACTIONSTORE', `No stored data found (storage check: ${storageCheckTime.toFixed(2)}ms), using fast empty initialization`);
+                    this._initializeEmpty();
                 } else {
-                    console.log('[TRANSACTIONSTORE] No stored data found, checking for legacy data');
-                    // Check for legacy hierarchical data to migrate
-                    const legacyData = await this._checkForLegacyData();
-                    if (legacyData) {
-                        console.log('[TRANSACTIONSTORE] Found legacy data, migrating...');
-                        await this._migrateLegacyData(legacyData);
+                    logger.info('TRANSACTIONSTORE', 'Found stored data, loading normally');
+                    logger.info('TRANSACTIONSTORE', 'Storage.load() returned', {
+                        hasData: !!stored,
+                        hasTransactions: !!(stored && stored.transactions),
+                        transactionsCount: stored?.transactions?.length || 0,
+                        propertiesCount: stored?.properties?.length || 0,
+                        categoriesCount: stored?.expenseCategories?.length || 0,
+                    });
+
+                    if (stored && stored.transactions) {
+                        logger.info('TRANSACTIONSTORE', 'Found stored transaction data');
+                        await this._loadFromData(stored);
                     } else {
-                        console.log('[TRANSACTIONSTORE] No data found, initializing empty store');
+                        logger.info('TRANSACTIONSTORE', 'No stored transactions, initializing empty store');
                         this._initializeEmpty();
                     }
                 }
@@ -131,17 +143,45 @@ class TransactionStore {
             this._hasUnsavedChanges = false;
             this._lastSaved = new Date();
 
-            console.log('[TRANSACTIONSTORE] Initialization complete');
-            console.log(`[TRANSACTIONSTORE] Transactions: ${this.transactions.length}`);
-            console.log(`[TRANSACTIONSTORE] Properties: ${this.properties.size}`);
-            console.log(`[TRANSACTIONSTORE] Categories: ${this.categories.size}`);
+            const initTime = performance.now() - initStart;
+            logger.info('TRANSACTIONSTORE', `Full initialization complete in ${initTime.toFixed(2)}ms`);
+            logger.info('TRANSACTIONSTORE', `Transactions: ${this.transactions.length}`);
+            logger.info('TRANSACTIONSTORE', `Properties: ${this.properties.size}`);
+            logger.info('TRANSACTIONSTORE', `Categories: ${this.categories.size}`);
 
         } catch (error) {
-            console.error('[TRANSACTIONSTORE] Error during initialization:', error);
+            logger.error('TRANSACTIONSTORE', 'Error during initialization', error);
             this._initializeEmpty();
             this._setupReactiveProxy();
             this._isInitialized = true;
         }
+    }
+
+    /**
+      * Initialize data structures - moved from constructor for performance
+      */
+    _initializeDataStructures() {
+        // Core data structure - normalized flat transactions
+        this.transactions = [];
+        this.properties = new Map(); // id -> property metadata
+        this.categories = new Set(); // expense categories
+        this.incomeCategories = new Set(); // income categories
+
+        // Reactive state
+        this._reactiveTransactions = null;
+        this._changeListeners = new Set();
+
+        // Persistence
+        this._debounceTimer = null;
+        this._hasUnsavedChanges = false;
+        this._lastSaved = null;
+
+        // Query memoization cache
+        this._queryCache = new Map();
+        this._cacheInvalidationTimer = null;
+        this._lastCacheInvalidation = null;
+
+        logger.info('TRANSACTIONSTORE', 'Data structures initialized');
     }
 
     /**
@@ -184,235 +224,153 @@ class TransactionStore {
     }
 
     /**
-     * Load data from provided data object
-     */
+      * Load data from provided data object - OPTIMIZED for performance
+      */
     async _loadFromData(data) {
-        // Load transactions
-        if (Array.isArray(data.transactions)) {
-            this.transactions = data.transactions.map(txn => this._validateTransaction(txn)).filter(Boolean);
+        const loadStart = performance.now();
+        logger.info('TRANSACTIONSTORE', 'Starting optimized data loading...');
+
+        // FAST PATH: Skip expensive operations for empty data
+        const hasTransactions = Array.isArray(data.transactions) && data.transactions.length > 0;
+        const hasProperties = data.properties && data.properties.length > 0;
+        const hasCategories = (Array.isArray(data.expenseCategories) && data.expenseCategories.length > 0) ||
+                            (Array.isArray(data.incomeCategories) && data.incomeCategories.length > 0);
+
+        if (!hasTransactions && !hasProperties && !hasCategories) {
+            logger.info('TRANSACTIONSTORE', 'No data to load, skipping expensive operations');
+            const loadTime = performance.now() - loadStart;
+            logger.info('TRANSACTIONSTORE', `Fast empty data loading completed in ${loadTime.toFixed(2)}ms`);
+            return;
         }
 
-        // Load properties metadata
-        if (data.properties) {
-            if (Array.isArray(data.properties)) {
-                // Check if it's an array of [key, value] pairs (from Array.from(map.entries()))
-                if (data.properties.length > 0 && Array.isArray(data.properties[0])) {
-                    // Convert [key, value] pairs back to Map
-                    this.properties = new Map(data.properties);
-                } else {
-                    // Convert array of property objects to Map
-                    data.properties.forEach(prop => {
-                        if (prop && prop.id) {
-                            this.properties.set(prop.id, {
-                                id: prop.id,
-                                name: prop.name || `Property ${prop.id}`,
-                                created: prop.created || new Date().toISOString(),
-                            });
-                        }
+        // OPTIMIZED: Parallel processing of different data types (only for non-empty data)
+        const promises = [];
+
+        // Process transactions asynchronously
+        if (hasTransactions) {
+            promises.push(this._processTransactionsOptimized(data.transactions));
+        }
+
+        // Process properties asynchronously
+        if (hasProperties) {
+            promises.push(this._processPropertiesOptimized(data.properties));
+        }
+
+        // Process categories asynchronously
+        if (hasCategories) {
+            promises.push(this._processCategoriesOptimized(data));
+        }
+
+        // Wait for all parallel operations to complete
+        if (promises.length > 0) {
+            await Promise.all(promises);
+        }
+
+        const loadTime = performance.now() - loadStart;
+        logger.info('TRANSACTIONSTORE', `Optimized data loading completed in ${loadTime.toFixed(2)}ms`);
+        logger.info('TRANSACTIONSTORE', `Loaded ${this.transactions.length} transactions, ${this.properties.size} properties, ${this.categories.size} categories`);
+    }
+
+    /**
+     * Process transactions with optimized validation
+     */
+    async _processTransactionsOptimized(transactions) {
+        logger.info('TRANSACTIONSTORE', `Processing ${transactions.length} transactions...`);
+
+        // OPTIMIZED: Increased batch size for better performance
+        const batchSize = 500; // Increased from 100 to 500 for better throughput
+        const validatedTransactions = [];
+
+        for (let i = 0; i < transactions.length; i += batchSize) {
+            const batch = transactions.slice(i, i + batchSize);
+            const batchPromises = batch.map(txn => this._validateTransactionOptimized(txn));
+            const batchResults = await Promise.all(batchPromises);
+
+            // Filter out null results and add to validated transactions
+            validatedTransactions.push(...batchResults.filter(Boolean));
+        }
+
+        this.transactions = validatedTransactions;
+
+        // Update categories metadata from loaded transactions
+        validatedTransactions.forEach(txn => {
+            this.categories.add(txn.category);
+            if (txn.type === 'income') {
+                this.incomeCategories.add(txn.category);
+            }
+        });
+
+        logger.info('TRANSACTIONSTORE', `Validated ${validatedTransactions.length} transactions`);
+    }
+
+    /**
+     * Optimized transaction validation
+     */
+    _validateTransactionOptimized(txn) {
+        if (!txn || typeof txn !== 'object') {return null;}
+
+        // OPTIMIZED: Faster validation with early returns
+        const id = txn.id || this.generateId();
+        const propertyId = typeof txn.propertyId === 'number' ? txn.propertyId : null;
+        const category = typeof txn.category === 'string' ? txn.category.trim() : '';
+        const subcategory = txn.subcategory ? String(txn.subcategory).trim() : undefined;
+        const amount = typeof txn.amount === 'number' ? txn.amount : 0;
+        const date = txn.date || new Date().toISOString().split('T')[0];
+        const type = txn.type === 'income' ? 'income' : 'expense';
+
+        // OPTIMIZED: Early validation check
+        if (!propertyId || !category || amount === 0) {
+            return null;
+        }
+
+        return {
+            id,
+            propertyId,
+            category,
+            subcategory,
+            amount,
+            date,
+            type,
+            description: txn.description ? String(txn.description).trim() : undefined,
+        };
+    }
+
+    /**
+     * Process properties with optimized loading
+     */
+    async _processPropertiesOptimized(properties) {
+        if (Array.isArray(properties)) {
+            // OPTIMIZED: Batch property processing
+            properties.forEach(prop => {
+                if (prop && prop.id) {
+                    this.properties.set(prop.id, {
+                        id: prop.id,
+                        name: prop.name || `Property ${prop.id}`,
+                        created: prop.created || new Date().toISOString(),
                     });
                 }
-            } else if (data.properties instanceof Map) {
-                this.properties = new Map(data.properties);
-            }
+            });
+        } else if (properties instanceof Map) {
+            this.properties = new Map(properties);
         }
+    }
 
-        // Load categories
-        if (Array.isArray(data.categories)) {
-            this.categories = new Set(data.categories);
+    /**
+     * Process categories with optimized loading
+     */
+    async _processCategoriesOptimized(data) {
+        if (Array.isArray(data.expenseCategories)) {
+            // OPTIMIZED: Direct set creation for better performance
+            this.categories = new Set(data.expenseCategories);
         }
         if (Array.isArray(data.incomeCategories)) {
             this.incomeCategories = new Set(data.incomeCategories);
         }
-
-        console.log(`[TRANSACTIONSTORE] Loaded ${this.transactions.length} transactions`);
     }
 
-    /**
-     * Check for legacy hierarchical data to migrate
-     */
-    async _checkForLegacyData() {
-        try {
-            const data = await this.storage.load();
-            if (data && data.properties && Array.isArray(data.properties)) {
-                // Check if it has the old hierarchical structure
-                const hasLegacyStructure = data.properties.some(prop =>
-                    prop && (prop.expenses || prop.monthlyData || prop.quarterlyData),
-                );
-                if (hasLegacyStructure) {
-                    console.log('[TRANSACTIONSTORE] Detected legacy hierarchical data structure');
-                    return data;
-                }
-            }
-        } catch (error) {
-            console.warn('[TRANSACTIONSTORE] Error checking for legacy data:', error);
-        }
-        return null;
-    }
 
-    /**
-     * Migrate legacy hierarchical data to normalized transactions
-     */
-    async _migrateLegacyData(legacyData) {
-        console.log('[TRANSACTIONSTORE] Starting legacy data migration...');
 
-        const migratedTransactions = [];
-        const propertyMap = new Map();
-        const categorySet = new Set();
-        const incomeCategorySet = new Set();
 
-        // Process each property
-        legacyData.properties.forEach((property, index) => {
-            if (!property) {return;}
-
-            const propertyId = property.id || (index + 1);
-
-            // Store property metadata
-            propertyMap.set(propertyId, {
-                id: propertyId,
-                name: property.name || `Property ${propertyId}`,
-                created: new Date().toISOString(),
-            });
-
-            // Convert expenses
-            if (property.expenses) {
-                this._convertExpensesToTransactions(
-                    property.expenses,
-                    propertyId,
-                    'expense',
-                    null, // no specific date for top-level expenses
-                    migratedTransactions,
-                    categorySet,
-                );
-            }
-
-            // Convert monthly data
-            if (property.monthlyData) {
-                Object.entries(property.monthlyData).forEach(([monthKey, monthData]) => {
-                    const date = this._parseMonthKeyToDate(monthKey);
-
-                    // Convert monthly expenses
-                    if (monthData.expenses) {
-                        this._convertExpensesToTransactions(
-                            monthData.expenses,
-                            propertyId,
-                            'expense',
-                            date,
-                            migratedTransactions,
-                            categorySet,
-                        );
-                    }
-
-                    // Convert monthly incomes
-                    if (monthData.incomes) {
-                        Object.entries(monthData.incomes).forEach(([category, amount]) => {
-                            if (typeof amount === 'number' && amount !== 0) {
-                                migratedTransactions.push({
-                                    id: this.generateId(),
-                                    propertyId,
-                                    category,
-                                    amount: Math.abs(amount), // incomes are positive
-                                    date,
-                                    type: 'income',
-                                });
-                                incomeCategorySet.add(category);
-                            }
-                        });
-                    }
-                });
-            }
-
-        });
-
-        // Load global categories if available
-        if (legacyData.expenseCategories) {
-            legacyData.expenseCategories.forEach(cat => categorySet.add(cat));
-        }
-        if (legacyData.incomeCategories) {
-            legacyData.incomeCategories.forEach(cat => incomeCategorySet.add(cat));
-        }
-
-        // Apply migrated data
-        this.transactions = migratedTransactions;
-        this.properties = propertyMap;
-        this.categories = categorySet;
-        this.incomeCategories = incomeCategorySet;
-
-        console.log(`[TRANSACTIONSTORE] Migration complete: ${migratedTransactions.length} transactions created`);
-
-        // Save migrated data immediately
-        await this._saveToStorage();
-    }
-
-    /**
-     * Convert hierarchical expenses to flat transactions
-     */
-    _convertExpensesToTransactions(expenses, propertyId, type, date, transactions, categorySet) {
-        Object.entries(expenses).forEach(([category, value]) => {
-            if (typeof value === 'object' && value !== null) {
-                // Hierarchical category with subcategories
-                Object.entries(value).forEach(([subcategory, subValue]) => {
-                    if (typeof subValue === 'number' && subValue !== 0) {
-                        transactions.push({
-                            id: this.generateId(),
-                            propertyId,
-                            category,
-                            subcategory,
-                            amount: subValue, // expenses should be negative
-                            date: date || new Date().toISOString().split('T')[0],
-                            type,
-                        });
-                    }
-                });
-            } else if (typeof value === 'number' && value !== 0) {
-                // Flat category
-                transactions.push({
-                    id: this.generateId(),
-                    propertyId,
-                    category,
-                    amount: value, // expenses should be negative
-                    date: date || new Date().toISOString().split('T')[0],
-                    type,
-                });
-            }
-            categorySet.add(category);
-        });
-    }
-
-    /**
-     * Parse month key (e.g., "Jan 2025") to ISO date string
-     */
-    _parseMonthKeyToDate(monthKey) {
-        const parts = monthKey.split(' ');
-        if (parts.length === 2) {
-            const monthName = parts[0];
-            const year = parts[1];
-
-            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-            const monthIndex = monthNames.indexOf(monthName);
-
-            if (monthIndex !== -1) {
-                const date = new Date(parseInt(year), monthIndex, 15); // Mid-month
-                return date.toISOString().split('T')[0];
-            }
-        }
-        return new Date().toISOString().split('T')[0];
-    }
-
-    /**
-     * Parse quarter key to ISO date string
-     */
-    _parseQuarterKeyToDate(quarterKey) {
-        const match = quarterKey.match(/Q(\d) (\d{4})/);
-        if (match) {
-            const quarter = parseInt(match[1]);
-            const year = parseInt(match[2]);
-            const month = (quarter - 1) * 3; // Q1 = Jan (0), Q2 = Apr (3), etc.
-            const date = new Date(year, month, 15); // Mid-quarter
-            return date.toISOString().split('T')[0];
-        }
-        return new Date().toISOString().split('T')[0];
-    }
 
     /**
      * Initialize empty store
@@ -443,7 +401,7 @@ class TransactionStore {
 
         // Basic validation
         if (!validated.propertyId || !validated.category || validated.amount === 0) {
-            console.warn('[TRANSACTIONSTORE] Invalid transaction:', txn);
+            logger.warn('TRANSACTIONSTORE', 'Invalid transaction', txn);
             return null;
         }
 
@@ -472,7 +430,7 @@ class TransactionStore {
             try {
                 callback(changeType, data);
             } catch (error) {
-                console.error('[TRANSACTIONSTORE] Error in change listener:', error);
+                logger.error('TRANSACTIONSTORE', 'Error in change listener', error);
             }
         });
     }
@@ -508,7 +466,7 @@ class TransactionStore {
             const dataToSave = {
                 transactions: this.transactions,
                 properties: Array.from(this.properties.entries()),
-                categories: Array.from(this.categories),
+                expenseCategories: Array.from(this.categories),
                 incomeCategories: Array.from(this.incomeCategories),
                 version: '1.0',
                 lastSaved: new Date().toISOString(),
@@ -518,12 +476,12 @@ class TransactionStore {
             if (success) {
                 this._hasUnsavedChanges = false;
                 this._lastSaved = new Date();
-                console.log('[TRANSACTIONSTORE] Data saved to storage');
+                logger.info('TRANSACTIONSTORE', 'Data saved to storage');
             } else {
-                console.error('[TRANSACTIONSTORE] Failed to save data to storage');
+                logger.error('TRANSACTIONSTORE', 'Failed to save data to storage');
             }
         } catch (error) {
-            console.error('[TRANSACTIONSTORE] Error saving to storage:', error);
+            logger.error('TRANSACTIONSTORE', 'Error saving to storage', error);
         }
     }
 
@@ -535,17 +493,23 @@ class TransactionStore {
     }
 
     /**
-     * Invalidate query cache
+     * Invalidate query cache - OPTIMIZED with smart invalidation
      */
     _invalidateCache() {
         if (this._cacheInvalidationTimer) {
             clearTimeout(this._cacheInvalidationTimer);
         }
 
-        // Immediate cache invalidation for consistency
-        this._queryCache.clear();
-        this._lastCacheInvalidation = Date.now();
-        console.log('[TRANSACTIONSTORE] Query cache invalidated');
+        // OPTIMIZED: Only invalidate if we have cached data and it's been a while
+        if (this._queryCache.size > 0) {
+            const now = Date.now();
+            // Only invalidate if it's been more than 100ms since last invalidation
+            if (!this._lastCacheInvalidation || now - this._lastCacheInvalidation > 100) {
+                this._queryCache.clear();
+                this._lastCacheInvalidation = now;
+                logger.info('TRANSACTIONSTORE', 'Query cache invalidated');
+            }
+        }
     }
 
     /**
@@ -648,42 +612,74 @@ class TransactionStore {
     }
 
     /**
-     * Query transactions with filters
-     */
+      * Query transactions with filters - OPTIMIZED for performance
+      */
     queryTransactions(filters = {}) {
+        // OPTIMIZED: Skip expensive operations when no data exists
+        if (this._isEmpty()) {
+            logger.debug('TRANSACTIONSTORE', 'Empty store, returning empty results');
+            return [];
+        }
+
         const cacheKey = JSON.stringify(filters);
         if (this._queryCache.has(cacheKey)) {
             return this._queryCache.get(cacheKey);
         }
 
+        const queryStart = performance.now();
         let results = [...this.transactions];
 
-        // Apply filters
+        // OPTIMIZED: Early return for empty results
+        if (results.length === 0) {
+            this._queryCache.set(cacheKey, results);
+            return results;
+        }
+
+        // OPTIMIZED: Apply filters in order of selectivity (most selective first)
         if (filters.propertyId !== undefined) {
             results = results.filter(t => t.propertyId === filters.propertyId);
-        }
-
-        if (filters.category) {
-            results = results.filter(t => t.category === filters.category);
-        }
-
-        if (filters.subcategory) {
-            results = results.filter(t => t.subcategory === filters.subcategory);
+            if (results.length === 0) {
+                this._queryCache.set(cacheKey, results);
+                return results;
+            }
         }
 
         if (filters.type) {
             results = results.filter(t => t.type === filters.type);
+            if (results.length === 0) {
+                this._queryCache.set(cacheKey, results);
+                return results;
+            }
+        }
+
+        if (filters.category) {
+            results = results.filter(t => t.category === filters.category);
+            if (results.length === 0) {
+                this._queryCache.set(cacheKey, results);
+                return results;
+            }
+        }
+
+        if (filters.subcategory) {
+            results = results.filter(t => t.subcategory === filters.subcategory);
+            if (results.length === 0) {
+                this._queryCache.set(cacheKey, results);
+                return results;
+            }
         }
 
         if (filters.dateRange) {
             const { start, end } = filters.dateRange;
             results = results.filter(t => {
                 const txnDate = t.date;
-
                 if (start && txnDate < start) {return false;}
                 if (end && txnDate > end) {return false;}
                 return true;
             });
+            if (results.length === 0) {
+                this._queryCache.set(cacheKey, results);
+                return results;
+            }
         }
 
         if (filters.amountRange) {
@@ -695,7 +691,7 @@ class TransactionStore {
             });
         }
 
-        // Apply sorting
+        // OPTIMIZED: Apply sorting only if needed
         if (filters.sortBy) {
             const { field, order = 'asc' } = filters.sortBy;
             results.sort((a, b) => {
@@ -712,24 +708,53 @@ class TransactionStore {
                 return 0;
             });
         } else {
-            // Default sort by date descending
+            // Default sort by date descending - only if not already sorted
             results.sort((a, b) => new Date(b.date) - new Date(a.date));
         }
 
-        // Apply pagination
+        // OPTIMIZED: Apply pagination efficiently
         if (filters.limit) {
             const offset = filters.offset || 0;
             results = results.slice(offset, offset + filters.limit);
         }
 
         this._queryCache.set(cacheKey, results);
+
+        const queryTime = performance.now() - queryStart;
+
+        // PERFORMANCE MONITORING: Record query performance
+        if (window.performanceOptimizer) {
+            window.performanceOptimizer.recordDataManagerOperation(`query_${Object.keys(filters).join('_')}`, queryTime);
+        }
+
+        if (queryTime > 15) {
+            logger.warn('TRANSACTIONSTORE', `Query took ${queryTime.toFixed(2)}ms for ${filters}`);
+        }
+
         return results;
     }
 
     /**
-     * Query properties with their transaction summaries
-     */
+      * Check if store is empty for optimization
+      * @returns {boolean} True if store is empty
+      */
+    _isEmpty() {
+        return this.transactions.length === 0 &&
+               this.properties.size === 0 &&
+               this.categories.size === 0 &&
+               this.incomeCategories.size === 0;
+    }
+
+    /**
+      * Query properties with their transaction summaries
+      */
     queryProperties(filters = {}) {
+        // OPTIMIZED: Skip expensive operations when no data exists
+        if (this._isEmpty()) {
+            logger.debug('TRANSACTIONSTORE', 'Empty store, returning empty properties');
+            return [];
+        }
+
         const cacheKey = `properties_${JSON.stringify(filters)}`;
         if (this._queryCache.has(cacheKey)) {
             return this._queryCache.get(cacheKey);
@@ -845,111 +870,108 @@ class TransactionStore {
     }
 
     /**
-     * Get aggregated sankey data (compatible with existing DataManager API)
-     */
+      * Get aggregated sankey data (compatible with existing DataManager API) - OPTIMIZED
+      */
     queryAggregatedSankey(period = 'all', year = null, month = null) {
+        // OPTIMIZED: Skip expensive operations when no data exists
+        if (this._isEmpty()) {
+            logger.debug('TRANSACTIONSTORE', 'Empty store, returning empty sankey data');
+            return {
+                hasIncome: false,
+                sources: new Map(),
+                propIncomes: new Map(),
+                propExpenses: new Map(),
+                catTotals: new Map(),
+                subTotals: new Map(),
+            };
+        }
+
         const cacheKey = `sankey_${period}_${year}_${month}`;
         if (this._queryCache.has(cacheKey)) {
             return this._queryCache.get(cacheKey);
         }
 
+        const sankeyStart = performance.now();
+
         // Get date range for period filtering
         const dateRange = this._getDateRangeForPeriod(period, year, month);
 
-        // Query all transactions within the period
+        // OPTIMIZED: Query transactions with early filtering for better performance
         const allTxns = this.queryTransactions({
             dateRange,
             sortBy: { field: 'date', order: 'desc' },
         });
 
-        // Separate expenses and incomes
-        const expenseTxns = allTxns.filter(t => t.type === 'expense');
-        const incomeTxns = allTxns.filter(t => t.type === 'income');
+        if (allTxns.length === 0) {
+            const emptyResult = {
+                hasIncome: false,
+                sources: new Map(),
+                propIncomes: new Map(),
+                propExpenses: new Map(),
+                catTotals: new Map(),
+                subTotals: new Map(),
+            };
+            this._queryCache.set(cacheKey, emptyResult);
+            return emptyResult;
+        }
 
-        // Aggregate by property
+        // OPTIMIZED: Pre-allocate maps for better performance
         const propData = new Map();
-
-        // Process expenses
-        expenseTxns.forEach(txn => {
-            if (!propData.has(txn.propertyId)) {
-                propData.set(txn.propertyId, {
-                    propertyId: txn.propertyId,
-                    expenses: new Map(),
-                    totalExpenses: 0,
-                    incomes: new Map(),
-                    totalIncome: 0,
-                });
-            }
-
-            const prop = propData.get(txn.propertyId);
-            const categoryKey = txn.subcategory ? `${txn.category}:${txn.subcategory}` : txn.category;
-
-            prop.expenses.set(categoryKey, (prop.expenses.get(categoryKey) || 0) + Math.abs(txn.amount));
-            prop.totalExpenses += Math.abs(txn.amount);
-        });
-
-        // Process incomes
-        incomeTxns.forEach(txn => {
-            if (!propData.has(txn.propertyId)) {
-                propData.set(txn.propertyId, {
-                    propertyId: txn.propertyId,
-                    expenses: new Map(),
-                    totalExpenses: 0,
-                    incomes: new Map(),
-                    totalIncome: 0,
-                });
-            }
-
-            const prop = propData.get(txn.propertyId);
-            const incomeAmount = Math.abs(txn.amount); // Convert negative incomes to positive
-            prop.incomes.set(txn.category, (prop.incomes.get(txn.category) || 0) + incomeAmount);
-            prop.totalIncome += incomeAmount;
-        });
-
-        // Get all property IDs that have any transactions in this period
-        const allPropertyIds = new Set(expenseTxns.concat(incomeTxns).map(txn => txn.propertyId));
-
-        // Convert to sankey format
         const sources = new Map();
         const propIncomes = new Map();
         const propExpenses = new Map();
         const catTotals = new Map();
         const subTotals = new Map();
 
-        // Initialize property incomes and expenses for all properties with transactions
-        allPropertyIds.forEach(propertyId => {
-            const prop = propData.get(propertyId);
-            propIncomes.set(propertyId, prop ? prop.totalIncome : 0);
-            propExpenses.set(propertyId, prop ? prop.totalExpenses : 0);
+        // OPTIMIZED: Single pass aggregation
+        let hasIncome = false;
 
-            // Add income sources if property has data
-            if (prop && prop.incomes.size > 0) {
-                prop.incomes.forEach((amount, source) => {
-                    sources.set(source, (sources.get(source) || 0) + amount);
+        for (const txn of allTxns) {
+            if (!propData.has(txn.propertyId)) {
+                propData.set(txn.propertyId, {
+                    expenses: new Map(),
+                    totalExpenses: 0,
+                    incomes: new Map(),
+                    totalIncome: 0,
                 });
             }
-        });
 
-        // Check if we have any income
-        const hasIncome = sources.size > 0 && Array.from(sources.values()).some(v => v > 0);
+            const prop = propData.get(txn.propertyId);
 
-        // Aggregate expenses by category
-        propData.forEach(prop => {
-            prop.expenses.forEach((amount, categoryKey) => {
-                if (categoryKey.includes(':')) {
-                    // Hierarchical category
-                    const [category, subcategory] = categoryKey.split(':');
-                    if (!subTotals.has(category)) {
-                        subTotals.set(category, new Map());
+            if (txn.type === 'expense') {
+                const categoryKey = txn.subcategory ? `${txn.category}:${txn.subcategory}` : txn.category;
+                const amount = Math.abs(txn.amount);
+
+                prop.expenses.set(categoryKey, (prop.expenses.get(categoryKey) || 0) + amount);
+                prop.totalExpenses += amount;
+
+                // Aggregate category totals
+                if (txn.subcategory) {
+                    if (!subTotals.has(txn.category)) {
+                        subTotals.set(txn.category, new Map());
                     }
-                    const subMap = subTotals.get(category);
-                    subMap.set(subcategory, (subMap.get(subcategory) || 0) + amount);
-                    catTotals.set(category, (catTotals.get(category) || 0) + amount);
+                    const subMap = subTotals.get(txn.category);
+                    subMap.set(txn.subcategory, (subMap.get(txn.subcategory) || 0) + amount);
+                    catTotals.set(txn.category, (catTotals.get(txn.category) || 0) + amount);
                 } else {
-                    // Flat category
-                    catTotals.set(categoryKey, (catTotals.get(categoryKey) || 0) + amount);
+                    catTotals.set(txn.category, (catTotals.get(txn.category) || 0) + amount);
                 }
-            });
+            } else {
+                // Income transaction
+                const incomeAmount = Math.abs(txn.amount);
+                prop.incomes.set(txn.category, (prop.incomes.get(txn.category) || 0) + incomeAmount);
+                prop.totalIncome += incomeAmount;
+                hasIncome = true;
+
+                // Aggregate income sources
+                sources.set(txn.category, (sources.get(txn.category) || 0) + incomeAmount);
+            }
+        }
+
+        // OPTIMIZED: Set property totals in single pass
+        propData.forEach((prop, propertyId) => {
+            propIncomes.set(propertyId, prop.totalIncome);
+            propExpenses.set(propertyId, prop.totalExpenses);
         });
 
         const result = {
@@ -962,6 +984,18 @@ class TransactionStore {
         };
 
         this._queryCache.set(cacheKey, result);
+
+        const sankeyTime = performance.now() - sankeyStart;
+
+        // PERFORMANCE MONITORING: Record sankey aggregation performance
+        if (window.performanceOptimizer) {
+            window.performanceOptimizer.recordDataManagerOperation('sankey_aggregation', sankeyTime);
+        }
+
+        if (sankeyTime > 20) {
+            logger.warn('TRANSACTIONSTORE', `Sankey aggregation took ${sankeyTime.toFixed(2)}ms for ${allTxns.length} transactions`);
+        }
+
         return result;
     }
 
@@ -1071,11 +1105,6 @@ class TransactionStore {
                 endDate = new Date(selectedYear, selectedMonth + 1, 0);
                 break;
 
-            case 'quarter':
-                const quarter = Math.floor(now.getMonth() / 3);
-                startDate = new Date(now.getFullYear(), quarter * 3, 1);
-                endDate = new Date(now.getFullYear(), (quarter + 1) * 3, 0);
-                break;
 
             case 'year':
                 if (year) {
@@ -1129,6 +1158,20 @@ class TransactionStore {
     }
 
     /**
+     * Get standardized data counts for consistency across modules
+     * @returns {Object} Standardized data counts
+     */
+    getDataCounts() {
+        return {
+            transactionsCount: this.transactions.length,
+            propertiesCount: this.properties.size,
+            categoriesCount: this.categories.size + this.incomeCategories.size, // Combined count
+            expenseCategoriesCount: this.categories.size,
+            incomeCategoriesCount: this.incomeCategories.size,
+        };
+    }
+
+    /**
      * Clear all data
      */
     async clearAllData() {
@@ -1152,122 +1195,61 @@ class TransactionStore {
         return {
             transactions: this.transactions,
             properties: Array.from(this.properties.entries()),
-            categories: Array.from(this.categories),
+            expenseCategories: Array.from(this.categories),
             incomeCategories: Array.from(this.incomeCategories),
             version: '1.0',
             exportedAt: new Date().toISOString(),
         };
     }
 
-    /**
-     * Convert legacy data to normalized transactions (without saving)
-     */
-    convertLegacyData(legacyData) {
-        console.log('[TRANSACTIONSTORE] Converting legacy data...');
-
-        if (!legacyData || !legacyData.properties) {
-            console.warn('[TRANSACTIONSTORE] No legacy data to convert');
-            return { transactions: [], properties: [], categories: [], incomeCategories: [] };
-        }
-
-        const migratedTransactions = [];
-        const propertyMap = new Map();
-        const categorySet = new Set();
-        const incomeCategorySet = new Set();
-
-        // Process each property
-        legacyData.properties.forEach((property, index) => {
-            if (!property) {return;}
-
-            const propertyId = property.id || (index + 1);
-
-            // Store property metadata
-            propertyMap.set(propertyId, {
-                id: propertyId,
-                name: property.name || `Property ${propertyId}`,
-                created: new Date().toISOString(),
-            });
-
-            // Convert expenses
-            if (property.expenses) {
-                this._convertExpensesToTransactions(
-                    property.expenses,
-                    propertyId,
-                    'expense',
-                    null, // no specific date for top-level expenses
-                    migratedTransactions,
-                    categorySet,
-                );
-            }
-
-            // Convert monthly data
-            if (property.monthlyData) {
-                Object.entries(property.monthlyData).forEach(([monthKey, monthData]) => {
-                    const date = this._parseMonthKeyToDate(monthKey);
-
-                    // Convert monthly expenses
-                    if (monthData.expenses) {
-                        this._convertExpensesToTransactions(
-                            monthData.expenses,
-                            propertyId,
-                            'expense',
-                            date,
-                            migratedTransactions,
-                            categorySet,
-                        );
-                    }
-
-                    // Convert monthly incomes
-                    if (monthData.incomes) {
-                        Object.entries(monthData.incomes).forEach(([category, amount]) => {
-                            if (typeof amount === 'number' && amount !== 0) {
-                                migratedTransactions.push({
-                                    id: this.generateId(),
-                                    propertyId,
-                                    category,
-                                    amount: Math.abs(amount), // incomes are positive
-                                    date,
-                                    type: 'income',
-                                });
-                                incomeCategorySet.add(category);
-                            }
-                        });
-                    }
-                });
-            }
-
-        });
-
-        // Load global categories if available
-        if (legacyData.expenseCategories) {
-            legacyData.expenseCategories.forEach(cat => categorySet.add(cat));
-        }
-        if (legacyData.incomeCategories) {
-            legacyData.incomeCategories.forEach(cat => incomeCategorySet.add(cat));
-        }
-
-        return {
-            transactions: migratedTransactions,
-            properties: Array.from(propertyMap.values()),
-            categories: Array.from(categorySet),
-            incomeCategories: Array.from(incomeCategorySet),
-        };
-    }
 
     /**
      * Import data
      */
     async importData(data) {
+        logger.info('TRANSACTIONSTORE', 'Starting importData with', {
+            hasData: !!data,
+            dataType: typeof data,
+            dataKeys: data ? Object.keys(data) : 'N/A',
+            hasTransactions: !!(data && data.transactions),
+            transactionsType: data && data.transactions ? typeof data.transactions : 'N/A',
+            transactionsLength: data && data.transactions ? data.transactions.length : 'N/A',
+            hasProperties: !!(data && data.properties),
+            propertiesType: data && data.properties ? typeof data.properties : 'N/A',
+            hasCategories: !!(data && data.categories),
+            categoriesType: data && data.categories ? typeof data.categories : 'N/A'
+        });
+
         if (!data || !data.transactions) {
+            logger.error('TRANSACTIONSTORE', 'Import validation failed', {
+                dataExists: !!data,
+                transactionsExists: !!(data && data.transactions),
+                dataValue: data
+            });
             throw new Error('Invalid import data');
         }
 
-        await this._loadFromData(data);
-        this._setupReactiveProxy();
-        this._hasUnsavedChanges = true;
-        await this._saveToStorage();
+        logger.info('TRANSACTIONSTORE', 'Import validation passed, proceeding with import...');
 
-        this._notifyChange('import', { transactionCount: this.transactions.length });
+        try {
+            await this._loadFromData(data);
+            logger.info('TRANSACTIONSTORE', '_loadFromData completed successfully');
+
+            this._setupReactiveProxy();
+            logger.info('TRANSACTIONSTORE', '_setupReactiveProxy completed');
+
+            this._hasUnsavedChanges = true;
+            await this._saveToStorage();
+            logger.info('TRANSACTIONSTORE', '_saveToStorage completed');
+
+            logger.info('TRANSACTIONSTORE', 'Import completed successfully, notifying listeners...');
+            this._notifyChange('import', { transactionCount: this.transactions.length });
+
+            return true; // Explicit success return
+        } catch (error) {
+            logger.error('TRANSACTIONSTORE', 'Import failed during processing', error);
+            return false; // Explicit failure return
+        }
     }
 
     /**

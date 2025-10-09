@@ -26,6 +26,26 @@ global.CustomEvent = class CustomEvent extends Event {
     }
 };
 
+// Mock PerformanceObserver for browser performance monitoring
+global.PerformanceObserver = class PerformanceObserver {
+    constructor(callback) {
+        this.callback = callback;
+    }
+
+    observe(options) {
+        // Mock implementation - do nothing in tests
+    }
+
+    disconnect() {
+        // Mock implementation - do nothing in tests
+    }
+};
+
+// Also add to window object for modules that check 'PerformanceObserver' in window
+if (typeof window !== 'undefined') {
+    window.PerformanceObserver = global.PerformanceObserver;
+}
+
 
 // Make Jest globals available
 global.jest = jest;

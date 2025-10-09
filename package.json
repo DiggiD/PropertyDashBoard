@@ -20,6 +20,12 @@
     "test:debug": "jest --verbose --runInBand --detectOpenHandles",
     "test:sankey": "jest src/modules/core/__tests__/sankey-*.test.js",
     "test:watch": "jest --watch",
+    "test:utils": "jest src/__tests__/utils.test.js",
+    "test:formatter": "jest src/__tests__/Formatter.test.js",
+    "test:validator": "jest src/__tests__/Validator.test.js",
+    "test:storage": "jest src/__tests__/Storage.test.js",
+    "test:performance": "jest src/__tests__/PerformanceOptimizer.test.js",
+    "test:utils:fast": "jest src/__tests__/Formatter.test.js src/__tests__/Validator.test.js src/__tests__/Storage.test.js src/__tests__/PerformanceOptimizer.test.js --runInBand",
     "lint": "eslint src/",
     "lint:fix": "eslint app.js --fix",
     "format": "prettier --write app.js index.html style.css",
@@ -35,7 +41,6 @@
     "@eslint/js": "^9.9.0",
     "@testing-library/jest-dom": "^6.8.0",
     "babel-jest": "^29.7.0",
-    "dexie": "^4.2.0",
     "eslint": "^9.9.0",
     "globals": "^15.9.0",
     "husky": "^9.1.4",
@@ -67,6 +72,8 @@
   "license": "MIT",
   "dependencies": {
     "d3": "^7.9.0",
+    "d3-sankey": "^0.12.3",
+    "dexie": "^4.2.0",
     "node-fetch": "^3.3.2"
   }
 }

@@ -8,6 +8,8 @@
  * - Modal interactions
  */
 
+import logger from '../utils/Logger.js';
+
 class EventHandler {
     constructor(dataManager, uiManager, historyManager, themeManager) {
         this.dataManager = dataManager;
@@ -19,7 +21,7 @@ class EventHandler {
         this.boundEvents = new Map();
         this.eventListeners = new Map();
 
-        console.log('[EVENT] EventHandler initialized');
+        logger.info('EVENT', 'EventHandler initialized');
     }
 
     /**
@@ -32,7 +34,7 @@ class EventHandler {
         this.bindKeyboardShortcuts();
         this.bindChartInteractions();
 
-        console.log('[EVENT] Event handlers initialized');
+        logger.info('EVENT', 'Event handlers initialized');
     }
 
     /**
@@ -48,7 +50,7 @@ class EventHandler {
             this.bindClickEvent(buttonKey, handler);
         });
 
-        console.log('[EVENT] Summary buttons bound');
+        logger.info('EVENT', 'Summary buttons bound');
     }
 
     /**
@@ -66,14 +68,14 @@ class EventHandler {
         // Theme toggle
         this.bindClickEvent('darkModeToggle', () => this.handleThemeToggle());
 
-        console.log('[EVENT] Modal events bound');
+        logger.info('EVENT', 'Modal events bound');
     }
 
     /**
      * Bind form events
      */
     bindFormEvents() {
-        console.log('[EVENT] Form events bound');
+        logger.info('EVENT', 'Form events bound');
     }
 
     /**
@@ -90,7 +92,7 @@ class EventHandler {
             this.handleSaveData();
         });
 
-        console.log('[EVENT] Keyboard shortcuts bound');
+        logger.info('EVENT', 'Keyboard shortcuts bound');
     }
 
     /**
@@ -98,7 +100,7 @@ class EventHandler {
      * Currently empty as analytics features removed
      */
     bindChartInteractions() {
-        console.log('[EVENT] Chart interactions bound (no analytics)');
+        logger.info('EVENT', 'Chart interactions bound (no analytics)');
     }
 
     /**
@@ -119,7 +121,7 @@ class EventHandler {
                 await this.handlePropertiesView();
             }
 
-            console.log(`[EVENT] View changed to: ${view}`);
+            logger.info('EVENT', `View changed to: ${view}`);
         } catch (error) {
             console.error('[EVENT] Error changing view:', error);
             this.uiManager.showError('Failed to change view', 'View Change Error');
@@ -195,7 +197,7 @@ class EventHandler {
                 // IMPORTANT: Re-initialize HistoryManager to load updated history
                 if (this.historyManager && typeof this.historyManager.initialize === 'function') {
                     await this.historyManager.initialize();
-                    console.log('[EVENT] HistoryManager re-initialized after import');
+                    logger.info('EVENT', 'HistoryManager re-initialized after import');
                 }
 
                 // Update undo/redo buttons after history reload
@@ -209,7 +211,7 @@ class EventHandler {
                 // Refresh current view with updated data
                 await this.handleViewChange(this.uiManager.currentView);
 
-                console.log('[EVENT] Data imported successfully');
+                logger.info('EVENT', 'Data imported successfully');
             } else {
                 this.uiManager.showToast('Failed to import data', 'error');
             }
@@ -224,7 +226,7 @@ class EventHandler {
      */
     handleCancelImport() {
         this.uiManager.closeModal('importModal');
-        console.log('[EVENT] Import cancelled');
+        logger.info('EVENT', 'Import cancelled');
     }
 
 
@@ -233,7 +235,7 @@ class EventHandler {
      * Handle history open
      */
     handleHistoryOpen() {
-        console.log('[EVENT] History button clicked');
+        logger.info('EVENT', 'History button clicked');
         this.historyManager.openHistoryManager();
     }
 
@@ -247,7 +249,7 @@ class EventHandler {
 
             this.uiManager.showToast(`Switched to ${isDark ? 'dark' : 'light'} mode`, 'info', 1500);
 
-            console.log(`[EVENT] Theme toggled to: ${isDark ? 'dark' : 'light'}`);
+            logger.info('EVENT', `Theme toggled to: ${isDark ? 'dark' : 'light'}`);
         } catch (error) {
             console.error('[EVENT] Error toggling theme:', error);
             this.uiManager.showError('Failed to toggle theme', 'Theme Error');
@@ -273,7 +275,7 @@ class EventHandler {
                 // Refresh current view
                 await this.handleViewChange(this.uiManager.currentView);
 
-                console.log('[EVENT] Undo executed');
+                logger.info('EVENT', 'Undo executed');
             } else {
                 this.uiManager.showToast(result.message, 'info');
             }
@@ -302,7 +304,7 @@ class EventHandler {
                 // Refresh current view
                 await this.handleViewChange(this.uiManager.currentView);
 
-                console.log('[EVENT] Redo executed');
+                logger.info('EVENT', 'Redo executed');
             } else {
                 this.uiManager.showToast(result.message, 'info');
             }
@@ -321,7 +323,7 @@ class EventHandler {
 
             if (success) {
                 this.uiManager.showToast('Data saved successfully', 'success');
-                console.log('[EVENT] Data saved');
+                logger.info('EVENT', 'Data saved');
             } else {
                 this.uiManager.showToast('Failed to save data', 'error');
             }
@@ -459,7 +461,7 @@ class EventHandler {
         });
 
         this.boundEvents.clear();
-        console.log('[EVENT] Event handler cleaned up');
+        logger.info('EVENT', 'Event handler cleaned up');
     }
 
     /**
@@ -483,19 +485,19 @@ class EventHandler {
      * Debug event information
      */
     debug() {
-        console.log('[EVENT DEBUG] === EVENT HANDLER INFO ===');
-        console.log('[EVENT DEBUG] Event statistics:', this.getEventStatistics());
-        console.log('[EVENT DEBUG] Bound events:');
+        logger.debug('EVENT', '=== EVENT HANDLER INFO ===');
+        logger.debug('EVENT', 'Event statistics:', this.getEventStatistics());
+        logger.debug('EVENT', 'Bound events:');
 
         this.boundEvents.forEach((elementBindings, elementKey) => {
-            console.log(`[EVENT DEBUG] ${elementKey}:`);
+            logger.debug('EVENT', `${elementKey}:`);
             elementBindings.forEach((binding, event) => {
                 const meta = binding.metadata ? ` (${binding.metadata})` : '';
-                console.log(`[EVENT DEBUG]   - ${event}${meta}`);
+                logger.debug('EVENT', `  - ${event}${meta}`);
             });
         });
 
-        console.log('[EVENT DEBUG] === END DEBUG ===');
+        logger.debug('EVENT', '=== END DEBUG ===');
     }
 }
 

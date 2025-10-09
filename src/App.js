@@ -6,6 +6,7 @@
  * - Handles initialization and cleanup
  * - Provides unified API for UI interactions
  */
+import logger from './modules/utils/Logger.js';
 
 class App {
     constructor(dataManager, uiManager, eventHandler, chartRenderer, historyManager, formatter, storage, validator, themeManager, propertiesManager) {
@@ -33,7 +34,7 @@ class App {
         this.currentView = 'overview';
         this.currentTimePeriod = 'all';
 
-        console.log('[APP] Application orchestrator initialized');
+        logger.info('APP', 'Application orchestrator initialized');
     }
 
     /**
@@ -41,7 +42,7 @@ class App {
      */
     async initialize() {
         try {
-            console.log('[APP] Starting application initialization...');
+            logger.info('APP', 'Starting application initialization...');
 
             // Initialize utility modules first
             await this.initializeUtilityModules();
@@ -61,13 +62,13 @@ class App {
             // Mark as initialized
             this.isInitialized = true;
 
-            console.log('[APP] Application initialization complete');
+            logger.info('APP', 'Application initialization complete');
 
             // Show initial view
             this.showOverviewView();
 
         } catch (error) {
-            console.error('[APP] Initialization failed:', error);
+            logger.error('APP', 'Initialization failed', error);
             this.handleInitializationError(error);
         }
     }
@@ -76,7 +77,7 @@ class App {
      * Initialize utility modules
      */
     async initializeUtilityModules() {
-        console.log('[APP] Initializing utility modules...');
+        logger.info('APP', 'Initializing utility modules...');
 
         // Utility modules are already initialized by ModuleLoader
         // Just ensure they have initialize methods if needed
@@ -93,14 +94,14 @@ class App {
             await this.themeManager.initialize();
         }
 
-        console.log('[APP] Utility modules initialized');
+        logger.info('APP', 'Utility modules initialized');
     }
 
     /**
      * Initialize core modules
      */
     async initializeCoreModules() {
-        console.log('[APP] Initializing core modules...');
+        logger.info('APP', 'Initializing core modules...');
 
         // Core modules are already initialized by ModuleLoader
         // Just ensure they have initialize methods if needed
@@ -120,45 +121,45 @@ class App {
             await this.chartRenderer.initialize();
         }
 
-        console.log('[APP] Core modules initialized');
+        logger.info('APP', 'Core modules initialized');
     }
 
     /**
      * Setup module dependencies
      */
     setupModuleDependencies() {
-        console.log('[APP] Setting up module dependencies...');
+        logger.info('APP', 'Setting up module dependencies...');
 
         // DataManager dependencies are already set in constructor
         // UIManager dependencies
-        if (typeof this.uiManager.setDataManager === 'function') {
+        if (this.uiManager && typeof this.uiManager.setDataManager === 'function') {
             this.uiManager.setDataManager(this.dataManager);
         }
-        if (typeof this.uiManager.setEventHandler === 'function') {
+        if (this.uiManager && typeof this.uiManager.setEventHandler === 'function') {
             this.uiManager.setEventHandler(this.eventHandler);
         }
 
         // EventHandler dependencies
-        if (typeof this.eventHandler.setChartRenderer === 'function') {
+        if (this.eventHandler && typeof this.eventHandler.setChartRenderer === 'function') {
             this.eventHandler.setChartRenderer(this.chartRenderer);
         }
 
         // ChartRenderer dependencies
-        if (typeof this.chartRenderer.setDataManager === 'function') {
+        if (this.chartRenderer && typeof this.chartRenderer.setDataManager === 'function') {
             this.chartRenderer.setDataManager(this.dataManager);
         }
-        if (typeof this.chartRenderer.setUIManager === 'function') {
+        if (this.chartRenderer && typeof this.chartRenderer.setUIManager === 'function') {
             this.chartRenderer.setUIManager(this.uiManager);
         }
 
-        console.log('[APP] Module dependencies configured');
+        logger.info('APP', 'Module dependencies configured');
     }
 
     /**
      * Initialize application state
      */
     async initializeApplicationState() {
-        console.log('[APP] Initializing application state...');
+        logger.info('APP', 'Initializing application state...');
 
         // Load data from storage
         await this.dataManager.loadData();
@@ -170,17 +171,17 @@ class App {
         this.uiManager.setupInitialState();
 
         // Force UI refresh to ensure loaded data is displayed
-        console.log('[APP] Forcing UI refresh after data load...');
+        logger.info('APP', 'Forcing UI refresh after data load...');
         await this.forceUIRefresh();
 
-        console.log('[APP] Application state initialized');
+        logger.info('APP', 'Application state initialized');
     }
 
     /**
      * Setup event handlers
      */
     setupEventHandlers() {
-        console.log('[APP] Setting up event handlers...');
+        logger.info('APP', 'Setting up event handlers...');
 
         // View navigation events
         this.setupViewNavigation();
@@ -191,7 +192,7 @@ class App {
         // UI interaction events
         this.setupUIInteractions();
 
-        console.log('[APP] Event handlers configured');
+        logger.info('APP', 'Event handlers configured');
     }
 
     /**
@@ -404,31 +405,37 @@ class App {
      * Show overview view
      */
     async showOverviewView() {
-        console.log('[APP] Showing overview view');
+        logger.info('APP', 'Showing overview view');
 
-        this.currentView = 'overview';  // Add this line
+        this.currentView = 'overview';
 
-        this.uiManager.hideAllDashboards();
-        this.uiManager.showDashboard('overview');
-        this.uiManager.updateNavigationState('overview');
-        this.uiManager.updateYearPickerVisibility('overview');
+        if (this.uiManager) {
+            this.uiManager.hideAllDashboards();
+            this.uiManager.showDashboard('overview');
+            this.uiManager.updateNavigationState('overview');
+            this.uiManager.updateYearPickerVisibility('overview');
+        }
 
         // Populate time period header with available years from loaded data
-        const availableYears = this.dataManager.getAvailableYears();
-        if (availableYears.length > 0) {
+        const availableYears = this.dataManager ? this.dataManager.getAvailableYears() : [];
+        if (availableYears && availableYears.length > 0) {
             this.populateTimePeriodHeader(availableYears);
 
             // Automatically select the most recent year
             const mostRecentYear = availableYears[availableYears.length - 1];
-            this.dataManager.setSelectedYear(mostRecentYear);
+            if (this.dataManager) {
+                this.dataManager.setSelectedYear(mostRecentYear);
 
-            // Set time period to 'year' for filtering since we're selecting a specific year
-            this.dataManager.setCurrentTimePeriod('year');
+                // Set time period to 'year' for filtering since we're selecting a specific year
+                this.dataManager.setCurrentTimePeriod('year');
+            }
 
             // Show toast indicating whole year aggregation for Sankey chart
-            this.uiManager.showToast(`Showing whole year ${mostRecentYear} aggregated for Sankey chart`, 'info');
+            if (this.uiManager) {
+                this.uiManager.showToast(`Showing whole year ${mostRecentYear} aggregated for Sankey chart`, 'info');
+            }
 
-            console.log('[APP] Auto-selected most recent year:', mostRecentYear);
+            logger.info('APP', 'Auto-selected most recent year', mostRecentYear);
         }
 
         // Render overview sankey diagram
@@ -441,7 +448,7 @@ class App {
      * Show properties view
      */
     showPropertiesView() {
-        console.log('[APP] Showing properties view');
+        logger.info('APP', 'Showing properties view');
 
         this.currentView = 'properties';  // Add this line
 
@@ -479,7 +486,7 @@ class App {
      * Update time period dependent views
      */
     updateTimePeriodDependentViews() {
-        console.log('[APP] Updating time period dependent views...');
+        logger.info('APP', 'Updating time period dependent views...');
 
         // Update overview sankey diagram if it's active
         if (this.currentView === 'overview' && this.chartRenderer) {
@@ -494,7 +501,7 @@ class App {
         // Update chart calculations
         this.updateChartCalculations();
 
-        console.log('[APP] Time period dependent views updated');
+        logger.info('APP', 'Time period dependent views updated');
     }
 
     /**
@@ -508,7 +515,7 @@ class App {
         // Update selection state
         this.updateTimePeriodSelection();
 
-        console.log(`[APP] Populated year picker with ${availableYears.length + 1} options`);
+        logger.info('APP', `Populated year picker with ${availableYears.length + 1} options`);
     }
 
 
@@ -608,7 +615,7 @@ class App {
      */
     updateChartCalculations() {
         // No chart metrics to update for current views (overview and properties)
-        console.log('[APP] Chart calculations updated (no metrics display)');
+        logger.info('APP', 'Chart calculations updated (no metrics display)');
     }
 
 
@@ -647,7 +654,7 @@ class App {
      * Force UI refresh after data loading
      */
     async forceUIRefresh() {
-        console.log('[APP] Forcing UI refresh...');
+        logger.info('APP', 'Forcing UI refresh...');
 
         // Wait a bit for DOM to be ready
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -670,20 +677,20 @@ class App {
         // Update UI with data statistics
         try {
             const stats = this.dataManager.getDataStatistics();
-            console.log('[APP] Data statistics after load:', stats);
+            logger.info('APP', 'Data statistics after load', stats);
 
             // Force update of any UI elements that display data
             if (this.uiManager && typeof this.uiManager.updateDataDisplay === 'function') {
                 this.uiManager.updateDataDisplay(stats);
             }
         } catch (error) {
-            console.warn('[APP] Failed to get data statistics:', error);
+            logger.warn('APP', 'Failed to get data statistics', error);
             // Continue without updating statistics
         }
 
         // Populate year picker with available years from loaded data
         const availableYears2 = this.dataManager.getAvailableYears();
-        if (availableYears2.length > 0 && this.uiManager && typeof this.uiManager.populateYearPicker === 'function') {
+        if (availableYears2 && availableYears2.length > 0 && this.uiManager && typeof this.uiManager.populateYearPicker === 'function') {
             // Only populate if not already populated or if years changed
             // For simplicity, call it, but with UIManager guards, it won't loop
             this.uiManager.populateYearPicker(availableYears2);
@@ -695,20 +702,22 @@ class App {
                 this.dataManager.setSelectedYear(mostRecentYear);
 
                 // Update the year picker UI to reflect the selected year
-                this.uiManager.updateYearPickerSelection(mostRecentYear);
+                if (this.uiManager && typeof this.uiManager.updateYearPickerSelection === 'function') {
+                    this.uiManager.updateYearPickerSelection(mostRecentYear);
+                }
 
-                console.log('[APP] Auto-selected most recent year in forceUIRefresh:', mostRecentYear);
+                logger.info('APP', 'Auto-selected most recent year in forceUIRefresh', mostRecentYear);
             }
         }
 
-        console.log('[APP] UI refresh forced complete');
+        logger.info('APP', 'UI refresh forced complete');
     }
 
     /**
      * Refresh UI after state changes
      */
     refreshUI() {
-        console.log('[APP] Refreshing UI...');
+        logger.info('APP', 'Refreshing UI...');
 
         // Update year picker visibility
         this.uiManager.updateYearPickerVisibility(this.currentView);
@@ -726,14 +735,14 @@ class App {
         // Update chart calculations
         this.updateChartCalculations();
 
-        console.log('[APP] UI refresh complete');
+        logger.info('APP', 'UI refresh complete');
     }
 
     /**
      * Handle initialization error
      */
     handleInitializationError(error) {
-        console.error('[APP] Initialization error:', error);
+        logger.error('APP', 'Initialization error', error);
 
         if (this.uiManager && typeof this.uiManager.showError === 'function') {
             this.uiManager.showError(
@@ -747,7 +756,7 @@ class App {
      * Cleanup resources
      */
     cleanup() {
-        console.log('[APP] Cleaning up application...');
+        logger.info('APP', 'Cleaning up application...');
 
         // Cleanup modules
         if (this.chartRenderer) {
@@ -770,37 +779,37 @@ class App {
             this.storage.cleanup();
         }
 
-        console.log('[APP] Application cleanup complete');
+        logger.info('APP', 'Application cleanup complete');
     }
 
     /**
      * Debug application state
      */
     debug() {
-        console.log('[APP DEBUG] === APPLICATION STATE ===');
-        console.log('[APP DEBUG] Initialized:', this.isInitialized);
-        console.log('[APP DEBUG] Current View:', this.currentView);
-        console.log('[APP DEBUG] Current Time Period:', this.currentTimePeriod);
+        logger.debug('APP', '=== APPLICATION STATE ===');
+        logger.debug('APP', 'Initialized:', this.isInitialized);
+        logger.debug('APP', 'Current View:', this.currentView);
+        logger.debug('APP', 'Current Time Period:', this.currentTimePeriod);
 
-        console.log('[APP DEBUG] === MODULE STATUS ===');
-        console.log('[APP DEBUG] DataManager:', !!this.dataManager);
-        console.log('[APP DEBUG] UIManager:', !!this.uiManager);
-        console.log('[APP DEBUG] EventHandler:', !!this.eventHandler);
-        console.log('[APP DEBUG] ChartRenderer:', !!this.chartRenderer);
-        console.log('[APP DEBUG] HistoryManager:', !!this.historyManager);
+        logger.debug('APP', '=== MODULE STATUS ===');
+        logger.debug('APP', 'DataManager:', !!this.dataManager);
+        logger.debug('APP', 'UIManager:', !!this.uiManager);
+        logger.debug('APP', 'EventHandler:', !!this.eventHandler);
+        logger.debug('APP', 'ChartRenderer:', !!this.chartRenderer);
+        logger.debug('APP', 'HistoryManager:', !!this.historyManager);
 
-        console.log('[APP DEBUG] === UTILITY STATUS ===');
-        console.log('[APP DEBUG] Formatter:', !!this.formatter);
-        console.log('[APP DEBUG] Storage:', !!this.storage);
-        console.log('[APP DEBUG] Validator:', !!this.validator);
-        console.log('[APP DEBUG] ThemeManager:', !!this.themeManager);
+        logger.debug('APP', '=== UTILITY STATUS ===');
+        logger.debug('APP', 'Formatter:', !!this.formatter);
+        logger.debug('APP', 'Storage:', !!this.storage);
+        logger.debug('APP', 'Validator:', !!this.validator);
+        logger.debug('APP', 'ThemeManager:', !!this.themeManager);
 
         // Debug individual modules
         if (this.dataManager) {this.dataManager.debug();}
         if (this.uiManager) {this.uiManager.debug();}
         if (this.chartRenderer) {this.chartRenderer.debug();}
 
-        console.log('[APP DEBUG] === END DEBUG ===');
+        logger.debug('APP', '=== END DEBUG ===');
     }
 }
 

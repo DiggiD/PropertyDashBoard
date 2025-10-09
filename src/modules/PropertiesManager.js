@@ -4,8 +4,9 @@
  * - Property CRUD operations
  * - Category/Subcategory management per property
  * - Expense data entry and editing
- * - Hierarchical category structure management
  */
+
+import logger from './utils/Logger.js';
 
 class PropertiesManager {
     constructor(dataManager, uiManager, eventHandler, historyManager, chartRenderer) {
@@ -30,7 +31,7 @@ class PropertiesManager {
         this.longPressDuration = 500; // ms
         this.visibleDeleteButtons = new Map();
 
-        console.log('[PROPERTIES] PropertiesManager initialized');
+        logger.info('PROPERTIES', 'PropertiesManager initialized');
     }
 
     /**
@@ -203,7 +204,7 @@ class PropertiesManager {
      */
     async initialize() {
         try {
-            console.log('[PROPERTIES] Starting PropertiesManager initialization...');
+            logger.info('PROPERTIES', 'Starting PropertiesManager initialization...');
 
             // Ensure dependencies are available
             if (!this.dataManager) {
@@ -222,7 +223,7 @@ class PropertiesManager {
             // Initialize header year/month pickers
             this.initializeHeaderPickers();
 
-            console.log('[PROPERTIES] PropertiesManager initialized successfully');
+            logger.info('PROPERTIES', 'PropertiesManager initialized successfully');
         } catch (error) {
             console.error('[PROPERTIES] Error during initialization:', error);
             // Don't re-throw the error to prevent breaking the application
@@ -475,16 +476,16 @@ class PropertiesManager {
 
         // Listen to time period change events from the header pickers
         document.addEventListener('yearChange', (e) => {
-            console.log('[PROPERTIES] Year changed to:', e.detail.selectedYear);
+            logger.info('PROPERTIES', `Year changed to: ${e.detail.selectedYear}`);
             this.handleTimePeriodChange();
         });
 
         document.addEventListener('monthChange', (e) => {
-            console.log('[PROPERTIES] Month changed to:', e.detail.selectedMonth);
+            logger.info('PROPERTIES', `Month changed to: ${e.detail.selectedMonth}`);
             this.handleTimePeriodChange();
         });
 
-        console.log('[PROPERTIES] Event listeners setup');
+        logger.info('PROPERTIES', 'Event listeners setup');
     }
 
     /**
@@ -495,7 +496,7 @@ class PropertiesManager {
         const container = this.uiManager.getElement('propertiesDashboard');
 
         if (!container) {
-            console.error('[PROPERTIES] Properties dashboard container not found');
+            logger.error('PROPERTIES', 'Properties dashboard container not found');
             return;
         }
 
@@ -511,7 +512,7 @@ class PropertiesManager {
             contentElement.innerHTML = html;
         }
 
-        console.log('[PROPERTIES] Properties dashboard rendered');
+        logger.info('PROPERTIES', 'Properties dashboard rendered');
     }
 
     /**
@@ -1090,7 +1091,7 @@ class PropertiesManager {
             const globalCategories = window.dataManager.getExpenseCategories();
             if (globalCategories.includes(category)) {
                 // Category exists globally but not in this property - initialize it
-                console.log(`[PROPERTIES] Initializing missing category "${category}" for property: ${property.name}`);
+                logger.info('PROPERTIES', `Initializing missing category "${category}" for property: ${property.name}`);
                 if (!property.expenses) {property.expenses = {};}
 
                 // Check if any other property has hierarchical data for this category
@@ -2678,7 +2679,7 @@ class PropertiesManager {
      * Initialize header year/month pickers
      */
     initializeHeaderPickers() {
-        console.log('[PROPERTIES] Initializing header year/month pickers...');
+        logger.info('PROPERTIES', 'Initializing header year/month pickers...');
 
         // Set current selections first
         this.setCurrentHeaderSelections();
@@ -2692,7 +2693,7 @@ class PropertiesManager {
         // Update picker selections to reflect current data selections
         this.updateHeaderPickerSelections();
 
-        console.log('[PROPERTIES] Header year/month pickers initialized');
+        logger.info('PROPERTIES', 'Header year/month pickers initialized');
     }
 
     /**
@@ -2708,14 +2709,14 @@ class PropertiesManager {
         this.dataManager.setSelectedYear(currentYear);
         this.dataManager.setSelectedMonth(currentMonth);
 
-        console.log(`[PROPERTIES] Set header picker defaults to: ${currentMonth}/${currentYear}`);
+        logger.info('PROPERTIES', `Set header picker defaults to: ${currentMonth}/${currentYear}`);
     }
 
     /**
      * Initialize year/month pickers
      */
     initializeYearMonthPickers() {
-        console.log('[PROPERTIES] Initializing year/month pickers...');
+        logger.info('PROPERTIES', 'Initializing year/month pickers...');
 
         // Populate year picker
         this.populateYearPicker();
@@ -2726,7 +2727,7 @@ class PropertiesManager {
         // Setup event listeners for pickers
         this.setupPickerEventListeners();
 
-        console.log('[PROPERTIES] Year/month pickers initialized');
+        logger.info('PROPERTIES', 'Year/month pickers initialized');
     }
 
     /**
@@ -2735,14 +2736,14 @@ class PropertiesManager {
     populateYearPicker() {
         const yearSelect = document.getElementById('propertiesYearSelect');
         if (!yearSelect) {
-            console.warn('[PROPERTIES] Year picker not found');
+            logger.warn('PROPERTIES', 'Year picker not found');
             return;
         }
 
         // Get available years from data
         const availableYears = this.dataManager.getAvailableYears();
         if (availableYears.length === 0) {
-            console.log('[PROPERTIES] No years available in data');
+            logger.info('PROPERTIES', 'No years available in data');
             return;
         }
 
@@ -2767,7 +2768,7 @@ class PropertiesManager {
             yearSelect.appendChild(option);
         });
 
-        console.log(`[PROPERTIES] Populated year picker with ${availableYears.length} years:`, availableYears);
+        logger.info('PROPERTIES', `Populated year picker with ${availableYears.length} years:`, availableYears);
     }
 
     /**
@@ -2778,7 +2779,7 @@ class PropertiesManager {
         const yearSelect = document.getElementById('propertiesYearSelect');
 
         if (!monthSelect || !yearSelect) {
-            console.warn('[PROPERTIES] Month or year picker not found');
+            logger.warn('PROPERTIES', 'Month or year picker not found');
             return;
         }
 
@@ -2794,19 +2795,19 @@ class PropertiesManager {
             // Use current month/year
             yearSelect.value = currentYear;
             monthSelect.value = currentMonth;
-            console.log(`[PROPERTIES] Set to current month/year: ${currentMonth}/${currentYear}`);
+            logger.info('PROPERTIES', `Set to current month/year: ${currentMonth}/${currentYear}`);
         } else {
             // Find the most recent month/year with data
             const lastAvailable = this.getLastAvailableMonthYear();
             if (lastAvailable) {
                 yearSelect.value = lastAvailable.year;
                 monthSelect.value = lastAvailable.month;
-                console.log(`[PROPERTIES] Current month/year has no data, set to last available: ${lastAvailable.month}/${lastAvailable.year}`);
+                logger.info('PROPERTIES', `Current month/year has no data, set to last available: ${lastAvailable.month}/${lastAvailable.year}`);
             } else {
                 // Fallback to current if no data at all
                 yearSelect.value = currentYear;
                 monthSelect.value = currentMonth;
-                console.log(`[PROPERTIES] No data found, defaulting to current month/year: ${currentMonth}/${currentYear}`);
+                logger.info('PROPERTIES', `No data found, defaulting to current month/year: ${currentMonth}/${currentYear}`);
             }
         }
     }
@@ -2820,14 +2821,14 @@ class PropertiesManager {
 
         if (yearSelect) {
             yearSelect.addEventListener('change', (e) => {
-                console.log(`[PROPERTIES] Year changed to: ${e.target.value}`);
+                logger.info('PROPERTIES', `Year changed to: ${e.target.value}`);
                 this.handleYearMonthChange();
             });
         }
 
         if (monthSelect) {
             monthSelect.addEventListener('change', (e) => {
-                console.log(`[PROPERTIES] Month changed to: ${e.target.value}`);
+                logger.info('PROPERTIES', `Month changed to: ${e.target.value}`);
                 this.handleYearMonthChange();
             });
         }
@@ -2845,7 +2846,7 @@ class PropertiesManager {
         const selectedYear = yearSelect.value;
         const selectedMonth = monthSelect.value;
 
-        console.log(`[PROPERTIES] Filtering data by year: ${selectedYear}, month: ${selectedMonth}`);
+        logger.info('PROPERTIES', `Filtering data by year: ${selectedYear}, month: ${selectedMonth}`);
 
         // Update data filtering in DataManager
         this.dataManager.setSelectedYear(selectedYear);
@@ -3055,7 +3056,7 @@ class PropertiesManager {
         // Force update the picker UI elements to reflect the current selections
         this.forceUpdatePickerUI(selectedYear, selectedMonth);
 
-        console.log(`[PROPERTIES] Updated header pickers to: ${selectedMonth}/${selectedYear}`);
+        logger.info('PROPERTIES', `Updated header pickers to: ${selectedMonth}/${selectedYear}`);
     }
 
     /**
@@ -3086,14 +3087,14 @@ class PropertiesManager {
             }
         });
 
-        console.log(`[PROPERTIES] Forced UI update for pickers: ${selectedMonth}/${selectedYear}`);
+        logger.info('PROPERTIES', `Forced UI update for pickers: ${selectedMonth}/${selectedYear}`);
     }
 
     /**
      * Handle time period change events from header pickers
      */
     handleTimePeriodChange() {
-        console.log('[PROPERTIES] Time period changed, re-rendering dashboard');
+        logger.info('PROPERTIES', 'Time period changed, re-rendering dashboard');
 
         // Re-render the properties dashboard to show filtered data
         this.renderPropertiesDashboard();
@@ -3115,7 +3116,7 @@ class PropertiesManager {
     updateChartCalculations() {
         // This method can be expanded to update any chart calculations
         // that depend on the filtered data
-        console.log('[PROPERTIES] Chart calculations updated');
+        logger.info('PROPERTIES', 'Chart calculations updated');
     }
 
     /**
@@ -3130,7 +3131,7 @@ class PropertiesManager {
         this.hideAddButtonTooltip();
 
         // Remove event listeners if needed
-        console.log('[PROPERTIES] PropertiesManager cleaned up');
+        logger.info('PROPERTIES', 'PropertiesManager cleaned up');
     }
 }
 

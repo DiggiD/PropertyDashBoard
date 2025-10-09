@@ -114,6 +114,19 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
         Object.assign(uiManager, mockUIManager);
         Object.assign(historyManager, mockHistoryManager);
 
+        // Mock the store property on dataManager
+        dataManager.store = {
+            queryAggregatedSankey: jest.fn().mockReturnValue({
+                propExpenses: new Map(),
+                propIncomes: new Map(),
+                catTotals: new Map(),
+                subTotals: new Map(),
+                sources: new Map(),
+                hasIncome: false,
+            }),
+            queryCategories: jest.fn().mockReturnValue([]),
+        };
+
         // Create PropertiesManager with mixed real/mocked dependencies
         propertiesManager = new PropertiesManager(dataManager, uiManager, new EventHandler(), historyManager);
 
@@ -166,7 +179,8 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
         test('should initialize successfully with all dependencies', async () => {
             await expect(propertiesManager.initialize()).resolves.not.toThrow();
-            expect(console.log).toHaveBeenCalledWith('[PROPERTIES] PropertiesManager initialized successfully');
+            // Check that console.log was called (without specific timestamp check)
+            expect(console.log).toHaveBeenCalledWith(expect.stringContaining('[INFO] [PROPERTIES] PropertiesManager initialized successfully'));
         });
 
         test('should handle missing DataManager gracefully', async () => {

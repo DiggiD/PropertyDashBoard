@@ -1,11 +1,13 @@
 /**
  * Storage Module
- * Handles all data persistence operations for the expense dashboard
+ * Handles all data persistence operations for the dashboard
  * - localStorage operations
  * - Dexie database operations
  * - Data migration and backup
  * - Storage validation and error handling
  */
+
+import logger from './Logger.js';
 
 class Storage {
     constructor() {
@@ -16,33 +18,60 @@ class Storage {
 
         // Dexie database instance
         this.db = null;
-        this.dbVersion = 2; // Updated for enhanced schema
+        this.dbVersion = 3; // Updated for history schema with calculated fields
         this._initialized = false;  // Prevent multiple initializations
+        this._initPromise = null;  // Track initialization promise
 
         // Storage limits
         this.maxLocalStorageSize = 5 * 1024 * 1024; // 5MB
         this.maxHistoryItems = 50;
 
-        // Initialize Dexie database
-        this.initDatabase();
+        // Centralized loading cache to prevent duplicate operations
+        this._loadingPromise = null;
+        this._cachedData = null;
+        this._lastLoadTime = null;
+        this._cacheTimeout = 5000; // Base cache timeout for better performance (5 seconds)
+        this._emptyCacheTimeout = 1000; // Shorter timeout for empty databases (1 second)
+
+        // Create module-specific logger first
+        this.logger = logger.createModuleLogger('STORAGE');
+
+        // Initialize Dexie database asynchronously
+        this._initPromise = this.initDatabase();
     }
 
     /**
      * Initialize Dexie database
+     * @returns {Promise<void>}
      */
     async initDatabase() {
         if (this._initialized) {
-            console.log('[STORAGE] Already initialized, skipping');
+            this.logger.debug('Already initialized, skipping');
             return;
         }
+
+        // Prevent concurrent initialization
+        if (this._initPromise) {
+            return this._initPromise;
+        }
+
         this._initialized = true;
 
-        if (typeof Dexie === 'undefined') {
-            console.warn('[STORAGE] Dexie not available, falling back to localStorage only');
-            return;
-        }
-
         try {
+            // Check IndexedDB availability first
+            if (!this.isIndexedDBAvailable()) {
+                this.logger.warn('IndexedDB not available, will use localStorage fallback');
+                this.db = null;
+                return;
+            }
+
+            if (typeof Dexie === 'undefined') {
+                this.logger.warn('Dexie not available, falling back to localStorage only');
+                this.db = null;
+                return;
+            }
+
+            const startTime = performance.now();
             this.db = new Dexie('ExpenseDashboardDB');
 
             // Enhanced schema for chronological data and multi-user support
@@ -66,15 +95,37 @@ class Storage {
 
                 // Settings and metadata
                 settings: 'key, value, user_id',
-                history: '++id, timestamp, name, description, data, user_id',
+                history: '++id, timestamp, name, description, data, totalExpenses, propertyCount, categoryCount, user_id',
                 metadata: 'key, value',
             });
 
             await this.db.open();
-            console.log('[STORAGE] Database initialized successfully');
+            const initTime = performance.now() - startTime;
+            this.logger.info(`Database initialized successfully in ${initTime.toFixed(2)}ms`);
         } catch (error) {
-            console.error('[STORAGE] Failed to initialize database:', error);
+            this.logger.error('Failed to initialize database:', error);
             this.db = null;
+        }
+    }
+
+    /**
+     * Check if IndexedDB is available
+     * @returns {boolean}
+     */
+    isIndexedDBAvailable() {
+        try {
+            if (!window.indexedDB) {
+                return false;
+            }
+            // Test basic IndexedDB functionality
+            const testDB = indexedDB.open('test', 1);
+            testDB.onerror = () => {};
+            testDB.onsuccess = () => {
+                indexedDB.deleteDatabase('test');
+            };
+            return true;
+        } catch (error) {
+            return false;
         }
     }
 
@@ -103,10 +154,10 @@ class Storage {
             localStorage.setItem(storageKey, dataString);
             localStorage.setItem(`${storageKey}-lastSaved`, new Date().toISOString());
 
-            console.log(`[STORAGE] Data saved to localStorage: ${storageKey}`);
+            this.logger.info(`Data saved to localStorage: ${storageKey}`);
             return true;
         } catch (error) {
-            console.error('[STORAGE] Failed to save to localStorage:', error);
+            this.logger.error('Failed to save to localStorage:', error);
 
             // Try to save backup if main save fails
             if (key !== this.backupStorageKey) {
@@ -128,7 +179,7 @@ class Storage {
         try {
             const dataString = localStorage.getItem(storageKey);
             if (!dataString) {
-                console.log(`[STORAGE] No data found in localStorage: ${storageKey}`);
+                this.logger.info(`No data found in localStorage: ${storageKey}`);
                 return { properties: [], expenseCategories: [] };
             }
 
@@ -144,10 +195,10 @@ class Storage {
                 data._lastSaved = lastSaved;
             }
 
-            console.log(`[STORAGE] Data loaded from localStorage: ${storageKey}`);
+            this.logger.info(`Data loaded from localStorage: ${storageKey}`);
             return data;
         } catch (error) {
-            console.error('[STORAGE] Failed to load from localStorage:', error);
+            this.logger.error('Failed to load from localStorage:', error);
 
             // Try to load from backup
             if (key !== this.backupStorageKey) {
@@ -166,7 +217,7 @@ class Storage {
      */
     async saveToDatabase(data, userId = 'default') {
         if (!this.db) {
-            console.warn('[STORAGE] Database not available');
+            this.logger.warn('Database not available');
             return false;
         }
 
@@ -192,7 +243,7 @@ class Storage {
                         await this.db.properties.add({
                             id: property.id,
                             name: property.name,
-                            created_date: property.created_date || timestamp,
+                            created_date: property.created || property.created_date || timestamp,
                             user_id: userId,
                             monthlyData: property.monthlyData || {},
                         });
@@ -200,7 +251,7 @@ class Storage {
                         // Save expense data in separate table for better querying
                         if (property.monthlyData) {
                             await this.savePropertyMonthlyExpenses(property, userId, timestamp);
-                            await this.savePropertyMonthlyIncomes(property, userId, timestamp);  // Add this line
+                            await this.savePropertyMonthlyIncomes(property, userId, timestamp);
                         } else if (property.expenses) {
                             await this.savePropertyFlatExpenses(property, userId, timestamp);
                         }
@@ -259,10 +310,10 @@ class Storage {
                 });
             });
 
-            console.log('[STORAGE] Enhanced data saved to database successfully for user:', userId);
+            this.logger.info(`Enhanced data saved to database successfully for user: ${userId}`);
             return true;
         } catch (error) {
-            console.error('[STORAGE] Failed to save to database:', error);
+            this.logger.error('Failed to save to database:', error);
             // For quota exceeded errors, mark database unavailable and throw
             if (error.message && error.message.includes('Quota exceeded')) {
                 this.db = null;
@@ -426,54 +477,60 @@ class Storage {
      */
     async loadFromDatabase(userId = 'default') {
         if (!this.db) {
-            console.warn('[STORAGE] Database not available');
+            this.logger.warn('Database not available');
             return null;
         }
 
         try {
-            // Load all data for the user
+            const queryStartTime = performance.now();
+
+            // Load all data for the user in parallel for better performance
             const [properties, categories, incomeCategories, expenses, incomesFromDB, metadata] = await Promise.all([
                 this.db.properties.where('user_id').equals(userId).toArray(),
                 this.db.expenseCategories.where('user_id').equals(userId).toArray(),
                 this.db.incomeCategories.where('user_id').equals(userId).toArray(),
                 this.db.expenses.where('user_id').equals(userId).toArray(),
-                this.db.incomes.where('user_id').equals(userId).toArray(),  // Add this
+                this.db.incomes.where('user_id').equals(userId).toArray(),
                 this.db.metadata.toArray(),
             ]);
 
-            console.log('[STORAGE] Enhanced database query results:', {
-                properties: properties.length,
-                expenseCategories: categories.length,
-                incomeCategories: incomeCategories.length,
-                expenses: expenses.length,
-                incomes: incomesFromDB.length,  // Add this
-                metadata: metadata.length,
-            });
+            const queryTime = performance.now() - queryStartTime;
+            this.logger.debug(`Database queries completed in ${queryTime.toFixed(2)}ms`);
 
-            // If no data in database, return null to allow fallback to localStorage
+            // Early return for empty database
             if (properties.length === 0 && categories.length === 0) {
-                console.log('[STORAGE] No data found in database for user:', userId);
+                this.logger.debug(`No data found in database for user: ${userId}`);
                 return null;
             }
 
+            const reconstructionStartTime = performance.now();
+
             // Reconstruct monthly data from expenses and incomes tables
             const monthlyExpenses = this.reconstructMonthlyData(expenses);
-            const monthlyIncomes = this.reconstructMonthlyIncomes(incomesFromDB);  // Add this
+            const monthlyIncomes = this.reconstructMonthlyIncomes(incomesFromDB);
 
-            const data = {
-                properties: properties.map(p => ({
+            // Build properties data with optimized mapping
+            const propertiesData = properties.map(p => {
+                const propExpenses = monthlyExpenses[p.id] || {};
+                const propIncomes = monthlyIncomes[p.id] || {};
+
+                return {
                     id: p.id,
                     name: p.name,
                     created_date: p.created_date,
-                    monthlyData: this.mergeMonthlyData(monthlyExpenses[p.id] || {}, monthlyIncomes[p.id] || {}),  // Updated to merge
-                    expenses: this.calculateExpensesFromMonthly(monthlyExpenses[p.id]),
-                    incomes: this.calculateIncomesFromMonthly(monthlyIncomes[p.id]),  // Add this
-                })),
+                    monthlyData: this.mergeMonthlyData(propExpenses, propIncomes),
+                    expenses: this.calculateExpensesFromMonthly(propExpenses),
+                    incomes: this.calculateIncomesFromMonthly(propIncomes),
+                };
+            });
+
+            const data = {
+                properties: propertiesData,
                 expenseCategories: categories.map(c => c.name),
                 incomeCategories: incomeCategories.map(c => c.name),
             };
 
-            // Load metadata
+            // Load metadata efficiently
             const metadataMap = {};
             metadata.forEach(item => {
                 metadataMap[item.key] = item.value;
@@ -484,31 +541,30 @@ class Storage {
             data._lastSaved = metadataMap.lastSaved;
             data.currentUser = metadataMap.currentUser || userId;
 
-            console.log('[STORAGE] Enhanced data loaded from database successfully:', {
+            const totalTime = performance.now() - queryStartTime;
+            this.logger.info(`Data loaded from database in ${totalTime.toFixed(2)}ms:`, {
                 properties: data.properties.length,
                 expenseCategories: data.expenseCategories.length,
                 incomeCategories: data.incomeCategories?.length || 0,
                 totalExpenses: expenses.length,
                 hasMonthlyData: data.properties.some(p => p.monthlyData && Object.keys(p.monthlyData).length > 0),
             });
+
             return data;
         } catch (error) {
-            console.error('[STORAGE] Failed to load from database:', error);
+            this.logger.error('Failed to load from database:', error);
 
-            // Check if this is a schema mismatch error
+            // Handle schema mismatch errors
             if (error.name === 'NotFoundError' || error.message.includes('object stores was not found')) {
-                console.warn('[STORAGE] Database schema mismatch detected. Clearing database to recreate with correct schema...');
+                this.logger.warn('Database schema mismatch detected. Clearing database to recreate with correct schema...');
 
                 try {
-                    // Clear the database and reinitialize
                     await this.db.delete();
                     this.db = null;
-
-                    // Reinitialize with correct schema
                     await this.initDatabase();
-                    console.log('[STORAGE] Database cleared and reinitialized successfully');
+                    this.logger.info('Database cleared and reinitialized successfully');
                 } catch (clearError) {
-                    console.error('[STORAGE] Failed to clear and reinitialize database:', clearError);
+                    this.logger.error('Failed to clear and reinitialize database:', clearError);
                     this.db = null;
                 }
             }
@@ -518,12 +574,14 @@ class Storage {
     }
 
     /**
-     * Reconstruct monthly data from expenses table
-     * @param {Array} expenses - Expenses from database
-     * @returns {Object} Reconstructed monthly data
-     */
+      * Reconstruct monthly data from expenses table - OPTIMIZED
+      * @param {Array} expenses - Expenses from database
+      * @returns {Object} Reconstructed monthly data
+      */
     reconstructMonthlyData(expenses) {
-        const monthlyData = {};
+        // OPTIMIZED: Pre-allocate Maps for better performance
+        const monthlyData = new Map();
+        const monthTotals = new Map();
 
         expenses.forEach(expense => {
             const propertyId = expense.property_id;
@@ -531,35 +589,72 @@ class Storage {
 
             if (!month) {return;} // Skip if no month data
 
-            if (!monthlyData[propertyId]) {
-                monthlyData[propertyId] = {};
+            // OPTIMIZED: Use Map for O(1) property access
+            if (!monthlyData.has(propertyId)) {
+                monthlyData.set(propertyId, new Map());
+                monthTotals.set(propertyId, new Map());
             }
 
-            if (!monthlyData[propertyId][month]) {
-                monthlyData[propertyId][month] = {
-                    expenses: {},
+            const propertyMonths = monthlyData.get(propertyId);
+            const propertyTotals = monthTotals.get(propertyId);
+
+            if (!propertyMonths.has(month)) {
+                propertyMonths.set(month, {
+                    expenses: new Map(),
                     total: 0,
-                };
+                });
             }
 
-            const monthData = monthlyData[propertyId][month];
+            const monthData = propertyMonths.get(month);
 
             if (expense.subcategory) {
-                // Hierarchical expense
-                if (!monthData.expenses[expense.category]) {
-                    monthData.expenses[expense.category] = {};
+                // Hierarchical expense - use Map for subcategories
+                if (!monthData.expenses.has(expense.category)) {
+                    monthData.expenses.set(expense.category, new Map());
                 }
-                monthData.expenses[expense.category][expense.subcategory] = expense.amount;
+                const subcategories = monthData.expenses.get(expense.category);
+                subcategories.set(expense.subcategory, expense.amount);
             } else {
                 // Flat expense
-                monthData.expenses[expense.category] = expense.amount;
+                monthData.expenses.set(expense.category, expense.amount);
             }
 
-            // Recalculate total
-            monthData.total = this.calculateMonthTotal(monthData.expenses);
+            // OPTIMIZED: Track totals incrementally to avoid recalculation
+            if (expense.subcategory) {
+                propertyTotals.set(month, (propertyTotals.get(month) || 0) + expense.amount);
+            } else {
+                propertyTotals.set(month, (propertyTotals.get(month) || 0) + expense.amount);
+            }
+
+            monthData.total = propertyTotals.get(month);
         });
 
-        return monthlyData;
+        // OPTIMIZED: Convert Maps back to objects for compatibility
+        const result = {};
+        monthlyData.forEach((months, propertyId) => {
+            result[propertyId] = {};
+            months.forEach((monthData, month) => {
+                // Convert Maps to objects
+                const expensesObj = {};
+                monthData.expenses.forEach((value, key) => {
+                    if (value instanceof Map) {
+                        const subcategoriesObj = {};
+                        value.forEach((amount, subcat) => {
+                            subcategoriesObj[subcat] = amount;
+                        });
+                        expensesObj[key] = subcategoriesObj;
+                    } else {
+                        expensesObj[key] = value;
+                    }
+                });
+                result[propertyId][month] = {
+                    expenses: expensesObj,
+                    total: monthData.total,
+                };
+            });
+        });
+
+        return result;
     }
 
     /**
@@ -720,58 +815,212 @@ class Storage {
     }
 
     /**
-     * Save data using Dexie database as primary storage
+     * Save data using Dexie database as primary storage with localStorage fallback
      * @param {Object} data - Data to save
      * @returns {boolean} Success status
      */
     async save(data) {
-        // Use Dexie database as primary storage
-        if (this.db) {
-            const dbSuccess = await this.saveToDatabase(data);
-            if (dbSuccess) {
-                console.log('[STORAGE] Data saved to Dexie database successfully');
-                return true;
-            }
-        }
+        const startTime = performance.now();
 
-        // Fallback to localStorage only if database is unavailable
-        console.warn('[STORAGE] Database unavailable, falling back to localStorage');
-        const localSuccess = this.saveToLocalStorage(data);
-        return localSuccess;
+        // Clear cache when saving to ensure fresh data on next load
+        this.clearLoadCache();
+
+        // Ensure database is initialized
+        await this._initPromise;
+
+        // Use Dexie database as primary storage method
+        if (this.db) {
+            try {
+                const dbSuccess = await this.saveToDatabase(data);
+                const saveTime = performance.now() - startTime;
+
+                if (dbSuccess) {
+                    this.logger.info(`Data saved to Dexie database successfully in ${saveTime.toFixed(2)}ms`);
+                    return true;
+                } else {
+                    this.logger.warn(`Database save failed after ${saveTime.toFixed(2)}ms, falling back to localStorage`);
+                    // Fallback to localStorage
+                    return this.saveToLocalStorage(data);
+                }
+            } catch (error) {
+                const saveTime = performance.now() - startTime;
+                this.logger.warn(`Database save failed after ${saveTime.toFixed(2)}ms, falling back to localStorage:`, error.message);
+                // Fallback to localStorage
+                return this.saveToLocalStorage(data);
+            }
+        } else {
+            this.logger.warn('Database not available, using localStorage fallback');
+            // Fallback to localStorage
+            const success = this.saveToLocalStorage(data);
+            const saveTime = performance.now() - startTime;
+            this.logger.info(`Data saved to localStorage in ${saveTime.toFixed(2)}ms`);
+            return success;
+        }
     }
 
     /**
-     * Load data using Dexie database as primary storage
-     * @returns {Object|null} Loaded data
-     */
-    async load() {
-        console.log('[STORAGE] Loading data from storage...');
+      * Quick check if database is empty to avoid expensive operations
+      * @returns {Promise<boolean>} True if database is empty
+      */
+    async _quickEmptyCheck() {
+        if (!this.db) return true;
 
-        // Use Dexie database as primary storage
-        if (this.db) {
-            const data = await this.loadFromDatabase();
-            if (data) {
-                console.log('[STORAGE] Data loaded from Dexie database successfully:', {
-                    properties: data.properties?.length || 0,
-                    categories: data.expenseCategories?.length || 0,
-                });
-                return data;
+        try {
+            // Check if any tables have data (fast check)
+            const propertyCount = await this.db.properties.count();
+            const categoryCount = await this.db.expenseCategories.count();
+            const transactionCount = await this.db.expenses.count();
+
+            return propertyCount === 0 && categoryCount === 0 && transactionCount === 0;
+        } catch (error) {
+            this.logger.debug('Quick empty check failed:', error.message);
+            return false; // Assume not empty on error
+        }
+    }
+
+    /**
+      * Get standardized empty data structure
+      * @returns {Object} Empty data structure
+      */
+    _getEmptyDataStructure() {
+        return {
+            properties: [],
+            expenseCategories: [],
+            incomeCategories: []
+        };
+    }
+
+    /**
+      * Clear the load cache to force fresh loading
+      */
+    clearLoadCache() {
+        this._cachedData = null;
+        this._lastLoadTime = null;
+        this._loadingPromise = null;
+        this.logger.debug('Load cache cleared');
+    }
+
+    /**
+     * Force a fresh load bypassing cache
+     * @returns {Object|null} Fresh loaded data
+     */
+    async loadFresh() {
+        this.logger.info('Forcing fresh load, clearing cache...');
+        this.clearLoadCache();
+        return await this.load();
+    }
+
+    /**
+      * Load data using Dexie database as primary storage with centralized caching
+      * @returns {Object|null} Loaded data
+      */
+    async load() {
+        // Return cached data if available and recent
+        if (this._cachedData && this._lastLoadTime) {
+            const timeSinceLastLoad = Date.now() - this._lastLoadTime;
+            // OPTIMIZED: Use shorter cache timeout for empty databases
+            const effectiveTimeout = (!this._cachedData ||
+                (this._cachedData.properties.length === 0 &&
+                 this._cachedData.expenseCategories.length === 0 &&
+                 (!this._cachedData.incomeCategories || this._cachedData.incomeCategories.length === 0)))
+                ? this._emptyCacheTimeout
+                : this._cacheTimeout;
+
+            if (timeSinceLastLoad < effectiveTimeout) {
+                this.logger.debug(`Returning cached data (loaded ${timeSinceLastLoad}ms ago, timeout: ${effectiveTimeout}ms)`);
+                return this._cachedData;
             }
         }
 
-        // Fallback to localStorage only if database is unavailable or empty
-        console.warn('[STORAGE] Database unavailable or empty, falling back to localStorage');
-        const data = this.loadFromLocalStorage();
-        if (data) {
-            console.log('[STORAGE] Data loaded from localStorage fallback:', {
-                properties: data.properties?.length || 0,
-                categories: data.expenseCategories?.length || 0,
-            });
-        } else {
-            console.log('[STORAGE] No data found in any storage method');
+        // If a load operation is already in progress, wait for it
+        if (this._loadingPromise) {
+            this.logger.debug('Load already in progress, waiting for result...');
+            return await this._loadingPromise;
         }
 
-        return data;
+        // Start new load operation
+        this._loadingPromise = this._performLoad();
+        try {
+            const data = await this._loadingPromise;
+            // Cache the result (including null/empty results)
+            this._cachedData = data;
+            this._lastLoadTime = Date.now();
+            return data;
+        } finally {
+            this._loadingPromise = null;
+        }
+    }
+
+    /**
+      * Perform the actual load operation (internal method)
+      * @returns {Object|null} Loaded data
+      */
+    async _performLoad() {
+        const startTime = performance.now();
+        this.logger.debug('Performing optimized data load...');
+
+        // Ensure database is initialized before attempting to use it
+        await this._initPromise;
+        this.logger.debug('Database initialization complete, instance exists:', !!this.db);
+
+        // FAST PATH: Check for empty database early
+        if (this.db) {
+            try {
+                const emptyCheckStart = performance.now();
+                // Quick check if database has any data
+                const hasData = await this._quickEmptyCheck();
+                const emptyCheckTime = performance.now() - emptyCheckStart;
+
+                if (!hasData) {
+                    this.logger.debug(`Empty database detected in ${emptyCheckTime.toFixed(2)}ms, using fast path`);
+                    return this._getEmptyDataStructure();
+                } else {
+                    this.logger.debug(`Database has data (check: ${emptyCheckTime.toFixed(2)}ms), continuing with full load`);
+                }
+            } catch (error) {
+                this.logger.debug('Quick empty check failed, continuing with full load');
+            }
+        }
+
+        // Use Dexie database as primary storage method
+        if (this.db) {
+            this.logger.debug('Attempting to load from Dexie database...');
+            try {
+                const data = await this.loadFromDatabase();
+                const loadTime = performance.now() - startTime;
+
+                if (data) {
+                    this.logger.info(`Data loaded from Dexie database successfully in ${loadTime.toFixed(2)}ms:`, {
+                        properties: data.properties?.length || 0,
+                        categories: data.expenseCategories?.length || 0,
+                        hasMonthlyData: data.properties?.some(p => p.monthlyData && Object.keys(p.monthlyData).length > 0),
+                    });
+                    return data;
+                } else {
+                    this.logger.debug('No data found in Dexie database, returning empty structure');
+                    // Return empty data structure for new installations
+                    return { properties: [], expenseCategories: [], incomeCategories: [] };
+                }
+            } catch (error) {
+                this.logger.warn(`Database load failed after ${(performance.now() - startTime).toFixed(2)}ms, falling back to localStorage:`, error.message);
+                // Fallback to localStorage
+                return this.loadFromLocalStorage();
+            }
+        } else {
+            this.logger.warn('Database not available, using localStorage fallback');
+            // Fallback to localStorage
+            const data = this.loadFromLocalStorage();
+            const loadTime = performance.now() - startTime;
+
+            // Return null if localStorage also has no real data (consistent with database behavior)
+            if (!data || (data.properties.length === 0 && data.expenseCategories.length === 0 && (!data.incomeCategories || data.incomeCategories.length === 0))) {
+                this.logger.debug('No data found in localStorage either, returning null');
+                return null;
+            }
+
+            this.logger.info(`Data loaded from localStorage in ${loadTime.toFixed(2)}ms`);
+            return data;
+        }
     }
 
     /**
@@ -783,22 +1032,34 @@ class Storage {
         if (!snapshot) {return false;}
 
         try {
-            console.log('[STORAGE] Saving history snapshot:', {
+            this.logger.info('Saving history snapshot:', {
+                id: snapshot.id,
                 name: snapshot.name,
                 timestamp: snapshot.timestamp,
                 dataSize: JSON.stringify(snapshot).length,
+                hasData: !!snapshot.data,
+                dataProperties: snapshot.data?.properties?.length || 0,
             });
 
-            // Save to database as primary storage
+            // Ensure database is initialized
+            await this.initDatabase();
+
+            // Save to database as the only storage method
             if (this.db) {
-                await this.db.history.add({
+                this.logger.info('Saving to Dexie database...');
+                const dbId = await this.db.history.add({
                     timestamp: snapshot.timestamp,
                     name: snapshot.name,
                     description: snapshot.description,
                     data: snapshot.data,
+                    totalExpenses: snapshot.totalExpenses,
+                    propertyCount: snapshot.propertyCount,
+                    categoryCount: snapshot.categoryCount,
                     user_id: 'default', // Add user_id for consistency
                 });
-                console.log('[STORAGE] History saved to Dexie database');
+                // Update the snapshot ID to match the database ID
+                snapshot.id = dbId.toString();
+                this.logger.info('History saved to Dexie database with ID:', dbId);
 
                 // Clean up old history items to maintain limit
                 const historyCount = await this.db.history.count();
@@ -806,91 +1067,85 @@ class Storage {
                     const excessCount = historyCount - this.maxHistoryItems;
                     const oldItems = await this.db.history.orderBy('timestamp').limit(excessCount).toArray();
                     await this.db.history.bulkDelete(oldItems.map(item => item.id));
-                    console.log(`[STORAGE] Cleaned up ${excessCount} old history items`);
+                    this.logger.info(`Cleaned up ${excessCount} old history items`);
                 }
 
                 return true;
+            } else {
+                this.logger.error('Database unavailable for history save');
+                return false;
             }
-
-            // Fallback to localStorage only if database is unavailable
-            console.warn('[STORAGE] Database unavailable, falling back to localStorage for history');
-            const history = await this.loadHistoryFromStorage() || [];
-            console.log('[STORAGE] Current history length before save:', history.length);
-
-            history.unshift(snapshot);
-
-            // Keep only recent items
-            if (history.length > this.maxHistoryItems) {
-                history.splice(this.maxHistoryItems);
-            }
-
-            localStorage.setItem(this.historyStorageKey, JSON.stringify(history));
-            console.log('[STORAGE] History saved to localStorage, new length:', history.length);
-
-            console.log('[STORAGE] History snapshot saved successfully');
-            return true;
         } catch (error) {
-            console.error('[STORAGE] Failed to save history snapshot:', error);
+            this.logger.error('Failed to save history snapshot:', error);
             return false;
         }
     }
 
     /**
-     * Load history from storage
+     * Update history snapshot
+     * @param {string} snapshotId - Snapshot ID to update
+     * @param {Object} updates - Fields to update
+     * @returns {boolean} Success status
+     */
+    async updateHistorySnapshot(snapshotId, updates) {
+        if (!this.db || !snapshotId || !updates) {return false;}
+
+        try {
+            const numericId = parseInt(snapshotId);
+            if (isNaN(numericId)) {return false;}
+
+            await this.db.history.update(numericId, updates);
+            this.logger.debug('History snapshot updated:', snapshotId, updates);
+            return true;
+        } catch (error) {
+            this.logger.error('Failed to update history snapshot:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Load history from database
      * @returns {Array} History snapshots
      */
     async loadHistoryFromStorage() {
         try {
-            // Try database first
+            // Ensure database is initialized
+            await this.initDatabase();
+
+            // Use database as the only storage method
             if (this.db) {
+                this.logger.info('Loading history from Dexie database...');
                 const history = await this.db.history
                     .where('user_id').equals('default')
                     .reverse()
                     .sortBy('timestamp');
 
-                console.log('[STORAGE] History loaded from Dexie database:', {
+                this.logger.info('History loaded from Dexie database:', {
                     length: history.length,
-                    firstItem: history[0] ? {
-                        name: history[0].name,
-                        timestamp: history[0].timestamp,
-                    } : null,
+                    items: history.map(item => ({
+                        id: item.id,
+                        name: item.name,
+                        timestamp: item.timestamp,
+                    })),
                 });
 
                 // Convert database format to expected format
                 return history.map(item => ({
+                    id: item.id, // Include the database ID
                     name: item.name,
                     timestamp: item.timestamp,
                     description: item.description,
                     data: item.data,
+                    totalExpenses: item.totalExpenses,
+                    propertyCount: item.propertyCount,
+                    categoryCount: item.categoryCount,
                 }));
-            }
-
-            // Fallback to localStorage
-            console.warn('[STORAGE] Database unavailable, loading history from localStorage');
-            const historyString = localStorage.getItem(this.historyStorageKey);
-            console.log('[STORAGE] Loading history from localStorage:', {
-                key: this.historyStorageKey,
-                hasData: !!historyString,
-                dataLength: historyString ? historyString.length : 0,
-            });
-
-            if (!historyString) {
-                console.log('[STORAGE] No history data found in localStorage');
+            } else {
+                this.logger.error('Database unavailable for history loading');
                 return [];
             }
-
-            const history = JSON.parse(historyString);
-            console.log('[STORAGE] History loaded successfully:', {
-                length: history.length,
-                firstItem: history[0] ? {
-                    name: history[0].name,
-                    timestamp: history[0].timestamp,
-                } : null,
-            });
-
-            return history;
         } catch (error) {
-            console.error('[STORAGE] Failed to load history:', error);
+            this.logger.error('Failed to load history:', error);
             return [];
         }
     }
@@ -906,7 +1161,10 @@ class Storage {
         }
 
         try {
-            // Save to database as primary storage
+            // Ensure database is initialized
+            await this.initDatabase();
+
+            // Save to database as the only storage method
             if (this.db) {
                 // Clear existing settings and save new ones
                 await this.db.settings.where('user_id').equals('default').delete();
@@ -920,17 +1178,14 @@ class Storage {
                     });
                 }
 
-                console.log('[STORAGE] Settings saved to Dexie database');
+                this.logger.info('Settings saved to Dexie database');
                 return true;
+            } else {
+                this.logger.error('Database unavailable for settings save');
+                return false;
             }
-
-            // Fallback to localStorage only if database is unavailable
-            console.warn('[STORAGE] Database unavailable, falling back to localStorage for settings');
-            localStorage.setItem(this.settingsStorageKey, JSON.stringify(settings));
-            console.log('[STORAGE] Settings saved to localStorage');
-            return true;
         } catch (error) {
-            console.error('[STORAGE] Failed to save settings:', error);
+            this.logger.error('Failed to save settings:', error);
             return false;
         }
     }
@@ -941,7 +1196,10 @@ class Storage {
      */
     async loadSettings() {
         try {
-            // Try database first
+            // Ensure database is initialized
+            await this.initDatabase();
+
+            // Use database as the only storage method
             if (this.db) {
                 const settingsRecords = await this.db.settings.where('user_id').equals('default').toArray();
                 const settings = {};
@@ -950,18 +1208,14 @@ class Storage {
                     settings[record.key] = record.value;
                 });
 
-                console.log('[STORAGE] Settings loaded from Dexie database:', Object.keys(settings));
+                this.logger.info('Settings loaded from Dexie database:', Object.keys(settings));
                 return settings;
+            } else {
+                this.logger.error('Database unavailable for settings loading');
+                return {};
             }
-
-            // Fallback to localStorage
-            console.warn('[STORAGE] Database unavailable, loading settings from localStorage');
-            const settingsString = localStorage.getItem(this.settingsStorageKey);
-            const settings = settingsString ? JSON.parse(settingsString) : {};
-            console.log('[STORAGE] Settings loaded from localStorage:', Object.keys(settings));
-            return settings;
         } catch (error) {
-            console.error('[STORAGE] Failed to load settings:', error);
+            this.logger.error('Failed to load settings:', error);
             return {};
         }
     }
@@ -980,10 +1234,10 @@ class Storage {
             };
 
             localStorage.setItem(this.backupStorageKey, JSON.stringify(backup));
-            console.log('[STORAGE] Backup created');
+            this.logger.info('Backup created');
             return true;
         } catch (error) {
-            console.error('[STORAGE] Failed to create backup:', error);
+            this.logger.error('Failed to create backup:', error);
             return false;
         }
     }
@@ -998,10 +1252,10 @@ class Storage {
             if (!backupString) {return null;}
 
             const backup = JSON.parse(backupString);
-            console.log('[STORAGE] Backup loaded');
+            this.logger.info('Backup loaded');
             return backup.data;
         } catch (error) {
-            console.error('[STORAGE] Failed to load backup:', error);
+            this.logger.error('Failed to load backup:', error);
             return null;
         }
     }
@@ -1013,7 +1267,7 @@ class Storage {
      */
     async clearAllData(includeBackup = false) {
         try {
-            console.log('[STORAGE] Starting data clearing process...');
+            this.logger.info('Starting data clearing process...');
 
             const keysToRemove = [
                 this.storageKey,
@@ -1029,19 +1283,19 @@ class Storage {
             // Clear localStorage keys
             keysToRemove.forEach(key => {
                 localStorage.removeItem(key);
-                console.log(`[STORAGE] Cleared localStorage key: ${key}`);
+                this.logger.info(`Cleared localStorage key: ${key}`);
             });
 
             // Clear database if available - make this synchronous
             if (this.db) {
-                console.log('[STORAGE] Clearing Dexie database...');
+                this.logger.info('Clearing Dexie database...');
                 try {
                     await this.db.delete();
-                    console.log('[STORAGE] Database deleted successfully');
+                    this.logger.info('Database deleted successfully');
                     this.db = null;
                     // Don't reinitialize here - let the page reload handle it
                 } catch (dbError) {
-                    console.error('[STORAGE] Error deleting database:', dbError);
+                    this.logger.error('Error deleting database:', dbError);
                     // Continue with the process even if DB deletion fails
                 }
             }
@@ -1051,14 +1305,14 @@ class Storage {
             allKeys.forEach(key => {
                 if (key.includes('sankey') || key.includes('ExpenseDashboard') || key.includes('property-dashboard')) {
                     localStorage.removeItem(key);
-                    console.log(`[STORAGE] Cleared additional key: ${key}`);
+                    this.logger.info(`Cleared additional key: ${key}`);
                 }
             });
 
-            console.log('[STORAGE] All data cleared successfully');
+            this.logger.info('All data cleared successfully');
             return true;
         } catch (error) {
-            console.error('[STORAGE] Failed to clear data:', error);
+            this.logger.error('Failed to clear data:', error);
             return false;
         }
     }
@@ -1082,7 +1336,7 @@ class Storage {
                 const dbData = await this.db.export();
                 exportData.database = dbData;
             } catch (error) {
-                console.warn('[STORAGE] Failed to export database data:', error);
+                this.logger.warn('Failed to export database data:', error);
             }
         }
 
@@ -1097,7 +1351,7 @@ class Storage {
     async importData(importData) {
         if (!importData) {return false;}
 
-        console.log('[STORAGE] Importing data with structure:', Object.keys(importData));
+        this.logger.info('Importing data with structure:', Object.keys(importData));
 
         try {
             // Handle different data formats
@@ -1105,7 +1359,7 @@ class Storage {
 
             // Check if it's export format (with currentData, history, settings)
             if (importData.currentData) {
-                console.log('[STORAGE] Detected export format');
+                this.logger.info('Detected export format');
                 dataToSave = importData.currentData;
 
                 // Import history if present
@@ -1121,41 +1375,41 @@ class Storage {
                                 user_id: 'default',
                             });
                         }
-                        console.log('[STORAGE] Imported history data to database');
+                        this.logger.info('Imported history data to database');
                     } else {
                         // Fallback to localStorage
                         localStorage.setItem(this.historyStorageKey, JSON.stringify(importData.history));
-                        console.log('[STORAGE] Imported history data to localStorage');
+                        this.logger.info('Imported history data to localStorage');
                     }
                 }
 
                 // Import settings if present
                 if (importData.settings) {
                     await this.saveSettings(importData.settings);
-                    console.log('[STORAGE] Imported settings data');
+                    this.logger.info('Imported settings data');
                 }
             }
             // Check if it's direct data format (properties, expenseCategories)
             else if (importData.properties || importData.expenseCategories) {
-                console.log('[STORAGE] Detected direct data format');
+                this.logger.info('Detected direct data format');
                 dataToSave = importData;
             }
             else {
-                console.error('[STORAGE] Unknown data format');
+                this.logger.error('Unknown data format');
                 return false;
             }
 
             // Save the main data
             if (dataToSave) {
-                console.log('[STORAGE] Saving data:', {
+                this.logger.info('Saving data:', {
                     properties: dataToSave.properties?.length || 0,
                     categories: dataToSave.expenseCategories?.length || 0,
                 });
                 const saveResult = await this.save(dataToSave);
-                console.log('[STORAGE] Save result:', saveResult);
+                this.logger.info('Save result:', saveResult);
 
                 if (!saveResult) {
-                    console.error('[STORAGE] Failed to save imported data');
+                    this.logger.error('Failed to save imported data');
                     return false;
                 }
             }
@@ -1163,13 +1417,13 @@ class Storage {
             // Import database data if available
             if (importData.database && this.db) {
                 await this.db.import(importData.database);
-                console.log('[STORAGE] Imported database data');
+                this.logger.info('Imported database data');
             }
 
-            console.log('[STORAGE] Data imported successfully');
+            this.logger.info('Data imported successfully');
             return true;
         } catch (error) {
-            console.error('[STORAGE] Failed to import data:', error);
+            this.logger.error('Failed to import data:', error);
             return false;
         }
     }
@@ -1195,7 +1449,8 @@ class Storage {
 
         // Validate properties structure
         for (const property of data.properties) {
-            if (!property.id || !property.name) {
+            if (typeof property !== 'object' || property === null || !property.id || !property.name) {
+                this.logger.error('Invalid property format:', property);
                 return false;
             }
         }
@@ -1282,14 +1537,13 @@ class Storage {
      */
     async initialize() {
         if (this._initialized) {
-            console.log('[STORAGE] Already initialized, skipping');
+            this.logger.debug('Already initialized, skipping');
             return;
         }
-        this._initialized = true;
 
-        // Initialize Dexie database
-        await this.initDatabase();
-        console.log('[STORAGE] Storage initialized');
+        // Wait for initialization to complete
+        await this._initPromise;
+        this.logger.info('Storage initialized');
     }
 
     /**
@@ -1302,7 +1556,7 @@ class Storage {
      */
     async getChronologicalExpenses(propertyId, startDate, endDate, userId = 'default') {
         if (!this.db) {
-            console.warn('[STORAGE] Database not available for chronological queries');
+            this.logger.warn('Database not available for chronological queries');
             return [];
         }
 
@@ -1313,10 +1567,10 @@ class Storage {
                 .and(expense => expense.user_id === userId)
                 .sortBy('expense_date');
 
-            console.log(`[STORAGE] Found ${expenses.length} chronological expenses for property ${propertyId}`);
+            this.logger.info(`Found ${expenses.length} chronological expenses for property ${propertyId}`);
             return expenses;
         } catch (error) {
-            console.error('[STORAGE] Failed to get chronological expenses:', error);
+            this.logger.error('Failed to get chronological expenses:', error);
             return [];
         }
     }
@@ -1330,7 +1584,7 @@ class Storage {
      */
     async getMonthlyExpenseSummary(year, month, userId = 'default') {
         if (!this.db) {
-            console.warn('[STORAGE] Database not available for monthly summary');
+            this.logger.warn('Database not available for monthly summary');
             return {};
         }
 
@@ -1352,10 +1606,10 @@ class Storage {
                 summary[category] += expense.amount;
             });
 
-            console.log(`[STORAGE] Monthly summary for ${year}-${month}:`, summary);
+            this.logger.info(`Monthly summary for ${year}-${month}:`, summary);
             return summary;
         } catch (error) {
-            console.error('[STORAGE] Failed to get monthly summary:', error);
+            this.logger.error('Failed to get monthly summary:', error);
             return {};
         }
     }
@@ -1367,7 +1621,7 @@ class Storage {
      */
     async saveUser(userData) {
         if (!this.db) {
-            console.warn('[STORAGE] Database not available for user operations');
+            this.logger.warn('Database not available for user operations');
             return false;
         }
 
@@ -1380,10 +1634,10 @@ class Storage {
                 created_date: userData.created_date || new Date().toISOString(),
             });
 
-            console.log('[STORAGE] User saved:', userData.username);
+            this.logger.info('User saved:', userData.username);
             return true;
         } catch (error) {
-            console.error('[STORAGE] Failed to save user:', error);
+            this.logger.error('Failed to save user:', error);
             return false;
         }
     }
@@ -1395,7 +1649,7 @@ class Storage {
      */
     async getUser(userId) {
         if (!this.db) {
-            console.warn('[STORAGE] Database not available for user queries');
+            this.logger.warn('Database not available for user queries');
             return null;
         }
 
@@ -1403,7 +1657,7 @@ class Storage {
             const user = await this.db.users.get(userId);
             return user || null;
         } catch (error) {
-            console.error('[STORAGE] Failed to get user:', error);
+            this.logger.error('Failed to get user:', error);
             return null;
         }
     }
@@ -1418,7 +1672,7 @@ class Storage {
      */
     async logAuditEvent(action, entityType, entityId, userId = 'default') {
         if (!this.db) {
-            console.warn('[STORAGE] Database not available for audit logging');
+            this.logger.warn('Database not available for audit logging');
             return false;
         }
 
@@ -1431,10 +1685,10 @@ class Storage {
                 timestamp: new Date().toISOString(),
             });
 
-            console.log(`[STORAGE] Audit logged: ${action} on ${entityType}:${entityId}`);
+            this.logger.info(`Audit logged: ${action} on ${entityType}:${entityId}`);
             return true;
         } catch (error) {
-            console.error('[STORAGE] Failed to log audit event:', error);
+            this.logger.error('Failed to log audit event:', error);
             return false;
         }
     }
@@ -1448,7 +1702,7 @@ class Storage {
      */
     async getAuditTrail(entityType, entityId, userId = 'default') {
         if (!this.db) {
-            console.warn('[STORAGE] Database not available for audit queries');
+            this.logger.warn('Database not available for audit queries');
             return [];
         }
 
@@ -1461,10 +1715,10 @@ class Storage {
                 .limit(50)
                 .toArray();
 
-            console.log(`[STORAGE] Found ${auditTrail.length} audit entries for ${entityType}:${entityId}`);
+            this.logger.info(`Found ${auditTrail.length} audit entries for ${entityType}:${entityId}`);
             return auditTrail;
         } catch (error) {
-            console.error('[STORAGE] Failed to get audit trail:', error);
+            this.logger.error('Failed to get audit trail:', error);
             return [];
         }
     }
@@ -1476,7 +1730,7 @@ class Storage {
      */
     async exportUserData(userId = 'default') {
         if (!this.db) {
-            console.warn('[STORAGE] Database not available for export');
+            this.logger.warn('Database not available for export');
             return null;
         }
 
@@ -1500,7 +1754,7 @@ class Storage {
                 },
             };
 
-            console.log(`[STORAGE] Exported data for user ${userId}:`, {
+            this.logger.info(`Exported data for user ${userId}:`, {
                 properties: properties.length,
                 categories: categories.length,
                 expenses: expenses.length,
@@ -1509,8 +1763,52 @@ class Storage {
 
             return exportData;
         } catch (error) {
-            console.error('[STORAGE] Failed to export user data:', error);
+            this.logger.error('Failed to export user data:', error);
             return null;
+        }
+    }
+
+    /**
+     * Get standardized data counts for consistency across modules
+     * @returns {Promise<Object>} Standardized data counts
+     */
+    async getDataCounts() {
+        try {
+            // Load current data to get accurate counts
+            const data = await this.load();
+
+            if (!data) {
+                return {
+                    transactionsCount: 0,
+                    propertiesCount: 0,
+                    categoriesCount: 0,
+                    expenseCategoriesCount: 0,
+                    incomeCategoriesCount: 0,
+                };
+            }
+
+            const transactionsCount = data.transactions ? data.transactions.length : 0;
+            const propertiesCount = data.properties ? data.properties.length : 0;
+            const expenseCategoriesCount = data.expenseCategories ? data.expenseCategories.length : 0;
+            const incomeCategoriesCount = data.incomeCategories ? data.incomeCategories.length : 0;
+            const categoriesCount = expenseCategoriesCount + incomeCategoriesCount;
+
+            return {
+                transactionsCount,
+                propertiesCount,
+                categoriesCount,
+                expenseCategoriesCount,
+                incomeCategoriesCount,
+            };
+        } catch (error) {
+            this.logger.error('Failed to get data counts:', error);
+            return {
+                transactionsCount: 0,
+                propertiesCount: 0,
+                categoriesCount: 0,
+                expenseCategoriesCount: 0,
+                incomeCategoriesCount: 0,
+            };
         }
     }
 
@@ -1518,13 +1816,13 @@ class Storage {
      * Debug storage information
      */
     async debug() {
-        console.log('[STORAGE DEBUG] === STORAGE INFORMATION ===');
-        console.log('[STORAGE DEBUG] localStorage available:', this.isStorageAvailable('localStorage'));
-        console.log('[STORAGE DEBUG] Database available:', this.isStorageAvailable('database'));
-        console.log('[STORAGE DEBUG] Storage usage:', this.getStorageUsage());
+        this.logger.info('=== STORAGE INFORMATION ===');
+        this.logger.info('localStorage available:', this.isStorageAvailable('localStorage'));
+        this.logger.info('Database available:', this.isStorageAvailable('database'));
+        this.logger.info('Storage usage:', this.getStorageUsage());
         const stats = await this.getStorageStats();
-        console.log('[STORAGE DEBUG] Storage stats:', stats);
-        console.log('[STORAGE DEBUG] === END DEBUG ===');
+        this.logger.info('Storage stats:', stats);
+        this.logger.info('=== END DEBUG ===');
     }
 
     /**

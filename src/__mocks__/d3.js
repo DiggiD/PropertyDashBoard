@@ -7,16 +7,36 @@ global.d3.sankey = global.d3.sankey || {};
 
 const sankey = () => {
     // Check if we should throw an error for testing
-    if (global.d3.sankey.shouldThrowError) {
+    if (global.d3.sankey && global.d3.sankey.shouldThrowError) {
         throw new Error('D3 sankey error');
     }
 
     // Create a function that can also have methods added to it
     function sankeyInstance(input) {
-        return {
-            nodes: input ? input.nodes || [] : [],
-            links: input ? input.links || [] : [],
-        };
+        // If input data is provided, process it and return nodes and links
+        if (input && input.nodes && input.links) {
+            // Process nodes with proper coordinates
+            const nodes = input.nodes.map((node, index) => ({
+                ...node,
+                x0: node.x0 || index * 100,
+                y0: node.y0 || 10,
+                x1: node.x1 || (node.x0 || index * 100) + 15,
+                y1: node.y1 || 60,
+                index: node.index || index
+            }));
+
+            // Process links with proper structure
+            const links = input.links.map((link, index) => ({
+                ...link,
+                source: typeof link.source === 'object' ? link.source : nodes.find(n => n.id === link.source) || { x: 0, y: 30 },
+                target: typeof link.target === 'object' ? link.target : nodes.find(n => n.id === link.target) || { x: 100, y: 30 },
+                index: link.index || index
+            }));
+
+            return { nodes, links };
+        }
+
+        return { nodes: [], links: [] };
     }
 
     // Add configuration methods that return self for chaining
@@ -39,15 +59,56 @@ const stratify = jest.fn(() => {
 
     // Create a callable object (function with methods)
     const stratifyGenerator = function(data) {
-    // When called with data, return the hierarchy
+        // When called with data, return the hierarchy
         const hierarchy = {
             descendants: () => {
                 if (!Array.isArray(data)) {return [];}
-                return data.map(d => ({ data: d, depth: d.depth || 0 }));
+
+                // Create a proper hierarchy structure for sankey data
+                const rootNodes = data.filter(d => !d.parent);
+                const childNodes = data.filter(d => d.parent);
+
+                const result = [];
+
+                // Add root nodes
+                rootNodes.forEach(node => {
+                    result.push({
+                        data: node,
+                        depth: 0,
+                        height: 1,
+                        parent: null
+                    });
+                });
+
+                // Add child nodes with proper parent relationships
+                childNodes.forEach(node => {
+                    const parent = rootNodes.find(p => p.id === node.parent);
+                    result.push({
+                        data: node,
+                        depth: 1,
+                        height: 0,
+                        parent: parent ? { data: parent } : null
+                    });
+                });
+
+                return result;
             },
             sum: jest.fn(function(value) { return this; }),
             sort: jest.fn(function(comparator) { return this; }),
-            links: () => [],
+            links: () => {
+                // Generate proper hierarchical links
+                if (!Array.isArray(data)) {return [];}
+                const links = [];
+                data.forEach(d => {
+                    if (d.parent) {
+                        links.push({
+                            source: { data: { id: d.parent, name: d.parent } },
+                            target: { data: d }
+                        });
+                    }
+                });
+                return links;
+            },
         };
         return hierarchy;
     };
@@ -55,6 +116,7 @@ const stratify = jest.fn(() => {
     // Add configuration methods that return self for chaining
     stratifyGenerator.parentId = jest.fn(() => stratifyGenerator);
     stratifyGenerator.children = jest.fn(() => stratifyGenerator);
+    stratifyGenerator.id = jest.fn(() => stratifyGenerator);
 
     return stratifyGenerator;
 });

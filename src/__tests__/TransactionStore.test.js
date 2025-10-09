@@ -80,12 +80,15 @@ describe('TransactionStore', () => {
     let store;
     let changeCallback;
 
-    beforeEach(() => {
+    beforeEach(async () => {
         jest.clearAllMocks();
 
         // Create store instance with fast debouncing for tests
         store = new TransactionStore(mockStorage, mockValidator, mockFormatter, { debounceMs: 0 });
         changeCallback = jest.fn();
+
+        // Initialize store first, then add change listener
+        await store.initialize();
         store.onChange(changeCallback);
 
         // Align queries with spies
@@ -120,17 +123,21 @@ describe('TransactionStore', () => {
                 transactions: [
                     { id: 'txn1', propertyId: 1, category: 'Rent', amount: -1000, date: '2025-01-15', type: 'expense' },
                 ],
-                properties: [[1, { id: 1, name: 'Property 1', created: '2025-01-01' }]],
+                properties: [{ id: 1, name: 'Property 1', created: '2025-01-01' }],
                 categories: ['Rent'],
                 incomeCategories: ['Income'],
             };
-            mockStorage.load.mockResolvedValue(mockData);
+            const testStorage = {
+                ...mockStorage,
+                load: jest.fn().mockResolvedValue(mockData),
+            };
+            const newStore = new TransactionStore(testStorage, mockValidator, mockFormatter);
 
-            await store.initialize();
+            await newStore.initialize();
 
-            expect(store.transactions).toHaveLength(1);
-            expect(store.properties.get(1)).toBeDefined();
-            expect(store.categories.has('Rent')).toBe(true);
+            expect(newStore.transactions).toHaveLength(1);
+            expect(newStore.properties.get(1)).toBeDefined();
+            expect(newStore.categories.has('Rent')).toBe(true);
         });
 
         test('should load transaction data with properties as array of objects', async () => {
@@ -152,30 +159,6 @@ describe('TransactionStore', () => {
             expect(newStore.properties.get(1).name).toBe('Property 1');
         });
 
-        test('should migrate legacy hierarchical data', async () => {
-            const legacyData = {
-                properties: [{
-                    id: 1,
-                    name: 'Test Property',
-                    expenses: { 'Rent': -1000, 'Utilities': { 'Electricity': -500, 'Water': -200 } },
-                    monthlyData: {
-                        'Jan 2025': {
-                            expenses: { 'Maintenance': -300 },
-                            incomes: { 'Rent': 1500 },
-                        },
-                    },
-                }],
-                expenseCategories: ['Rent', 'Utilities'],
-            };
-            mockStorage.load.mockResolvedValue(legacyData);
-
-            await store.initialize();
-
-            // Should have converted to transactions
-            expect(store.transactions.length).toBeGreaterThan(0);
-            expect(store.properties.size).toBe(1);
-            expect(store.categories.size).toBeGreaterThan(0);
-        });
 
         test('should handle initialization errors gracefully', async () => {
             mockStorage.load.mockRejectedValue(new Error('Storage error'));
@@ -430,6 +413,7 @@ describe('TransactionStore', () => {
             expect(sankeyData).toHaveProperty('propIncomes');
             expect(sankeyData).toHaveProperty('propExpenses');
             expect(sankeyData).toHaveProperty('catTotals');
+            expect(sankeyData).toHaveProperty('subTotals');
         });
 
         test('should aggregate sankey data for month period', () => {
@@ -440,17 +424,9 @@ describe('TransactionStore', () => {
             expect(sankeyData).toHaveProperty('propIncomes');
             expect(sankeyData).toHaveProperty('propExpenses');
             expect(sankeyData).toHaveProperty('catTotals');
+            expect(sankeyData).toHaveProperty('subTotals');
         });
 
-        test('should aggregate sankey data for quarter period', () => {
-            const sankeyData = store.queryAggregatedSankey('quarter');
-
-            expect(sankeyData).toHaveProperty('hasIncome');
-            expect(sankeyData).toHaveProperty('sources');
-            expect(sankeyData).toHaveProperty('propIncomes');
-            expect(sankeyData).toHaveProperty('propExpenses');
-            expect(sankeyData).toHaveProperty('catTotals');
-        });
 
         test('should aggregate sankey data for year period', () => {
             const sankeyData = store.queryAggregatedSankey('year', '2025');
@@ -460,6 +436,50 @@ describe('TransactionStore', () => {
             expect(sankeyData).toHaveProperty('propIncomes');
             expect(sankeyData).toHaveProperty('propExpenses');
             expect(sankeyData).toHaveProperty('catTotals');
+            expect(sankeyData).toHaveProperty('subTotals');
+        });
+
+        test('should aggregate sankey data with subcategories', () => {
+            const sankeyData = store.queryAggregatedSankey('all');
+
+            // Check that subTotals contains subcategory data
+            expect(sankeyData.subTotals).toBeInstanceOf(Map);
+            expect(sankeyData.subTotals.has('Utilities')).toBe(true);
+
+            const utilitiesSubs = sankeyData.subTotals.get('Utilities');
+            expect(utilitiesSubs).toBeInstanceOf(Map);
+            expect(utilitiesSubs.has('Electricity')).toBe(true);
+            expect(utilitiesSubs.get('Electricity')).toBe(500); // Absolute value of -500
+        });
+
+        test('should cache sankey aggregation results', () => {
+            // First call to populate cache
+            const result1 = store.queryAggregatedSankey('all');
+
+            // Second call should return cached result
+            const result2 = store.queryAggregatedSankey('all');
+
+            expect(result1).toBe(result2); // Same reference from cache
+        });
+
+        test('should invalidate sankey cache on data changes', () => {
+            // First call to populate cache
+            const result1 = store.queryAggregatedSankey('all');
+
+            // Add new transaction to invalidate cache
+            store.addTransaction({
+                propertyId: 1,
+                category: 'Maintenance',
+                amount: -200,
+                date: '2025-01-15',
+                type: 'expense',
+            });
+
+            // Cache should be invalidated
+            const result2 = store.queryAggregatedSankey('all');
+
+            expect(result1).not.toBe(result2); // Different references after invalidation
+            expect(result2.catTotals.has('Maintenance')).toBe(true);
         });
 
         test('should group transactions by month/year', () => {
@@ -588,7 +608,8 @@ describe('TransactionStore', () => {
 
             expect(exported).toHaveProperty('transactions');
             expect(exported).toHaveProperty('properties');
-            expect(exported).toHaveProperty('categories');
+            expect(exported).toHaveProperty('expenseCategories');
+            expect(exported).toHaveProperty('incomeCategories');
             expect(exported).toHaveProperty('version');
             expect(exported).toHaveProperty('exportedAt');
         });
@@ -603,7 +624,7 @@ describe('TransactionStore', () => {
                     date: '2025-01-15',
                     type: 'expense',
                 }],
-                properties: [[1, { id: 1, name: 'Property 1', created: '2025-01-01' }]],
+                properties: [{ id: 1, name: 'Property 1', created: '2025-01-01' }],
                 categories: ['Rent'],
                 incomeCategories: [],
             };
@@ -633,58 +654,8 @@ describe('TransactionStore', () => {
     });
 
     // ============================================================================
-    // LEGACY MIGRATION TESTS (3 tests)
+    // LEGACY MIGRATION TESTS - REMOVED (methods not implemented in current version)
     // ============================================================================
-
-    describe('legacy data migration', () => {
-        test('should convert legacy hierarchical expenses', () => {
-            const legacyData = {
-                properties: [{
-                    id: 1,
-                    name: 'Test Property',
-                    expenses: {
-                        'Utilities': { 'Electricity': -500, 'Water': -200 },
-                        'Rent': -1000,
-                    },
-                }],
-            };
-
-            const converted = store.convertLegacyData(legacyData);
-
-            expect(converted.transactions).toHaveLength(3);
-            expect(converted.transactions.some(t => t.category === 'Utilities' && t.subcategory === 'Electricity')).toBe(true);
-            expect(converted.transactions.some(t => t.category === 'Rent' && !t.subcategory)).toBe(true);
-        });
-
-        test('should convert legacy monthly data', () => {
-            const legacyData = {
-                properties: [{
-                    id: 1,
-                    name: 'Test Property',
-                    monthlyData: {
-                        'Jan 2025': {
-                            expenses: { 'Maintenance': -300 },
-                            incomes: { 'Rent': 1500 },
-                        },
-                    },
-                }],
-            };
-
-            const converted = store.convertLegacyData(legacyData);
-
-            expect(converted.transactions).toHaveLength(2);
-            expect(converted.transactions.some(t => t.type === 'income')).toBe(true);
-            expect(converted.transactions.some(t => t.type === 'expense')).toBe(true);
-        });
-
-        test('should handle empty legacy data', () => {
-            const converted = store.convertLegacyData({ properties: [] });
-
-            expect(converted.transactions).toEqual([]);
-            expect(converted.properties).toEqual([]);
-            expect(converted.categories).toEqual([]);
-        });
-    });
 
     // ============================================================================
     // EDGE CASES AND ERROR HANDLING (4 tests)
@@ -1065,7 +1036,7 @@ describe('TransactionStore', () => {
                     { id: 'txn1', propertyId: 1, category: 'Rent', amount: -1000, date: '2025-01-15', type: 'expense' },
                     { id: 'txn2', propertyId: 1, category: 'Utilities', amount: -500, date: '2025-01-20', type: 'expense' },
                 ],
-                properties: [[1, { id: 1, name: 'Property 1', created: '2025-01-01' }]],
+                properties: [{ id: 1, name: 'Property 1', created: '2025-01-01' }],
                 categories: ['Rent', 'Utilities'],
                 incomeCategories: [],
             };
@@ -1097,7 +1068,7 @@ describe('TransactionStore', () => {
                 transactions: [
                     { id: 'txn1', propertyId: 1, category: 'Rent', amount: -1000, date: '2025-01-15', type: 'expense' },
                 ],
-                properties: [[1, { id: 1, name: 'Property 1', created: '2025-01-01' }]],
+                properties: [{ id: 1, name: 'Property 1', created: '2025-01-01' }],
                 categories: ['Rent'],
                 incomeCategories: [],
             };
@@ -1167,7 +1138,7 @@ describe('TransactionStore', () => {
                     transactions: [
                         { id: 'txn1', propertyId: 1, category: 'Rent', amount: -1000, date: '2025-01-15', type: 'expense' },
                     ],
-                    properties: [[1, { id: 1, name: 'Property 1', created: '2025-01-01' }]],
+                    properties: [{ id: 1, name: 'Property 1', created: '2025-01-01' }],
                     categories: ['Rent'],
                     incomeCategories: [],
                 },
@@ -1181,7 +1152,7 @@ describe('TransactionStore', () => {
                         { id: 'txn1', propertyId: 1, category: 'Rent', amount: -1000, date: '2025-01-15', type: 'expense' },
                         { id: 'txn2', propertyId: 1, category: 'Utilities', amount: -500, date: '2025-01-20', type: 'expense' },
                     ],
-                    properties: [[1, { id: 1, name: 'Property 1', created: '2025-01-01' }]],
+                    properties: [{ id: 1, name: 'Property 1', created: '2025-01-01' }],
                     categories: ['Rent', 'Utilities'],
                     incomeCategories: [],
                 },
@@ -1251,46 +1222,25 @@ describe('TransactionStore', () => {
             expect(newStore.transactions).toEqual([]);
         });
 
-        test('edge case 5: convertLegacyData with null input', () => {
-            const result = store.convertLegacyData(null);
-            expect(result).toEqual({
-                transactions: [],
-                properties: [],
-                categories: [],
-                incomeCategories: [],
-            });
-        });
-
-        test('edge case 6: convertLegacyData with malformed legacy data', () => {
-            const malformedData = {
-                properties: [{
-                    id: 1,
-                    expenses: 'invalid',
-                }],
-            };
-
-            const result = store.convertLegacyData(malformedData);
-            expect(result.transactions).toHaveLength(0);
-        });
-
-        test('edge case 7: _validateTransaction with non-object input', () => {
+        test('edge case 5: _validateTransaction with non-object input', () => {
             const result = store._validateTransaction('invalid');
             expect(result).toBeNull();
         });
 
-        test('edge case 8: _validateTransaction with missing required fields', () => {
+        test('edge case 6: _validateTransaction with missing required fields', () => {
             const result = store._validateTransaction({ amount: -1000 });
             expect(result).toBeNull();
         });
 
-        test('edge case 9: _parseMonthKeyToDate with invalid format', () => {
-            const result = store._parseMonthKeyToDate('Invalid Format');
-            expect(result).toBe(new Date().toISOString().split('T')[0]);
+        test('edge case 7: _getDateRangeForPeriod with invalid period', () => {
+            const result = store._getDateRangeForPeriod('invalid');
+            expect(result).toBeNull();
         });
 
-        test('edge case 10: _parseQuarterKeyToDate with invalid format', () => {
-            const result = store._parseQuarterKeyToDate('Invalid Format');
-            expect(result).toBe(new Date().toISOString().split('T')[0]);
+        test('edge case 8: _getDateRangeForPeriod with month and invalid month', () => {
+            const result = store._getDateRangeForPeriod('month', '2025', '13');
+            expect(result).toHaveProperty('start');
+            expect(result).toHaveProperty('end');
         });
     });
 
@@ -1408,6 +1358,7 @@ describe('TransactionStore', () => {
             };
 
             const newStore = new TransactionStore(mockStorage, mockValidator, mockFormatter);
+            await newStore.initialize(); // Initialize first
             await newStore._loadFromData(malformedData);
 
             expect(newStore.transactions).toHaveLength(1);
@@ -1419,11 +1370,6 @@ describe('TransactionStore', () => {
             expect(result).toBeNull();
         });
 
-        test('should handle quarter period with year', () => {
-            const result = store._getDateRangeForPeriod('quarter', '2025');
-            expect(result).toHaveProperty('start');
-            expect(result).toHaveProperty('end');
-        });
 
         test('should handle month period with invalid month', () => {
             const result = store._getDateRangeForPeriod('month', '2025', '13'); // Invalid month
@@ -1431,10 +1377,6 @@ describe('TransactionStore', () => {
             expect(result).toHaveProperty('end');
         });
 
-        test('should handle legacy data conversion with empty properties', () => {
-            const result = store.convertLegacyData({ properties: [null, undefined] });
-            expect(result.transactions).toEqual([]);
-        });
 
         test('should handle sankey aggregation with no income', () => {
             store.addTransaction({
@@ -1536,7 +1478,7 @@ describe('TransactionStore', () => {
                     { id: 'txn1', propertyId: 1, category: 'Rent', amount: -1000, date: '2025-01-15', type: 'expense' },
                     { id: 'txn2', propertyId: 1, category: '', amount: -500, date: '2025-01-15', type: 'expense' }, // Invalid
                 ],
-                properties: [[1, { id: 1, name: 'Property 1', created: '2025-01-01' }]],
+                properties: [{ id: 1, name: 'Property 1', created: '2025-01-01' }],
                 categories: ['Rent'],
                 incomeCategories: [],
             };
@@ -1575,7 +1517,7 @@ describe('TransactionStore', () => {
         test('should initialize with provided data (console log branch)', async () => {
             const initialData = {
                 transactions: [{ id: 'txn1', propertyId: 1, category: 'Rent', amount: -1000, date: '2025-01-15', type: 'expense' }],
-                properties: [[1, { id: 1, name: 'Property 1', created: '2025-01-01' }]],
+                properties: [{ id: 1, name: 'Property 1', created: '2025-01-01' }],
                 categories: ['Rent'],
                 incomeCategories: [],
             };
@@ -1586,32 +1528,7 @@ describe('TransactionStore', () => {
             expect(newStore.transactions).toHaveLength(1);
         });
 
-        test('should handle properties as Map in _loadFromData', async () => {
-            const dataWithMap = {
-                transactions: [{ id: 'txn1', propertyId: 1, category: 'Rent', amount: -1000, date: '2025-01-15', type: 'expense' }],
-                properties: new Map([[1, { id: 1, name: 'Property 1', created: '2025-01-01' }]]),
-                categories: ['Rent'],
-                incomeCategories: [],
-            };
 
-            const newStore = new TransactionStore(mockStorage, mockValidator, mockFormatter);
-            await newStore._loadFromData(dataWithMap);
-
-            expect(newStore.transactions).toHaveLength(1);
-            expect(newStore.properties.get(1)).toBeDefined();
-        });
-
-        test('should handle _checkForLegacyData error gracefully', async () => {
-            mockStorage.load.mockRejectedValueOnce(new Error('Load error'));
-
-            const result = await store._checkForLegacyData();
-            expect(result).toBeNull();
-        });
-
-        test('should handle _parseQuarterKeyToDate with invalid format', () => {
-            const result = store._parseQuarterKeyToDate('Invalid Format');
-            expect(result).toBe(new Date().toISOString().split('T')[0]);
-        });
 
         test('should handle _saveToStorage when save fails', async () => {
             await store.initialize();
@@ -1740,11 +1657,6 @@ describe('TransactionStore', () => {
             expect(result1).toBe(result2);
         });
 
-        test('should handle _getDateRangeForPeriod quarter case', () => {
-            const result = store._getDateRangeForPeriod('quarter');
-            expect(result).toHaveProperty('start');
-            expect(result).toHaveProperty('end');
-        });
 
         test('should call getAllTransactions', async () => {
             await store.initialize();
@@ -1755,30 +1667,13 @@ describe('TransactionStore', () => {
             expect(result).toHaveLength(1);
         });
 
-        test('should handle convertLegacyData with global categories', () => {
-            const legacyData = {
-                properties: [{
-                    id: 1,
-                    name: 'Test Property',
-                    expenses: { 'Rent': -1000 },
-                }],
-                expenseCategories: ['Rent', 'Utilities'],
-                incomeCategories: ['Income'],
-            };
-
-            const result = store.convertLegacyData(legacyData);
-
-            expect(result.categories).toContain('Rent');
-            expect(result.categories).toContain('Utilities');
-            expect(result.incomeCategories).toContain('Income');
-        });
 
         test('should trigger change notification on importData', async () => {
             await store.initialize();
 
             const importData = {
                 transactions: [{ id: 'txn1', propertyId: 1, category: 'Rent', amount: -1000, date: '2025-01-15', type: 'expense' }],
-                properties: [[1, { id: 1, name: 'Property 1', created: '2025-01-01' }]],
+                properties: [{ id: 1, name: 'Property 1', created: '2025-01-01' }],
                 categories: ['Rent'],
                 incomeCategories: [],
             };
@@ -1822,6 +1717,85 @@ describe('TransactionStore', () => {
             delete reactive[0];
 
             expect(changeCallback).toHaveBeenCalledWith('transaction', expect.objectContaining({ type: 'delete' }));
+        });
+
+        // ============================================================================
+        // UNCOVERED BRANCH TESTS FOR MAXIMUM COVERAGE
+        // ============================================================================
+
+        test('should handle properties as neither array nor Map in _loadFromData (line 251)', async () => {
+            const dataWithInvalidProperties = {
+                transactions: [{ id: 'txn1', propertyId: 1, category: 'Rent', amount: -1000, date: '2025-01-15', type: 'expense' }],
+                properties: 'invalid', // Neither array nor Map
+            };
+
+            const newStore = new TransactionStore(mockStorage, mockValidator, mockFormatter);
+            await newStore.initialize(); // Initialize first
+            await newStore._loadFromData(dataWithInvalidProperties);
+
+            expect(newStore.transactions).toHaveLength(1);
+            expect(newStore.properties.size).toBe(0);
+        });
+
+        test('should handle storage save failure in _saveToStorage (lines 373-374)', async () => {
+            await store.initialize();
+
+            mockStorage.save.mockResolvedValueOnce(false); // Simulate save failure
+
+            store.addTransaction({ propertyId: 1, category: 'Rent', amount: -1000, date: '2025-01-15', type: 'expense' });
+
+            jest.runOnlyPendingTimers();
+
+            expect(mockStorage.save).toHaveBeenCalled();
+            expect(store._hasUnsavedChanges).toBe(true); // Should remain true on failure
+        });
+
+        test('should handle queryProperties without sortBy (lines 616-617)', async () => {
+            await store.initialize();
+
+            store.addTransaction({ propertyId: 1, category: 'Rent', amount: -1000, date: '2025-01-15', type: 'expense' });
+            store.addTransaction({ propertyId: 2, category: 'Rent', amount: -800, date: '2025-01-15', type: 'expense' });
+
+            const result = store.queryProperties({}); // No sortBy
+
+            expect(result.length).toBe(2);
+            // Should not sort, just return in insertion order
+        });
+
+        test('should handle queryCategories default sort (line 686)', async () => {
+            await store.initialize();
+
+            store.addTransaction({ propertyId: 1, category: 'Rent', amount: -1000, date: '2025-01-15', type: 'expense' });
+            store.addTransaction({ propertyId: 1, category: 'Utilities', amount: -1500, date: '2025-01-15', type: 'expense' });
+
+            const result = store.queryCategories({}); // No sortBy, should use default sort
+
+            expect(result.length).toBe(2);
+            // Default sort by total amount descending
+            expect(Math.abs(result[0].totalAmount)).toBeGreaterThanOrEqual(Math.abs(result[1].totalAmount));
+        });
+
+        test('should handle _getDateRangeForPeriod with invalid period (lines 935-937)', () => {
+            const result = store._getDateRangeForPeriod('invalid_period');
+            expect(result).toBeNull();
+        });
+
+        test('should handle importData with storage save failure (lines 1057-1059)', async () => {
+            await store.initialize();
+
+            mockStorage.save.mockResolvedValueOnce(false); // Simulate save failure
+
+            const importData = {
+                transactions: [{ id: 'txn1', propertyId: 1, category: 'Rent', amount: -1000, date: '2025-01-15', type: 'expense' }],
+                properties: [{ id: 1, name: 'Property 1', created: '2025-01-01' }],
+                categories: ['Rent'],
+                incomeCategories: [],
+            };
+
+            const result = await store.importData(importData);
+
+            expect(result).toBe(true); // Import succeeds even if save fails (data is loaded)
+            expect(store.transactions).toHaveLength(1); // Data should still be loaded
         });
     });
 });

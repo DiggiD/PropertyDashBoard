@@ -3207,3 +3207,99 @@ input[type='number'].expense-input[type='number'],
     color: var(--color-text-secondary);
     z-index: 20;
 }
+
+/* Onboarding Tooltips */
+.onboarding-tooltip {
+    position: fixed;
+    background: var(--color-surface);
+    border: 2px solid var(--color-primary);
+    border-radius: var(--radius-base);
+    padding: var(--space-12) var(--space-16);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text);
+    box-shadow: var(--shadow-lg);
+    z-index: 10000;
+    pointer-events: none;
+    opacity: 0;
+    transform: scale(0.9);
+    transition: all var(--duration-normal) var(--ease-standard);
+    white-space: nowrap;
+    font-family: var(--font-family-base);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    max-width: 250px;
+    text-align: center;
+}
+
+.onboarding-tooltip.visible {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.onboarding-tooltip::after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 0;
+    border: 8px solid transparent;
+    pointer-events: none;
+}
+
+/* Tooltip pointing to the right (for history button) */
+.onboarding-tooltip[data-position='bottom']::after {
+    top: -16px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-bottom: 8px solid var(--color-surface);
+    border-top: none;
+}
+
+/* Tooltip pointing to the right (for properties button) */
+.onboarding-tooltip[data-position='right']::after {
+    top: 50%;
+    left: -16px;
+    transform: translateY(-50%);
+    border-right: 8px solid var(--color-surface);
+    border-left: none;
+}
+
+/* Dark mode support for onboarding tooltips */
+@media (prefers-color-scheme: dark) {
+    .onboarding-tooltip {
+        background: var(--color-surface);
+        border-color: var(--color-primary);
+        color: var(--color-text);
+    }
+
+    .onboarding-tooltip[data-position='bottom']::after {
+        border-bottom-color: var(--color-surface);
+    }
+
+    .onboarding-tooltip[data-position='right']::after {
+        border-right-color: var(--color-surface);
+    }
+}
+
+:root[data-color-scheme='dark'] .onboarding-tooltip {
+    background: var(--color-surface);
+    border-color: var(--color-primary);
+    color: var(--color-text);
+}
+
+:root[data-color-scheme='dark'] .onboarding-tooltip[data-position='bottom']::after {
+    border-bottom-color: var(--color-surface);
+}
+
+:root[data-color-scheme='dark'] .onboarding-tooltip[data-position='right']::after {
+    border-right-color: var(--color-surface);
+}
+
+/* Responsive adjustments for onboarding tooltips */
+@media (max-width: 768px) {
+    .onboarding-tooltip {
+        font-size: var(--font-size-xs);
+        padding: var(--space-8) var(--space-12);
+        max-width: 200px;
+    }
+}

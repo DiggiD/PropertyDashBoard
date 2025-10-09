@@ -13,10 +13,17 @@
  *
  * Key Features:
  * - Comprehensive data validation
- * - Multi-time period support (all, year, quarter, month)
+ * - Multi-time period support (all, year, month)
  * - Automatic data integrity checks
  * - Efficient caching and performance optimization
  * - Undo/redo support through snapshots
+ *
+ * PERFORMANCE OPTIMIZATIONS (v2.1):
+ * - Lazy Loading: Non-critical operations deferred until needed
+ * - Cache Optimization: Reduced timeout for empty databases (1s vs 5s)
+ * - Query Optimization: Skip expensive operations when no data exists
+ * - Parallel Operation Reduction: Simplified flow for empty state
+ * - Early Empty State Detection: Fast path for empty databases
  *
  * Dependencies:
  * - Storage: For data persistence
@@ -42,6 +49,8 @@
 
 import TransactionStore from './TransactionStore.js';
 import UIManager from './UIManager.js';
+import logger from '../utils/Logger.js';
+import PerformanceOptimizer from '../utils/PerformanceOptimizer.js';
 
 // Utility function for debouncing
 function debounce(func, wait) {
@@ -58,33 +67,19 @@ function debounce(func, wait) {
 
 class DataManager {
     constructor(storage, validator, formatter) {
-        // Store dependencies
-        this.storage = storage;
-        this.validator = validator;
-        this.formatter = formatter;
+        // LIGHTWEIGHT: Only store essential dependencies
+        this._storage = storage;
+        this._validator = validator;
+        this._formatter = formatter;
+        this.store = null; // Will be created during initialize()
 
-        // REFACTORED: Use TransactionStore for normalized data model
-        this.store = new TransactionStore(storage, validator, formatter);
-
-        // Remove old this.data - derive on-demand
-
-        // Keep event listeners, sankey cache, etc.
-        this.eventListeners = new Map();
-        this.sankeyCache = new Map();
-        this._hasUnsavedChanges = false;
-        this.lastSaved = null;
-
-        // REFACTORED: Add subscriptions for store changes
-        this.subscriptions = [];
-
-        // Cache invalidation tracking
-        this._lastDataChange = null;
-        this._lastTransactionCount = null;
-        this._lastTransactionHash = null;
-
+        // Initialize flag - start as false
         this._initialized = false;
 
-        console.log('[DATAMANAGER] DataManager initialized');
+        // Initialize event listeners immediately for methods that need it
+        this.eventListeners = new Map();
+
+        logger.info('DATAMANAGER', 'DataManager constructor completed (lightweight)');
     }
 
     /**
@@ -112,80 +107,330 @@ class DataManager {
     }
 
     /**
-     * Initialize data manager with existing data
-     * @param {Object} initialData - Initial data to load
-     */
+      * Initialize data manager with existing data - OPTIMIZED for performance
+      * @param {Object} initialData - Initial data to load
+      */
     async initialize(initialData = null) {
         if (this._initialized) {
-            console.log('[DATAMANAGER] Already initialized, skipping');
+            logger.info('DATAMANAGER', 'Already initialized, skipping');
             return;
         }
+
+        const initStart = performance.now();
         this._initialized = true;
 
         try {
-            console.log('[DATAMANAGER] Starting data initialization...');
+            logger.info('DATAMANAGER', 'Starting optimized data initialization...');
 
-            if (initialData) {
-                console.log('[DATAMANAGER] Initializing with provided data');
-                // REFACTORED: Import transactions or convert legacy data
-                await this.store.importData(initialData.transactions || this.store.convertLegacyData(initialData));
-            } else {
-                // Load from storage (TransactionStore.initialize() handles this)
-                console.log('[DATAMANAGER] Loading data from storage...');
-                await this.store.initialize();
-                if (this.store.queryTransactions().length === 0) {
-                    console.log('[DATAMANAGER] No data found in storage, seeding with sample data');
-                    await this.seedTransactions();
-                }
+            // PERFORMANCE MONITORING: Track initialization path
+            const emptyStateCheckStart = performance.now();
+
+            // EARLY EMPTY STATE DETECTION: Check if we have data before expensive operations
+            const hasInitialData = initialData && (
+                (initialData.transactions && initialData.transactions.length > 0) ||
+                (initialData.properties && initialData.properties.length > 0) ||
+                (initialData.expenseCategories && initialData.expenseCategories.length > 0)
+            );
+
+            // Initialize all data structures (moved from constructor)
+            this._initializeDataStructures();
+
+            // OPTIMIZED: Create TransactionStore instance first
+            await this._createTransactionStore(initialData);
+
+            // FAST PATH: If no data, skip expensive operations
+            if (!hasInitialData && this._isStoreEmpty()) {
+                const emptyStateCheckTime = performance.now() - emptyStateCheckStart;
+                logger.info('DATAMANAGER', `Empty database detected in ${emptyStateCheckTime.toFixed(2)}ms, using fast initialization path`);
+                this._fastEmptyInitialization();
+                return;
             }
 
-            // REFACTORED: Derive data on-demand
-            this.data = {
-                properties: this.store.queryProperties(),
-                expenseCategories: this.store.queryCategories('expense'),
-                incomeCategories: this.store.queryCategories('income'),
-                currentTimePeriod: 'all',
-                currentView: 'overview',
-                selectedYear: 'all',
-                selectedMonth: 'all',
-            };
+            const emptyStateCheckTime = performance.now() - emptyStateCheckStart;
+            logger.info('DATAMANAGER', `Empty state check completed in ${emptyStateCheckTime.toFixed(2)}ms`);
 
-            // REFACTORED: Subscribe to store changes
-            this.subscriptions.push(this.store.onChange(() => {
-                this.data = {
-                    properties: this.store.queryProperties(),
-                    expenseCategories: this.store.queryCategories('expense'),
-                    incomeCategories: this.store.queryCategories('income'),
-                    currentTimePeriod: this.data.currentTimePeriod,
-                    currentView: this.data.currentView,
-                    selectedYear: this.data.selectedYear,
-                    selectedMonth: this.data.selectedMonth,
-                };
-                this._lastDataChange = Date.now();
-                this._lastTransactionCount = this.store.transactions ? this.store.transactions.length : 0;
-                this._lastTransactionHash = this._calculateTransactionHash();
-                this.emit('dataChange', this.getData());
-                this.clearSankeyCache();
-                this.markAsChanged();
-            }));
+            // OPTIMIZED: Avoid parallel operations for empty databases
+            if (this._isStoreEmpty()) {
+                logger.info('DATAMANAGER', 'Empty store detected, skipping parallel operations');
+                // For empty stores, just setup basic subscriptions
+                await this._setupOptimizedSubscriptions();
+            } else {
+                // PARALLEL: Load data and setup subscriptions concurrently (only for non-empty DB)
+                const dataLoadPromise = this._loadDataOptimized(initialData);
+                const subscriptionSetupPromise = this._setupOptimizedSubscriptions();
 
-            // REFACTORED: Auto-save debounce
-            this.subscriptions.push(this.store.onChange(debounce(this.save.bind(this), 2000)));
+                await Promise.all([dataLoadPromise, subscriptionSetupPromise]);
+            }
+
+            // OPTIMIZED: Lazy derive initial data structure only
+            this._deriveInitialData();
 
             this.lastSaved = new Date();
             this.hasUnsavedChanges = false;
 
-            console.log('[DATAMANAGER] Data initialization complete');
-            console.log('[DATAMANAGER] Properties:', this.data.properties.length);
-            console.log('[DATAMANAGER] Categories:', this.data.expenseCategories.length);
+            // LAZY LOADING: Defer non-critical operations
+            this._scheduleLazyOperations();
+
+            const initTime = performance.now() - initStart;
+            logger.info('DATAMANAGER', `Core initialization complete in ${initTime.toFixed(2)}ms`);
+
+            // PERFORMANCE MONITORING: Record initialization time (lazy loaded)
+            setTimeout(() => {
+                if (window.performanceOptimizer) {
+                    window.performanceOptimizer.recordDataManagerInitialization(initTime);
+                }
+            }, 0);
+
+            logger.info('DATAMANAGER', 'Properties', this.data.properties.length);
+            logger.info('DATAMANAGER', 'Categories', this.data.expenseCategories.length);
+
+            // Emit initialization complete event
+            this.emit('initialized', this.getData());
 
         } catch (error) {
-            console.error('[DATAMANAGER] Error during initialization:', error);
-            // Fallback to empty state on error
+            logger.error('DATAMANAGER', 'Error during optimized initialization', error);
             this.initializeEmptyState();
             this.lastSaved = new Date();
             this._hasUnsavedChanges = false;
         }
+    }
+
+    /**
+      * Initialize data structures - moved from constructor for performance
+      */
+    _initializeDataStructures() {
+        // Keep event listeners, sankey cache, etc.
+        this.eventListeners = new Map();
+        this.sankeyCache = new Map();
+        this._hasUnsavedChanges = false;
+        this.lastSaved = null;
+
+        // REFACTORED: Add subscriptions for store changes
+        this.subscriptions = [];
+
+        // Cache invalidation tracking
+        this._lastDataChange = null;
+        this._lastTransactionCount = null;
+        this._lastTransactionHash = null;
+
+        // OPTIMIZED: Performance caches
+        this._expenseCache = {};
+        this._categoryCache = {};
+        this._sankeyCache = new Map();
+        this._distributionTimer = null;
+
+        // Initialize empty data state
+        this.data = {
+            properties: [],
+            expenseCategories: [],
+            incomeCategories: [],
+            currentTimePeriod: 'all',
+            currentView: 'overview',
+            selectedYear: 'all',
+            selectedMonth: 'all',
+        };
+
+        logger.info('DATAMANAGER', 'Data structures initialized');
+    }
+
+    /**
+      * Create TransactionStore instance with proper initialization
+      * @param {Object} initialData - Initial data to load
+      */
+    async _createTransactionStore(initialData = null) {
+        const storeStart = performance.now();
+
+        // Create the TransactionStore instance (now lightweight)
+        this.store = new TransactionStore(this._storage, this._validator, this._formatter);
+
+        // Initialize it with data
+        await this.store.initialize(initialData);
+
+        const storeTime = performance.now() - storeStart;
+        logger.logPerformance('DATAMANAGER', 'TransactionStore creation and initialization', storeTime);
+
+        // Track performance
+        if (window.performanceOptimizer) {
+            window.performanceOptimizer.measureModuleLoad('TransactionStore', storeStart);
+        }
+    }
+
+    /**
+      * Ensure TransactionStore is available before use
+      */
+    _ensureStoreAvailable() {
+        if (!this.store) {
+            throw new Error('TransactionStore not initialized. Call initialize() first.');
+        }
+    }
+
+    /**
+      * Optimized data loading with parallel operations
+      */
+    async _loadDataOptimized(initialData) {
+        // Store is already created and initialized in _createTransactionStore()
+        // Just handle additional data loading if needed
+
+        if (initialData) {
+            logger.info('DATAMANAGER', 'Loading provided data in parallel');
+            if (initialData.transactions) {
+                // Import additional data if provided
+                await this.store.importData(initialData);
+            }
+        } else {
+            // Store already loaded from storage during _createTransactionStore()
+            logger.info('DATAMANAGER', 'Storage data already loaded during store creation');
+        }
+    }
+
+    /**
+     * Setup subscriptions with optimized change handling
+     */
+    async _setupOptimizedSubscriptions() {
+        // OPTIMIZED: Batch subscription setup
+        this.subscriptions.push(this.store.onChange(() => {
+            this._handleOptimizedDataChange();
+        }));
+
+        // OPTIMIZED: Reduced debounce time for better responsiveness
+        // Fixed memory leak: Properly manage debounced function cleanup
+        const debouncedSave = debounce(this.save.bind(this), 1000);
+        this.subscriptions.push(this.store.onChange(debouncedSave));
+
+        // Store reference for cleanup if needed
+        this._debouncedSave = debouncedSave;
+    }
+
+    /**
+     * Optimized data change handler with smart caching
+     */
+    _handleOptimizedDataChange() {
+        const changeStart = performance.now();
+
+        // OPTIMIZED: Only update derived data if actually needed
+        if (this._isDataChangeSignificant()) {
+            this._deriveInitialData();
+            this._lastDataChange = Date.now();
+            this._updateTransactionTracking();
+
+            // OPTIMIZED: Debounce data distribution - Fixed race condition
+            if (!this._distributionTimer) {
+                this._distributionTimer = setTimeout(() => {
+                    try {
+                        this._distributeDataToModules();
+                    } catch (error) {
+                        logger.error('DATAMANAGER', 'Error in data distribution', error);
+                    } finally {
+                        this._distributionTimer = null;
+                    }
+                }, 50);
+            }
+        }
+
+        this.emit('dataChange', this.getData());
+        this.markAsChanged();
+
+        const changeTime = performance.now() - changeStart;
+        if (changeTime > 10) {
+            logger.warn('DATAMANAGER', `Data change handling took ${changeTime.toFixed(2)}ms`);
+        }
+    }
+
+    /**
+     * Check if data change is significant enough to warrant updates
+     */
+    _isDataChangeSignificant() {
+        const currentCount = this.store.transactions ? this.store.transactions.length : 0;
+        const currentHash = this._calculateTransactionHash();
+
+        if (this._lastTransactionCount !== currentCount ||
+            this._lastTransactionHash !== currentHash) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Update transaction tracking for cache invalidation
+     */
+    _updateTransactionTracking() {
+        this._lastTransactionCount = this.store.transactions ? this.store.transactions.length : 0;
+        this._lastTransactionHash = this._calculateTransactionHash();
+    }
+
+    /**
+       * Optimized initial data derivation
+       */
+    _deriveInitialData() {
+        this._ensureStoreAvailable();
+        this._ensureInitialized();
+        this.data = {
+            properties: this.store.queryProperties(),
+            expenseCategories: this.store.queryCategories('expense'),
+            incomeCategories: this.store.queryCategories('income'),
+            currentTimePeriod: this.data?.currentTimePeriod || 'all',
+            currentView: this.data?.currentView || 'overview',
+            selectedYear: this.data?.selectedYear || 'all',
+            selectedMonth: this.data?.selectedMonth || 'all',
+        };
+    }
+
+    /**
+     * Check if store is empty for fast path optimization
+     * @returns {boolean} True if store is empty
+     */
+    _isStoreEmpty() {
+        if (!this.store) return true;
+
+        const stats = this.store.getStatistics();
+        return stats.totalTransactions === 0 &&
+               stats.totalProperties === 0 &&
+               stats.totalCategories === 0;
+    }
+
+    /**
+     * Fast initialization path for empty databases
+     */
+    _fastEmptyInitialization() {
+        logger.info('DATAMANAGER', 'Using fast empty initialization path');
+
+        // Set empty state immediately
+        this.initializeEmptyState();
+        this.lastSaved = new Date();
+        this.hasUnsavedChanges = false;
+
+        // LAZY: Defer non-critical setup
+        this._scheduleLazyOperations();
+
+        // Emit initialized event immediately for empty state
+        setTimeout(() => {
+            this.emit('initialized', this.getData());
+        }, 0);
+
+        logger.info('DATAMANAGER', 'Fast empty initialization complete');
+    }
+
+    /**
+     * Schedule non-critical operations for lazy loading
+     */
+    _scheduleLazyOperations() {
+        // LAZY: Defer module data distribution
+        setTimeout(() => {
+            if (this.data.properties.length > 0 || this.data.expenseCategories.length > 0) {
+                this._distributeDataToModules();
+            }
+        }, 10);
+
+        // LAZY: Defer performance monitoring setup
+        setTimeout(() => {
+            if (window.performanceOptimizer && this._initialized) {
+                // Only record if we actually did work
+                const hasData = this.data.properties.length > 0 || this.data.expenseCategories.length > 0;
+                if (hasData) {
+                    window.performanceOptimizer.recordDataManagerInitialization(performance.now());
+                }
+            }
+        }, 100);
     }
 
     /**
@@ -214,219 +459,8 @@ class DataManager {
         // Note: Store maintains its state; we just reset the derived data
     }
 
-    /**
-     * Seed sample data for demonstration
-     */
-    seedSampleData() {
-        console.log('[DATAMANAGER] Seeding sample data...');
 
-        // Sample expense categories
-        this.data.expenseCategories = [
-            'Rent',
-            'Utilities',
-            'Maintenance',
-            'Insurance',
-            'Taxes',
-            'Security',
-            'Parking',
-            'Management',
-            'Legal',
-        ];
 
-        // Sample income categories
-        this.data.incomeCategories = ['Rent'];
-
-        // Sample property with hierarchical expenses
-        const sampleProperty = {
-            id: 1,
-            name: 'Downtown Office Complex',
-            expenses: {
-                'Utilities': {
-                    'Electricity': -1200,
-                    'Water': -400,
-                    'Gas': -300,
-                },
-                'Maintenance': {
-                    'Cleaning': -800,
-                    'Repairs': -1200,
-                    'Landscaping': -300,
-                },
-                'Insurance': -900,
-                'Taxes': -1300,
-                'Security': -600,
-                'Parking': -800,
-                'Management': -700,
-                'Legal': -500,
-                'Rent': -4000,
-            },
-            incomes: {
-                'Rent': 5500,
-            },
-            monthlyData: {},
-        };
-
-        // Add current month data
-        const now = new Date();
-        const currentYear = now.getFullYear();
-        const currentMonth = now.getMonth() + 1;
-        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        const monthKey = `${monthNames[currentMonth - 1]} ${currentYear}`;
-
-        sampleProperty.monthlyData[monthKey] = {
-            expenses: {
-                'Utilities': {
-                    'Electricity': -1200,
-                    'Water': -400,
-                    'Gas': -300,
-                },
-                'Maintenance': {
-                    'Cleaning': -800,
-                    'Repairs': -1200,
-                    'Landscaping': -300,
-                },
-                'Insurance': -900,
-                'Taxes': -1300,
-                'Security': -600,
-                'Parking': -800,
-                'Management': -700,
-                'Legal': -500,
-                'Rent': -4000,
-            },
-            incomes: {
-                'Rent': 5500,
-            },
-            total: -9500,
-        };
-
-        this.data.properties = [sampleProperty];
-        this.data.currentTimePeriod = 'all';
-        this.data.currentView = 'overview';
-        this.data.selectedYear = 'all';
-        this.data.selectedMonth = 'all';
-
-        console.log('[DATAMANAGER] Sample data seeded successfully');
-    }
-
-    /**
-     * Seed transactions (private async method)
-     */
-    async seedTransactions() {
-        // REFACTORED: Private async method to insert normalized sample data
-        // Convert seedSampleData logic: create 10-20 txns across 2 properties, 2 months, with hierarchy like {category: 'Utilities', subcategory: 'Electricity', amount: -1200}
-        // Use current date for monthKey/year
-
-        const now = new Date();
-        const currentYear = now.getFullYear();
-        const currentMonth = now.getMonth() + 1;
-        const prevMonth = currentMonth === 1 ? 12 : currentMonth - 1;
-        const prevYear = currentMonth === 1 ? currentYear - 1 : currentYear;
-
-        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-        // Sample transactions for Downtown Office Complex (Property 1)
-        const property1Txns = [
-            // Current month
-            { propertyId: 1, category: 'Utilities', subcategory: 'Electricity', amount: -1200, date: `${currentYear}-${String(currentMonth).padStart(2, '0')}-15`, type: 'expense' },
-            { propertyId: 1, category: 'Utilities', subcategory: 'Water', amount: -400, date: `${currentYear}-${String(currentMonth).padStart(2, '0')}-15`, type: 'expense' },
-            { propertyId: 1, category: 'Utilities', subcategory: 'Gas', amount: -300, date: `${currentYear}-${String(currentMonth).padStart(2, '0')}-15`, type: 'expense' },
-            { propertyId: 1, category: 'Maintenance', subcategory: 'Cleaning', amount: -800, date: `${currentYear}-${String(currentMonth).padStart(2, '0')}-15`, type: 'expense' },
-            { propertyId: 1, category: 'Maintenance', subcategory: 'Repairs', amount: -1200, date: `${currentYear}-${String(currentMonth).padStart(2, '0')}-15`, type: 'expense' },
-            { propertyId: 1, category: 'Insurance', amount: -900, date: `${currentYear}-${String(currentMonth).padStart(2, '0')}-15`, type: 'expense' },
-            { propertyId: 1, category: 'Rent', amount: -4000, date: `${currentYear}-${String(currentMonth).padStart(2, '0')}-15`, type: 'expense' },
-            { propertyId: 1, category: 'Rent', amount: 5500, date: `${currentYear}-${String(currentMonth).padStart(2, '0')}-15`, type: 'income' },
-
-            // Previous month
-            { propertyId: 1, category: 'Utilities', subcategory: 'Electricity', amount: -1100, date: `${prevYear}-${String(prevMonth).padStart(2, '0')}-15`, type: 'expense' },
-            { propertyId: 1, category: 'Utilities', subcategory: 'Water', amount: -350, date: `${prevYear}-${String(prevMonth).padStart(2, '0')}-15`, type: 'expense' },
-            { propertyId: 1, category: 'Maintenance', subcategory: 'Cleaning', amount: -750, date: `${prevYear}-${String(prevMonth).padStart(2, '0')}-15`, type: 'expense' },
-            { propertyId: 1, category: 'Insurance', amount: -900, date: `${prevYear}-${String(prevMonth).padStart(2, '0')}-15`, type: 'expense' },
-            { propertyId: 1, category: 'Rent', amount: -4000, date: `${prevYear}-${String(prevMonth).padStart(2, '0')}-15`, type: 'expense' },
-            { propertyId: 1, category: 'Rent', amount: 5500, date: `${prevYear}-${String(prevMonth).padStart(2, '0')}-15`, type: 'income' },
-        ];
-
-        // Sample transactions for another property (Property 2)
-        const property2Txns = [
-            // Current month
-            { propertyId: 2, category: 'Utilities', subcategory: 'Electricity', amount: -800, date: `${currentYear}-${String(currentMonth).padStart(2, '0')}-15`, type: 'expense' },
-            { propertyId: 2, category: 'Utilities', subcategory: 'Water', amount: -250, date: `${currentYear}-${String(currentMonth).padStart(2, '0')}-15`, type: 'expense' },
-            { propertyId: 2, category: 'Maintenance', subcategory: 'Cleaning', amount: -500, date: `${currentYear}-${String(currentMonth).padStart(2, '0')}-15`, type: 'expense' },
-            { propertyId: 2, category: 'Insurance', amount: -600, date: `${currentYear}-${String(currentMonth).padStart(2, '0')}-15`, type: 'expense' },
-            { propertyId: 2, category: 'Rent', amount: -2500, date: `${currentYear}-${String(currentMonth).padStart(2, '0')}-15`, type: 'expense' },
-            { propertyId: 2, category: 'Rent', amount: 3200, date: `${currentYear}-${String(currentMonth).padStart(2, '0')}-15`, type: 'income' },
-
-            // Previous month
-            { propertyId: 2, category: 'Utilities', subcategory: 'Electricity', amount: -750, date: `${prevYear}-${String(prevMonth).padStart(2, '0')}-15`, type: 'expense' },
-            { propertyId: 2, category: 'Utilities', subcategory: 'Water', amount: -200, date: `${prevYear}-${String(prevMonth).padStart(2, '0')}-15`, type: 'expense' },
-            { propertyId: 2, category: 'Maintenance', subcategory: 'Cleaning', amount: -450, date: `${prevYear}-${String(prevMonth).padStart(2, '0')}-15`, type: 'expense' },
-            { propertyId: 2, category: 'Insurance', amount: -600, date: `${prevYear}-${String(prevMonth).padStart(2, '0')}-15`, type: 'expense' },
-            { propertyId: 2, category: 'Rent', amount: -2500, date: `${prevYear}-${String(prevMonth).padStart(2, '0')}-15`, type: 'expense' },
-            { propertyId: 2, category: 'Rent', amount: 3200, date: `${prevYear}-${String(prevMonth).padStart(2, '0')}-15`, type: 'income' },
-        ];
-
-        const allTxns = [...property1Txns, ...property2Txns];
-
-        for (const txn of allTxns) {
-            this.store.addTransaction(txn);
-        }
-
-        console.log(`[DATAMANAGER] Seeded ${allTxns.length} transactions across 2 properties and 2 months`);
-    }
-
-    /**
-     * Validate and normalize loaded data
-     * @param {Object} data - Raw data to validate and normalize
-     * @returns {Object} Validated and normalized data
-     */
-    // REFACTORED: Delegate to this.store.convertLegacyData(data) + validate
-    validateAndNormalizeData(data) {
-        console.log('[DATAMANAGER] Validating and normalizing data...');
-
-        if (!data || typeof data !== 'object') {
-            console.warn('[DATAMANAGER] Invalid data structure, using empty state');
-            return {
-                properties: [],
-                expenseCategories: [],
-                incomeCategories: [],
-                currentTimePeriod: 'all',
-                currentView: 'overview',
-                selectedYear: 'all',
-                selectedMonth: 'all',
-            };
-        }
-
-        // Convert legacy data using TransactionStore
-        const convertedData = this.store.convertLegacyData(data);
-
-        // Validate the converted data
-        const validation = this.validator.validateDashboardData(convertedData);
-        if (!validation.isValid) {
-            console.warn('[DATAMANAGER] Validation failed:', validation.errors);
-            // Return basic structure with converted data
-            return {
-                properties: convertedData.properties || [],
-                expenseCategories: convertedData.categories || [],
-                incomeCategories: convertedData.incomeCategories || [],
-                currentTimePeriod: 'all',
-                currentView: 'overview',
-                selectedYear: 'all',
-                selectedMonth: 'all',
-            };
-        }
-
-        // Return validated normalized data
-        const normalizedData = {
-            properties: convertedData.properties || [],
-            expenseCategories: convertedData.categories || [],
-            incomeCategories: convertedData.incomeCategories || [],
-            currentTimePeriod: data.currentTimePeriod || 'all',
-            currentView: data.currentView || 'overview',
-            selectedYear: data.selectedYear || 'all',
-            selectedMonth: data.selectedMonth || 'all',
-        };
-
-        console.log('[DATAMANAGER] Data validation and normalization complete');
-        return normalizedData;
-    }
 
 
 
@@ -454,7 +488,7 @@ class DataManager {
      */
     initializeExpensesFromMonthlyData(property, force = false) {
         if (!property.monthlyData || typeof property.monthlyData !== 'object') {
-            console.warn('[DATAMANAGER] Invalid monthly data for property:', property.name);
+            logger.warn('DATAMANAGER', 'Invalid monthly data for property', property.name);
             return;
         }
 
@@ -463,7 +497,7 @@ class DataManager {
             const months = Object.keys(property.monthlyData).sort();
 
             if (months.length === 0) {
-                console.warn('[DATAMANAGER] No months found in monthly data for property:', property.name);
+                logger.warn('DATAMANAGER', 'No months found in monthly data for property', property.name);
                 return;
             }
 
@@ -472,11 +506,11 @@ class DataManager {
             const latestMonthData = property.monthlyData[latestMonth];
 
             if (!latestMonthData || !latestMonthData.expenses) {
-                console.warn('[DATAMANAGER] No expenses found in latest month for property:', property.name);
+                logger.warn('DATAMANAGER', 'No expenses found in latest month for property', property.name);
                 return;
             }
 
-            console.log(`[DATAMANAGER] Initializing expenses from month: ${latestMonth} for property: ${property.name}`);
+            logger.debug('DATAMANAGER', `Initializing expenses from month: ${latestMonth} for property: ${property.name}`);
 
             // Copy expenses from the latest month
             Object.entries(latestMonthData.expenses).forEach(([category, value]) => {
@@ -485,31 +519,30 @@ class DataManager {
                     const total = Object.values(value).reduce((sum, val) => sum + (val || 0), 0);
                     // Ensure the total is negative for expenses
                     property.expenses[category] = total > 0 ? -total : total;
-                    console.log(`[DATAMANAGER] Hierarchical expense ${category}: ${property.expenses[category]}`);
+                    logger.debug('DATAMANAGER', `Hierarchical expense ${category}: ${property.expenses[category]}`);
                 } else if (typeof value === 'number') {
                     // Ensure flat values are negative for expenses
                     property.expenses[category] = value > 0 ? -value : value;
-                    console.log(`[DATAMANAGER] Flat expense ${category}: ${property.expenses[category]}`);
+                    logger.debug('DATAMANAGER', `Flat expense ${category}: ${property.expenses[category]}`);
                 } else {
-                    console.warn(`[DATAMANAGER] Invalid expense value for ${category}: ${value}`);
+                    logger.warn('DATAMANAGER', `Invalid expense value for ${category}: ${value}`);
                     property.expenses[category] = 0;
                 }
             });
 
         } catch (error) {
-            console.error('[DATAMANAGER] Error initializing expenses from monthly data:', error);
+            logger.error('DATAMANAGER', 'Error initializing expenses from monthly data', error);
         }
     }
 
     /**
-     * Manually initialize expenses from quarterly data for a property
-     * This should only be called when explicitly requested by the user
+     * Initialize expenses from quarterly data for a property
      * @param {Object} property - Property object
      * @param {boolean} force - Whether to force initialization even if expenses already exist
      */
     initializeExpensesFromQuarterlyData(property, force = false) {
         if (!property.quarterlyData || typeof property.quarterlyData !== 'object') {
-            console.warn('[DATAMANAGER] Invalid quarterly data for property:', property.name);
+            logger.warn('DATAMANAGER', 'Invalid quarterly data for property', property.name);
             return;
         }
 
@@ -518,7 +551,7 @@ class DataManager {
             const quarters = Object.keys(property.quarterlyData).sort();
 
             if (quarters.length === 0) {
-                console.warn('[DATAMANAGER] No quarters found in quarterly data for property:', property.name);
+                logger.warn('DATAMANAGER', 'No quarters found in quarterly data for property', property.name);
                 return;
             }
 
@@ -527,11 +560,11 @@ class DataManager {
             const latestQuarterData = property.quarterlyData[latestQuarter];
 
             if (!latestQuarterData || !latestQuarterData.expenses) {
-                console.warn('[DATAMANAGER] No expenses found in latest quarter for property:', property.name);
+                logger.warn('DATAMANAGER', 'No expenses found in latest quarter for property', property.name);
                 return;
             }
 
-            console.log(`[DATAMANAGER] Initializing expenses from quarter: ${latestQuarter} for property: ${property.name}`);
+            logger.debug('DATAMANAGER', `Initializing expenses from quarter: ${latestQuarter} for property: ${property.name}`);
 
             // Copy expenses from the latest quarter
             Object.entries(latestQuarterData.expenses).forEach(([category, value]) => {
@@ -540,45 +573,119 @@ class DataManager {
                     const total = Object.values(value).reduce((sum, val) => sum + (val || 0), 0);
                     // Ensure the total is negative for expenses
                     property.expenses[category] = total > 0 ? -total : total;
-                    console.log(`[DATAMANAGER] Hierarchical expense ${category}: ${property.expenses[category]}`);
+                    logger.debug('DATAMANAGER', `Hierarchical expense ${category}: ${property.expenses[category]}`);
                 } else if (typeof value === 'number') {
                     // Ensure flat values are negative for expenses
                     property.expenses[category] = value > 0 ? -value : value;
-                    console.log(`[DATAMANAGER] Flat expense ${category}: ${property.expenses[category]}`);
+                    logger.debug('DATAMANAGER', `Flat expense ${category}: ${property.expenses[category]}`);
                 } else {
-                    console.warn(`[DATAMANAGER] Invalid expense value for ${category}: ${value}`);
+                    logger.warn('DATAMANAGER', `Invalid expense value for ${category}: ${value}`);
                     property.expenses[category] = 0;
                 }
             });
 
         } catch (error) {
-            console.error('[DATAMANAGER] Error initializing expenses from quarterly data:', error);
+            logger.error('DATAMANAGER', 'Error initializing expenses from quarterly data', error);
         }
     }
 
     /**
-     * Get current data
-     * @returns {Object} Current data
+     * Validate and normalize data
+     * @param {Object} data - Data to validate and normalize
+     * @returns {Object} Validation and normalization result
      */
+    validateAndNormalizeData(data) {
+        if (!data || typeof data !== 'object') {
+            return {
+                properties: [],
+                expenseCategories: [],
+                incomeCategories: [],
+                isValid: false,
+                errors: ['Invalid data format']
+            };
+        }
+
+        const result = {
+            properties: [],
+            expenseCategories: [],
+            incomeCategories: [],
+            isValid: true,
+            errors: []
+        };
+
+        try {
+            // Validate and normalize properties
+            if (data.properties && Array.isArray(data.properties)) {
+                result.properties = data.properties.filter(property => {
+                    if (!property || typeof property !== 'object') {
+                        result.errors.push('Invalid property format');
+                        return false;
+                    }
+                    if (!property.name || typeof property.name !== 'string') {
+                        result.errors.push('Property missing valid name');
+                        return false;
+                    }
+                    return true;
+                });
+            }
+
+            // Validate and normalize expense categories
+            if (data.expenseCategories && Array.isArray(data.expenseCategories)) {
+                result.expenseCategories = data.expenseCategories.filter(category => {
+                    return typeof category === 'string' && category.trim().length > 0;
+                });
+            }
+
+            // Validate and normalize income categories
+            if (data.incomeCategories && Array.isArray(data.incomeCategories)) {
+                result.incomeCategories = data.incomeCategories.filter(category => {
+                    return typeof category === 'string' && category.trim().length > 0;
+                });
+            }
+
+        } catch (error) {
+            result.isValid = false;
+            result.errors.push(`Validation error: ${error.message}`);
+        }
+
+        return result;
+    }
+
+
+    /**
+      * Get current data
+      * @returns {Object} Current data
+      */
     getData() {
         return { ...this.data };
     }
 
     /**
-     * Get properties
-     * @returns {Array} Properties array
-     */
+      * Ensure DataManager is initialized before use
+      */
+    _ensureInitialized() {
+        if (!this._initialized) {
+            throw new Error('DataManager not initialized. Call initialize() first.');
+        }
+    }
+
+    /**
+      * Get properties
+      * @returns {Array} Properties array
+      */
     getProperties() {
+        this._ensureStoreAvailable();
         const props = this.store.queryProperties();
-        console.log('[DATAMANAGER] getProperties called, properties with incomes:', props.filter(p => p.totalIncome > 0).length);
+        logger.info('DATAMANAGER', 'getProperties called, properties with incomes', props.filter(p => p.totalIncome > 0).length);
         return props;
     }
 
     /**
-     * Get expense categories
-     * @returns {Array} Categories array
-     */
+      * Get expense categories
+      * @returns {Array} Categories array
+      */
     getExpenseCategories() {
+        this._ensureStoreAvailable();
         return this.store.queryCategories({ type: 'expense' }).map(cat => cat.name);
     }
 
@@ -587,14 +694,15 @@ class DataManager {
      * @returns {Array} Income categories array
      */
     getIncomeCategories() {
-        return [...(this.data.incomeCategories || [])];
+        return [...(this.data?.incomeCategories || [])];
     }
 
     /**
-     * Get current time period
-     * @returns {string} Current time period
-     */
+      * Get current time period
+      * @returns {string} Current time period
+      */
     getCurrentTimePeriod() {
+        this._ensureInitialized();
         return this.data.currentTimePeriod;
     }
 
@@ -607,11 +715,12 @@ class DataManager {
     }
 
     /**
-     * Set current time period
-     * @param {string} timePeriod - Time period to set
-     */
+      * Set current time period
+      * @param {string} timePeriod - Time period to set
+      */
     // REFACTORED: Only support 'all', 'year', 'month'
     setCurrentTimePeriod(timePeriod) {
+        this._ensureInitialized();
         const validPeriods = ['all', 'year', 'month'];
         if (validPeriods.includes(timePeriod)) {
             this.data.currentTimePeriod = timePeriod;
@@ -649,7 +758,7 @@ class DataManager {
         this.data.selectedYear = year;
         this.markAsChanged();
         this.emit('dataChange');
-        console.log('[DATAMANAGER] Selected year set to:', year);
+        logger.info('DATAMANAGER', 'Selected year set to', year);
     }
 
     /**
@@ -668,7 +777,7 @@ class DataManager {
         this.data.selectedMonth = month;
         this.markAsChanged();
         this.emit('dataChange');
-        console.log('[DATAMANAGER] Selected month set to:', month);
+        logger.info('DATAMANAGER', 'Selected month set to', month);
     }
 
     /**
@@ -679,7 +788,7 @@ class DataManager {
         const years = new Set();
 
         // Scan through all properties to find years in monthly data
-        this.data.properties.forEach(property => {
+        (this.data?.properties || []).forEach(property => {
             if (property.monthlyData) {
                 Object.keys(property.monthlyData).forEach(monthKey => {
                     // Extract year from month key (format: "MMM YYYY")
@@ -714,7 +823,7 @@ class DataManager {
         }
 
         // Validate input
-        const validation = this.validator.validatePropertyName(name);
+        const validation = this._validator.validatePropertyName(name);
         if (!validation.isValid) {
             return {
                 success: false,
@@ -770,7 +879,7 @@ class DataManager {
             lastTransaction: null,
         };
 
-        console.log('[DATAMANAGER] Property added:', name);
+        logger.info('DATAMANAGER', 'Property added', name);
 
         return {
             success: true,
@@ -795,7 +904,7 @@ class DataManager {
         }
 
         // Validate new name
-        const validation = this.validator.validatePropertyName(newName);
+        const validation = this._validator.validatePropertyName(newName);
         if (!validation.isValid) {
             return {
                 success: false,
@@ -818,7 +927,7 @@ class DataManager {
         const oldName = propertyMeta.name;
         propertyMeta.name = newName.trim();
 
-        console.log('[DATAMANAGER] Property renamed:', oldName, '->', newName);
+        logger.info('DATAMANAGER', 'Property renamed', oldName, '->', newName);
 
         return {
             success: true,
@@ -849,7 +958,7 @@ class DataManager {
         // Delete property metadata
         this.store.properties.delete(propertyId);
 
-        console.log('[DATAMANAGER] Property deleted:', propertyMeta.name);
+        logger.info('DATAMANAGER', 'Property deleted', propertyMeta.name);
 
         return {
             success: true,
@@ -873,7 +982,7 @@ class DataManager {
      */
     addExpenseCategory(name) {
         // Validate input
-        const validation = this.validator.validateCategoryName(name);
+        const validation = this._validator.validateCategoryName(name);
         if (!validation.isValid) {
             return {
                 success: false,
@@ -903,7 +1012,7 @@ class DataManager {
         // Note: Categories are available for when users add actual expenses
         // No need to create 0-amount transactions
 
-        console.log('[DATAMANAGER] Expense category added:', name);
+        logger.info('DATAMANAGER', 'Expense category added', name);
 
         return {
             success: true,
@@ -926,7 +1035,7 @@ class DataManager {
         }
 
         // Validate new name
-        const validation = this.validator.validateCategoryName(newName);
+        const validation = this._validator.validateCategoryName(newName);
         if (!validation.isValid) {
             return {
                 success: false,
@@ -952,7 +1061,7 @@ class DataManager {
             this.store.updateTransaction(txn.id, { category: newName.trim() });
         });
 
-        console.log('[DATAMANAGER] Expense category renamed:', oldName, '->', newName);
+        logger.info('DATAMANAGER', 'Expense category renamed', oldName, '->', newName);
 
         return {
             success: true,
@@ -982,7 +1091,7 @@ class DataManager {
         // Remove category from store
         this.store.categories.delete(categoryName);
 
-        console.log('[DATAMANAGER] Expense category deleted:', categoryName);
+        logger.info('DATAMANAGER', 'Expense category deleted', categoryName);
 
         return {
             success: true,
@@ -997,7 +1106,7 @@ class DataManager {
      */
     addIncomeCategory(name) {
         // Validate input
-        const validation = this.validator.validateCategoryName(name);
+        const validation = this._validator.validateCategoryName(name);
         if (!validation.isValid) {
             return {
                 success: false,
@@ -1024,7 +1133,7 @@ class DataManager {
         // Add category to store
         this.store.incomeCategories.add(name.trim());
 
-        console.log('[DATAMANAGER] Income category added:', name);
+        logger.info('DATAMANAGER', 'Income category added', name);
 
         return {
             success: true,
@@ -1047,7 +1156,7 @@ class DataManager {
         }
 
         // Validate new name
-        const validation = this.validator.validateCategoryName(newName);
+        const validation = this._validator.validateCategoryName(newName);
         if (!validation.isValid) {
             return {
                 success: false,
@@ -1073,7 +1182,7 @@ class DataManager {
             this.store.updateTransaction(txn.id, { category: newName.trim() });
         });
 
-        console.log('[DATAMANAGER] Income category renamed:', oldName, '->', newName);
+        logger.info('DATAMANAGER', 'Income category renamed', oldName, '->', newName);
 
         return {
             success: true,
@@ -1103,7 +1212,7 @@ class DataManager {
         // Remove category from store
         this.store.incomeCategories.delete(categoryName);
 
-        console.log('[DATAMANAGER] Income category deleted:', categoryName);
+        logger.info('DATAMANAGER', 'Income category deleted', categoryName);
 
         return {
             success: true,
@@ -1128,7 +1237,7 @@ class DataManager {
         }
 
         // Validate amount
-        const validation = this.validator.validateAmount(amount);
+        const validation = this._validator.validateAmount(amount);
         if (!validation.isValid) {
             return {
                 success: false,
@@ -1178,7 +1287,7 @@ class DataManager {
             const oldAmount = existingTxn.amount;
             this.store.updateTransaction(existingTxn.id, { amount: numAmount });
 
-            console.log('[DATAMANAGER] Expense updated:', propertyMeta.name, category, oldAmount, '->', numAmount);
+            logger.info('DATAMANAGER', 'Expense updated', propertyMeta.name, category, oldAmount, '->', numAmount);
 
             return {
                 success: true,
@@ -1200,7 +1309,7 @@ class DataManager {
 
             this.store.addTransaction(newTxn);
 
-            console.log('[DATAMANAGER] Expense added:', propertyMeta.name, category, numAmount);
+            logger.info('DATAMANAGER', 'Expense added', propertyMeta.name, category, numAmount);
 
             return {
                 success: true,
@@ -1214,116 +1323,171 @@ class DataManager {
     /**
      * Get current period data for a property
      * @param {Object} property - Property object
-     * @param {string} timePeriod - Time period ('all', 'year', 'quarter', 'month')
+     * @param {string} timePeriod - Time period ('all', 'year', 'month')
      * @param {boolean} preserveHierarchy - Whether to preserve hierarchical structure for sankey charts
      * @returns {Object} Current period data with {total: number, expenses: {cat: number|obj}}
      */
     getCurrentPeriodData(property, timePeriod = null, preserveHierarchy = false) {
-        const period = timePeriod || this.data.currentTimePeriod;
+        try {
+            const period = timePeriod || this.data?.currentTimePeriod || 'all';
 
-        if (!property) {
-            console.error('[DATAMANAGER] Property is undefined in getCurrentPeriodData');
-            return { total: 0, expenses: {} };
-        }
-
-        // Get date range for the period
-        const dateRange = this._getDateRangeForPeriod(period, this.data.selectedYear);
-
-        // Query transactions for this property within the date range
-        const transactions = this.store.queryTransactions({
-            propertyId: property.id,
-            type: 'expense',
-            dateRange,
-        });
-
-        // Aggregate by category and subcategory
-        const expenses = {};
-        let total = 0;
-
-        transactions.forEach(txn => {
-            const category = txn.category;
-            const subcategory = txn.subcategory;
-            const amount = Math.abs(txn.amount); // Expenses are stored as negative, but we want positive for display
-
-            if (subcategory && preserveHierarchy) {
-                // Hierarchical structure
-                if (!expenses[category]) {
-                    expenses[category] = {};
-                }
-                expenses[category][subcategory] = (expenses[category][subcategory] || 0) + amount;
-            } else {
-                // Flat structure - sum subcategories or use flat amount
-                expenses[category] = (expenses[category] || 0) + amount;
+            if (!property) {
+                logger.error('DATAMANAGER', 'Property is undefined in getCurrentPeriodData');
+                return { total: 0, expenses: {} };
             }
 
-            total += amount;
-        });
+            // Ensure store is available
+            this._ensureStoreAvailable();
 
-        return { total, expenses };
+            // Get date range for the period
+            const dateRange = this._getDateRangeForPeriod(period, this.data?.selectedYear || 'all');
+
+            // Query transactions for this property within the date range
+            const transactions = this.store.queryTransactions({
+                propertyId: property.id,
+                type: 'expense',
+                dateRange,
+            });
+
+            // Aggregate by category and subcategory
+            const expenses = {};
+            let total = 0;
+
+            transactions.forEach(txn => {
+                try {
+                    const category = txn?.category;
+                    const subcategory = txn?.subcategory;
+                    const amount = Math.abs(txn?.amount || 0); // Expenses are stored as negative, but we want positive for display
+
+                    if (subcategory && preserveHierarchy) {
+                        // Hierarchical structure
+                        if (!expenses[category]) {
+                            expenses[category] = {};
+                        }
+                        expenses[category][subcategory] = (expenses[category][subcategory] || 0) + amount;
+                    } else {
+                        // Flat structure - sum subcategories or use flat amount
+                        expenses[category] = (expenses[category] || 0) + amount;
+                    }
+
+                    total += amount;
+                } catch (txnError) {
+                    logger.warn('DATAMANAGER', 'Error processing transaction in getCurrentPeriodData', txnError);
+                }
+            });
+
+            return { total, expenses };
+        } catch (error) {
+            logger.error('DATAMANAGER', 'Error in getCurrentPeriodData', error);
+            return { total: 0, expenses: {} };
+        }
     }
 
     /**
-     * Calculate total expenses across all properties
+     * Calculate total expenses across all properties - OPTIMIZED with caching
      * @param {string} timePeriod - Time period (optional)
      * @returns {number} Total expenses
      */
     calculateTotalExpenses(timePeriod = null) {
-        const period = timePeriod || this.data.currentTimePeriod;
-        let total = 0;
+        const period = timePeriod || this.data?.currentTimePeriod || 'all';
+        const cacheKey = `total_expenses_${period}_${this.data?.selectedYear || 'all'}`;
 
-        this.data.properties.forEach(property => {
-            const currentData = this.getCurrentPeriodData(property, period);
-            total += currentData.total || 0;
-        });
+        // OPTIMIZED: Use cached result if available and valid
+        if (this._expenseCache && this._expenseCache[cacheKey] &&
+            this._expenseCache.timestamp > Date.now() - 30000) { // 30 second cache - standardized
+            return this._expenseCache[cacheKey].value;
+        }
+
+        // OPTIMIZED: Use store's aggregated query for better performance
+        const sankeyData = this.store.queryAggregatedSankey(period, this.data?.selectedYear || 'all');
+        // Fix performance anti-pattern: Add null checks and handle Map iteration more safely
+        let total = 0;
+        if (sankeyData && sankeyData.propExpenses && sankeyData.propExpenses.values) {
+            try {
+                // Array.from() is necessary here to convert Map values iterator to array for reduce
+                total = Array.from(sankeyData.propExpenses.values()).reduce((sum, val) => sum + (val || 0), 0);
+            } catch (error) {
+                logger.warn('DATAMANAGER', 'Error calculating total from sankey data', error);
+                total = 0;
+            }
+        }
+
+        // OPTIMIZED: Cache the result
+        if (!this._expenseCache) this._expenseCache = {};
+        this._expenseCache[cacheKey] = {
+            value: total,
+            timestamp: Date.now()
+        };
 
         return total;
     }
 
     /**
-     * Calculate average expense per property
+     * Calculate average expense per property - OPTIMIZED
      * @param {string} timePeriod - Time period (optional)
      * @returns {number} Average expense per property
      */
     calculateAverageExpensePerProperty(timePeriod = null) {
-        const period = timePeriod || this.data.currentTimePeriod;
+        const period = timePeriod || this.data?.currentTimePeriod || 'all';
+        const cacheKey = `avg_expense_${period}_${this.data?.selectedYear || 'all'}`;
+
+        // OPTIMIZED: Use cached result if available
+        if (this._expenseCache && this._expenseCache[cacheKey] &&
+            this._expenseCache.timestamp > Date.now() - 30000) { // 30 second cache - standardized
+            return this._expenseCache[cacheKey].value;
+        }
+
         const totalExpenses = this.calculateTotalExpenses(period);
         const propertyCount = this.data.properties.length;
+        const average = propertyCount > 0 ? totalExpenses / propertyCount : 0;
 
-        return propertyCount > 0 ? totalExpenses / propertyCount : 0;
+        // OPTIMIZED: Cache the result
+        if (!this._expenseCache) this._expenseCache = {};
+        this._expenseCache[cacheKey] = {
+            value: average,
+            timestamp: Date.now()
+        };
+
+        return average;
     }
 
     /**
-     * Get top expense category
+     * Get top expense category - OPTIMIZED with caching
      * @param {string} timePeriod - Time period (optional)
      * @returns {Object} Top category data
      */
     getTopExpenseCategory(timePeriod = null) {
-        const period = timePeriod || this.data.currentTimePeriod;
-        const dateRange = this._getDateRangeForPeriod(period, this.data.selectedYear);
+        const period = timePeriod || this.data?.currentTimePeriod || 'all';
+        const cacheKey = `top_category_${period}_${this.data?.selectedYear || 'all'}`;
 
-        // Query all expense transactions within the date range
-        const transactions = this.store.queryTransactions({
+        // OPTIMIZED: Use cached result if available and valid
+        if (this._categoryCache && this._categoryCache[cacheKey] &&
+            this._categoryCache[cacheKey].timestamp > Date.now() - 30000) { // 30 second cache - standardized
+            return this._categoryCache[cacheKey].value;
+        }
+
+        // OPTIMIZED: Use store's category query for better performance
+        const categories = this.store.queryCategories({
             type: 'expense',
-            dateRange,
+            sortBy: { field: 'totalAmount', order: 'desc' }
         });
 
-        // Aggregate by category
-        const categoryTotals = {};
-        transactions.forEach(txn => {
-            const category = txn.category;
-            const amount = Math.abs(txn.amount); // Expenses are stored as negative
-            categoryTotals[category] = (categoryTotals[category] || 0) + amount;
-        });
-
-        const topCategory = Object.entries(categoryTotals).sort(([,a], [,b]) => b - a)[0];
-
-        return topCategory ? {
-            name: topCategory[0],
-            amount: topCategory[1],
+        const topCategory = categories.length > 0 ? {
+            name: categories[0].name,
+            amount: Math.abs(categories[0].totalAmount)
         } : {
             name: 'None',
             amount: 0,
         };
+
+        // OPTIMIZED: Cache the result
+        if (!this._categoryCache) this._categoryCache = {};
+        this._categoryCache[cacheKey] = {
+            value: topCategory,
+            timestamp: Date.now()
+        };
+
+        return topCategory;
     }
 
     /**
@@ -1366,7 +1530,7 @@ class DataManager {
             this.lastSaved = new Date();
             return true;
         } catch (error) {
-            console.error('[DATAMANAGER] Error saving data:', error);
+            logger.error('DATAMANAGER', 'Error saving data', error);
             return false;
         }
     }
@@ -1376,7 +1540,7 @@ class DataManager {
      * @returns {Object} Validation result
      */
     validateDataIntegrity() {
-        return this.validator.validateDashboardData(this.data);
+        return this._validator.validateDashboardData(this.data);
     }
 
     /**
@@ -1389,13 +1553,13 @@ class DataManager {
         const topCategory = this.getTopExpenseCategory();
 
         return {
-            totalProperties: this.data.properties.length,
-            totalCategories: this.data.expenseCategories.length,
+            totalProperties: this.data?.properties?.length || 0,
+            totalCategories: this.data?.expenseCategories?.length || 0,
             totalExpenses,
             averageExpensePerProperty: avgPerProperty,
             topExpenseCategory: topCategory,
-            currentTimePeriod: this.data.currentTimePeriod,
-            currentView: this.data.currentView,
+            currentTimePeriod: this.data?.currentTimePeriod || 'all',
+            currentView: this.data?.currentView || 'overview',
             hasUnsavedChanges: this._hasUnsavedChanges,
             lastSaved: this.lastSaved,
         };
@@ -1417,6 +1581,7 @@ class DataManager {
      */
     async importData(importData) {
         try {
+            logger.info('DATAMANAGER', '===== STARTING IMPORT PROCESS =====');
             // Handle null/undefined input
             if (!importData) {
                 console.error('[DATAMANAGER] Import data is null or undefined');
@@ -1429,24 +1594,26 @@ class DataManager {
                 try {
                     parsedData = JSON.parse(importData);
                 } catch (parseError) {
-                    console.error('[DATAMANAGER] Failed to parse import data as JSON:', parseError);
+                    logger.error('DATAMANAGER', 'Failed to parse import data as JSON', parseError);
                     return false;
                 }
             }
 
-            console.log('[DATAMANAGER] Importing data...', {
+            logger.debug('DATAMANAGER', 'Importing data...', {
                 hasProperties: !!(parsedData && parsedData.properties),
                 propertiesCount: (parsedData && parsedData.properties)?.length || 0,
                 hasCategories: !!(parsedData && parsedData.expenseCategories),
                 categoriesCount: (parsedData && parsedData.expenseCategories)?.length || 0,
                 hasCurrentData: !!(parsedData && parsedData.currentData),
                 currentDataProperties: (parsedData && parsedData.currentData?.properties)?.length || 0,
+                hasTransactions: !!(parsedData && parsedData.transactions),
+                transactionsCount: (parsedData && parsedData.transactions)?.length || 0,
             });
 
             // Handle sample data structure (wrapped in currentData)
             let dataToImport = parsedData;
             if (parsedData.currentData) {
-                console.log('[DATAMANAGER] Detected sample data structure, using currentData');
+                logger.info('DATAMANAGER', 'Detected sample data structure, using currentData');
                 dataToImport = parsedData.currentData;
             }
 
@@ -1456,56 +1623,90 @@ class DataManager {
                 return false;
             }
 
+            logger.debug('DATAMANAGER', 'Final data to import:', {
+                keys: Object.keys(dataToImport),
+                hasTransactions: !!(dataToImport.transactions),
+                transactionsLength: dataToImport.transactions?.length || 0,
+                hasProperties: !!(dataToImport.properties),
+                propertiesLength: dataToImport.properties?.length || 0,
+                hasCategories: !!(dataToImport.expenseCategories),
+                categoriesLength: dataToImport.expenseCategories?.length || 0,
+            });
+
             // Validate bulk data
             const validation = this.validateBulkData(dataToImport);
             if (!validation.isValid) {
-                console.error('[DATAMANAGER] Bulk data validation failed:', validation.errors);
+                logger.error('DATAMANAGER', 'Bulk data validation failed', validation.errors);
                 return false;
             }
 
             // REFACTORED: Use TransactionStore's importData method
+            logger.info('DATAMANAGER', 'Calling TransactionStore.importData with dataToImport');
+            logger.debug('DATAMANAGER', 'TransactionStore state before import:', {
+                transactions: this.store.transactions?.length || 0,
+                properties: this.store.properties?.size || 0,
+                categories: this.store.categories?.size || 0,
+            });
+
             const success = await this.store.importData(dataToImport);
-            console.log('[DATAMANAGER] TransactionStore import result:', success);
+            logger.info('DATAMANAGER', 'TransactionStore import result', success);
 
             if (success) {
+                logger.debug('DATAMANAGER', 'TransactionStore state after import:', {
+                    transactions: this.store.transactions?.length || 0,
+                    properties: this.store.properties?.size || 0,
+                    categories: this.store.categories?.size || 0,
+                });
+
                 // Re-derive data from store
                 this.data = {
                     properties: this.store.queryProperties(),
                     expenseCategories: this.store.queryCategories('expense'),
                     incomeCategories: this.store.queryCategories('income'),
-                    currentTimePeriod: this.data.currentTimePeriod,
-                    currentView: this.data.currentView,
-                    selectedYear: this.data.selectedYear,
-                    selectedMonth: this.data.selectedMonth,
+                    currentTimePeriod: this.data?.currentTimePeriod || 'all',
+                    currentView: this.data?.currentView || 'overview',
+                    selectedYear: this.data?.selectedYear || 'all',
+                    selectedMonth: this.data?.selectedMonth || 'all',
                 };
+
+                logger.debug('DATAMANAGER', 'Data re-derived after import:', {
+                    properties: this.data.properties.length,
+                    expenseCategories: this.data.expenseCategories.length,
+                    incomeCategories: this.data.incomeCategories.length,
+                });
 
                 // Mark as having unsaved changes (even though we just saved)
                 this._hasUnsavedChanges = false;
                 this.lastSaved = new Date();
 
-                console.log('[DATAMANAGER] Import complete. Current data:', {
+                logger.debug('DATAMANAGER', 'Import complete. Current data:', {
                     properties: this.data.properties.length,
                     categories: this.data.expenseCategories.length,
                     totalExpenses: this.calculateTotalExpenses(),
                 });
 
+                // Distribute data to other modules after import
+                this._distributeDataToModules();
+
                 // Update UI to reflect the imported data
-                console.log('[DATAMANAGER] Updating UI with imported data...');
+                logger.info('DATAMANAGER', 'Updating UI with imported data...');
                 try {
-                    const uiManager = new UIManager();
                     const stats = this.getDataStatistics();
-                    await uiManager.updateDataDisplay(stats);
-                    console.log('[DATAMANAGER] UI updated with imported data');
+                    if (window.uiManager && typeof window.uiManager.updateDataDisplay === 'function') {
+                        window.uiManager.updateDataDisplay(stats);
+                    }
+                    logger.info('DATAMANAGER', 'UI updated with imported data');
                 } catch (uiError) {
-                    console.warn('[DATAMANAGER] Failed to update UI:', uiError);
+                    logger.warn('DATAMANAGER', 'Failed to update UI', uiError);
                 }
             } else {
                 console.error('[DATAMANAGER] TransactionStore import failed');
             }
 
+            logger.info('DATAMANAGER', '===== IMPORT PROCESS COMPLETE =====');
             return success;
         } catch (error) {
-            console.error('[DATAMANAGER] Error during import:', error);
+            logger.error('DATAMANAGER', 'Error during import', error);
             return false;
         }
     }
@@ -1560,59 +1761,12 @@ class DataManager {
         // Calculate initial total
         property.monthlyData[monthKey].total = this.calculatePropertyTotal(property.expenses);
 
-        console.log(`[DATAMANAGER] Initialized monthly data for new property: ${property.name}, Month: ${monthKey}`);
+        logger.debug('DATAMANAGER', `Initialized monthly data for new property: ${property.name}, Month: ${monthKey}`);
     }
 
-    /**
-     * Initialize quarterly data structure for a new property
-     * @param {Object} property - The new property object
-     */
-    initializeQuarterlyDataForNewProperty(property) {
-        // Get current date to determine the current quarter
-        const now = new Date();
-        const currentYear = now.getFullYear();
-        const currentMonth = now.getMonth() + 1; // JavaScript months are 0-indexed
-
-        // Determine current quarter
-        let currentQuarter;
-        if (currentMonth <= 3) {
-            currentQuarter = 'Q1';
-        } else if (currentMonth <= 6) {
-            currentQuarter = 'Q2';
-        } else if (currentMonth <= 9) {
-            currentQuarter = 'Q3';
-        } else {
-            currentQuarter = 'Q4';
-        }
-
-        const quarterKey = `${currentQuarter} ${currentYear}`;
-
-        // Initialize quarterly data structure
-        property.quarterlyData = {};
-        property.quarterlyData[quarterKey] = {
-            expenses: {},
-            total: 0,
-        };
-
-        // Copy the expense structure to quarterly data
-        Object.entries(property.expenses).forEach(([category, value]) => {
-            if (typeof value === 'object' && value !== null) {
-                // Hierarchical category - copy the structure
-                property.quarterlyData[quarterKey].expenses[category] = { ...value };
-            } else {
-                // Flat category - copy the value
-                property.quarterlyData[quarterKey].expenses[category] = value;
-            }
-        });
-
-        // Calculate initial total
-        property.quarterlyData[quarterKey].total = this.calculatePropertyTotal(property.expenses);
-
-        console.log(`[DATAMANAGER] Initialized quarterly data for new property: ${property.name}, Quarter: ${quarterKey}`);
-    }
 
     /**
-     * Get property expense data directly from expenses object (fallback when no quarterly data)
+     * Get property expense data directly from expenses object
      * @param {Object} property - Property object
      * @param {boolean} preserveHierarchy - Whether to preserve hierarchical structure
      * @returns {Object} Expense data with total and expenses
@@ -1675,13 +1829,13 @@ class DataManager {
     /**
      * Get property income data for a specific period (mirrors getCurrentPeriodData for incomes)
      * @param {Object} property - Property object
-     * @param {string} period - Time period ('all', 'year', 'quarter', 'month')
+     * @param {string} period - Time period ('all', 'year', 'month')
      * @param {string} year - Selected year ('all' for all years)
      * @returns {Object} Income data with total and income sources
      */
     getPropertyIncomeData(property, period = null, year = null) {
-        const timePeriod = period || this.data.currentTimePeriod;
-        const selectedYear = year || this.data.selectedYear;
+        const timePeriod = period || this.data?.currentTimePeriod || 'all';
+        const selectedYear = year || this.data?.selectedYear || 'all';
 
         if (!property) {
             return { total: 0, income: {} };
@@ -1713,25 +1867,88 @@ class DataManager {
     }
 
     /**
-     * Get aggregated sankey data with memoization
-     * @param {string} period - Time period ('all', 'year', 'quarter', 'month')
-     * @param {string} year - Selected year ('all' for all years)
-     * @returns {Object} Aggregated sankey data
-     */
+      * Get aggregated sankey data with optimized caching and lazy loading
+      * @param {string} period - Time period ('all', 'year', 'month')
+      * @param {string} year - Selected year ('all' for all years)
+      * @returns {Object} Aggregated sankey data
+      */
     getAggregatedSankeyData(period = null, year = null) {
-        const timePeriod = period || this.data.currentTimePeriod;
-        const selectedYear = year || this.data.selectedYear;
+        const timePeriod = period || this.data?.currentTimePeriod || 'all';
+        const selectedYear = year || this.data?.selectedYear || 'all';
+        const cacheKey = `sankey_${timePeriod}_${selectedYear}_${this.data.selectedMonth}`;
 
-        // Check if we need to clear cache due to data changes
+        // OPTIMIZED: Use cached result if available and valid (increased cache time)
+        const cached = this._sankeyCache.get(cacheKey);
+        if (cached && cached.timestamp > Date.now() - 30000) { // 30 second cache for sankey data
+            return cached.value;
+        }
+
+        // OPTIMIZED: Check if cache is stale before computing
         this._checkAndClearStaleCache();
 
-        console.log('[DATAMANAGER] getAggregatedSankeyData delegating to store.queryAggregatedSankey with:', {
-            period: timePeriod,
-            year: selectedYear,
-            month: this.data.selectedMonth,
-        });
+        // OPTIMIZED: Implement lazy loading for Sankey data generation
+        return this._generateSankeyDataLazy(cacheKey, timePeriod, selectedYear);
+    }
 
-        return this.store.queryAggregatedSankey(timePeriod, selectedYear, this.data.selectedMonth);
+    /**
+      * Generate Sankey data with lazy loading - private method
+      * @param {string} cacheKey - Cache key for the operation
+      * @param {string} timePeriod - Time period
+      * @param {string} selectedYear - Selected year
+      * @returns {Promise<Object>} Aggregated sankey data
+      */
+    async _generateSankeyDataLazy(cacheKey, timePeriod, selectedYear) {
+        // OPTIMIZED: Return cached data immediately if available
+        const cached = this._sankeyCache.get(cacheKey);
+        if (cached && cached.timestamp > Date.now() - 30000) {
+            return cached.value;
+        }
+
+        // OPTIMIZED: Use requestIdleCallback for non-critical Sankey generation
+        return new Promise((resolve) => {
+            const generateSankey = () => {
+                const sankeyStart = performance.now();
+
+                try {
+                    const result = this.store.queryAggregatedSankey(timePeriod, selectedYear, this.data.selectedMonth);
+                    const sankeyTime = performance.now() - sankeyStart;
+
+                    // OPTIMIZED: Cache the result with longer TTL
+                    this._sankeyCache.set(cacheKey, {
+                        value: result,
+                        timestamp: Date.now()
+                    });
+
+                    // PERFORMANCE MONITORING: Record sankey generation time
+                    if (window.performanceOptimizer) {
+                        window.performanceOptimizer.recordDataManagerOperation('sankey_generation', sankeyTime);
+                    }
+
+                    if (sankeyTime > 20) {
+                        logger.warn('DATAMANAGER', `Sankey data generation took ${sankeyTime.toFixed(2)}ms`);
+                    }
+
+                    resolve(result);
+                } catch (error) {
+                    logger.error('DATAMANAGER', 'Error generating Sankey data', error);
+                    resolve({
+                        hasIncome: false,
+                        sources: new Map(),
+                        propIncomes: new Map(),
+                        propExpenses: new Map(),
+                        catTotals: new Map(),
+                        subTotals: new Map(),
+                    });
+                }
+            };
+
+            // OPTIMIZED: Use requestIdleCallback if available, otherwise use setTimeout
+            if (window.requestIdleCallback) {
+                requestIdleCallback(generateSankey, { timeout: 1000 });
+            } else {
+                setTimeout(generateSankey, 0);
+            }
+        });
     }
 
     /**
@@ -1768,8 +1985,15 @@ class DataManager {
         const periodData = this.getCurrentPeriodData(property, period, true);
         const catData = periodData.expenses?.[category];
 
-        if (typeof catData === 'object' && catData !== null) {
+        if (typeof catData === 'object' && catData !== null && subcategory) {
+            // Hierarchical category with subcategory
             return Math.abs(catData[subcategory] || 0);
+        } else if (typeof catData === 'number') {
+            // Flat category - return the category total
+            return Math.abs(catData || 0);
+        } else if (!subcategory) {
+            // Flat category without subcategory specified - return the category total
+            return Math.abs(catData || 0);
         }
 
         return 0;
@@ -1787,7 +2011,7 @@ class DataManager {
         switch (period) {
             case 'month':
                 const selectedYear = year && year !== 'all' ? parseInt(year) : now.getFullYear();
-                const selectedMonth = this.data.selectedMonth && this.data.selectedMonth !== 'all'
+                const selectedMonth = this.data?.selectedMonth && this.data.selectedMonth !== 'all'
                     ? parseInt(this.data.selectedMonth) - 1 // Convert to 0-based
                     : now.getMonth();
 
@@ -1824,63 +2048,165 @@ class DataManager {
     }
 
     /**
-     * Clear sankey cache (call when data changes)
+     * Clear sankey cache (call when data changes) - OPTIMIZED
      */
     clearSankeyCache() {
         this.sankeyCache.clear();
-        console.log('[DATAMANAGER] Sankey cache cleared');
+        this._sankeyCache.clear();
+        this._expenseCache = {};
+        this._categoryCache = {};
+        logger.info('DATAMANAGER', 'All caches cleared');
     }
 
     /**
-     * Check if cache is stale and clear if necessary
+     * Check if cache is stale and clear if necessary - OPTIMIZED
      */
     _checkAndClearStaleCache() {
-        // Check if transaction data has been modified since last cache operation
-        if (this._lastDataChange && this.store._lastCacheInvalidation) {
-            if (this._lastDataChange > this.store._lastCacheInvalidation) {
-                console.log('[DATAMANAGER] Stale cache detected, clearing...');
-                this.clearSankeyCache();
-                this.store._queryCache.clear(); // Also clear store's query cache
+        const now = Date.now();
+        const CACHE_TTL = 30000; // 30 seconds consistent TTL
+
+        // Check if sankey cache entries are stale
+        let hasStaleSankeyCache = false;
+        for (const [key, cached] of this._sankeyCache.entries()) {
+            if (cached.timestamp < now - CACHE_TTL) {
+                hasStaleSankeyCache = true;
+                break;
             }
         }
 
-        // Also check if transaction data length or content has changed
-        if (this.store.transactions) {
+        // Check if expense cache entries are stale
+        let hasStaleExpenseCache = false;
+        for (const [key, cached] of Object.entries(this._expenseCache)) {
+            if (cached.timestamp < now - CACHE_TTL) {
+                hasStaleExpenseCache = true;
+                break;
+            }
+        }
+
+        // Check if category cache entries are stale
+        let hasStaleCategoryCache = false;
+        for (const [key, cached] of Object.entries(this._categoryCache)) {
+            if (cached.timestamp < now - CACHE_TTL) {
+                hasStaleCategoryCache = true;
+                break;
+            }
+        }
+
+        // Clear stale caches if any are found
+        if (hasStaleSankeyCache || hasStaleExpenseCache || hasStaleCategoryCache) {
+            logger.info('DATAMANAGER', 'Stale cache entries detected, clearing...');
+            this._clearAllCaches();
+        }
+
+        // Check if transaction data has been modified since last cache operation
+        if (this._lastDataChange && this.store && this.store._lastCacheInvalidation) {
+            if (this._lastDataChange > this.store._lastCacheInvalidation) {
+                logger.info('DATAMANAGER', 'Transaction data modified, clearing cache...');
+                this._clearAllCaches();
+                // Note: Removed direct store._queryCache.clear() - should use public API if needed
+            }
+        }
+
+        // Check if transaction data has changed
+        if (this.store && this.store.transactions) {
             const currentCount = this.store.transactions.length;
             const currentHash = this._calculateTransactionHash();
 
             if (this._lastTransactionCount !== undefined && this._lastTransactionHash !== null) {
                 if (this._lastTransactionCount !== currentCount || this._lastTransactionHash !== currentHash) {
-                    console.log('[DATAMANAGER] Transaction data changed, clearing cache...');
-                    this._lastTransactionCount = currentCount;
-                    this._lastTransactionHash = currentHash;
-                    this.clearSankeyCache();
-                    this.store._queryCache.clear(); // Also clear store's query cache
+                    logger.info('DATAMANAGER', 'Transaction data changed, clearing cache...');
+                    this._updateTransactionTracking();
+                    this._clearAllCaches();
+                    // Note: Removed direct store._queryCache.clear() - should use public API if needed
                 }
             } else {
-                // Initialize tracking
-                this._lastTransactionCount = currentCount;
-                this._lastTransactionHash = currentHash;
+                this._updateTransactionTracking();
             }
         }
+    }
+
+    /**
+     * Clear all internal caches efficiently
+     */
+    _clearAllCaches() {
+        this._sankeyCache.clear();
+        this._expenseCache = {};
+        this._categoryCache = {};
+        this.sankeyCache.clear();
     }
 
     /**
      * Calculate a simple hash of transaction data for change detection
      */
     _calculateTransactionHash() {
+        // Add null check for this.store
+        if (!this.store) {
+            logger.warn('DATAMANAGER', 'Store not available for transaction hash calculation');
+            return 0;
+        }
+
         if (!this.store.transactions || this.store.transactions.length === 0) {
             return 0;
         }
 
         let hash = 0;
-        for (const txn of this.store.transactions) {
-            // Simple hash based on key properties
-            hash = ((hash << 5) - hash + txn.propertyId) << 0;
-            hash = ((hash << 5) - hash + (txn.amount * 100)) << 0; // Multiply by 100 to handle decimals
-            hash = ((hash << 5) - hash + (txn.category?.charCodeAt(0) || 0)) << 0;
+        try {
+            for (const txn of this.store.transactions) {
+                // Simple hash based on key properties
+                hash = ((hash << 5) - hash + (txn?.propertyId || 0)) << 0;
+                hash = ((hash << 5) - hash + ((txn?.amount || 0) * 100)) << 0; // Multiply by 100 to handle decimals
+                hash = ((hash << 5) - hash + (txn?.category?.charCodeAt(0) || 0)) << 0;
+            }
+        } catch (error) {
+            logger.error('DATAMANAGER', 'Error calculating transaction hash', error);
+            return 0;
         }
         return hash;
+    }
+
+    /**
+     * Distribute data to other modules (ChartRenderer, PropertiesManager, etc.)
+     * This ensures all modules receive data only from DataManager
+     */
+    _distributeDataToModules() {
+        try {
+            logger.info('DATAMANAGER', 'Distributing data to other modules...');
+
+            // Distribute to ChartRenderer if available
+            if (window.chartRenderer && typeof window.chartRenderer.updateData === 'function') {
+                const sankeyData = this.getAggregatedSankeyData();
+                window.chartRenderer.updateData(sankeyData);
+                logger.info('DATAMANAGER', 'Data distributed to ChartRenderer');
+            }
+
+            // Distribute to PropertiesManager if available
+            if (window.propertiesManager && typeof window.propertiesManager.updateData === 'function') {
+                const propertiesData = {
+                    properties: this.getProperties(),
+                    currentTimePeriod: this.getCurrentTimePeriod(),
+                    selectedYear: this.getSelectedYear(),
+                };
+                window.propertiesManager.updateData(propertiesData);
+                logger.info('DATAMANAGER', 'Data distributed to PropertiesManager');
+            }
+
+            // Distribute to UIManager if available
+            if (window.uiManager && typeof window.uiManager.updateDataDisplay === 'function') {
+                const stats = this.getDataStatistics();
+                window.uiManager.updateDataDisplay(stats);
+                logger.info('DATAMANAGER', 'Data distributed to UIManager');
+            }
+
+            // Distribute to TransactionStore if it has an update method
+            if (this.store && typeof this.store.updateFromDataManager === 'function') {
+                this.store.updateFromDataManager(this.getData());
+                logger.info('DATAMANAGER', 'Data distributed to TransactionStore');
+            }
+
+            logger.info('DATAMANAGER', 'Data distribution complete');
+        } catch (error) {
+            logger.error('DATAMANAGER', 'Error distributing data to modules', error);
+        }
     }
 
     /**
@@ -1889,7 +2215,7 @@ class DataManager {
     invalidateCache() {
         this._lastDataChange = Date.now();
         this.clearSankeyCache();
-        console.log('[DATAMANAGER] Cache manually invalidated');
+        logger.info('DATAMANAGER', 'Cache manually invalidated');
     }
 
     /**
@@ -1977,22 +2303,71 @@ class DataManager {
         // Clear cache
         this.clearSankeyCache();
 
-        console.log('[DATAMANAGER] DataManager cleaned up');
+        logger.info('DATAMANAGER', 'DataManager cleaned up');
+    }
+
+    /**
+     * Get history data for debugging and display
+     * @returns {Array} Array of history entries
+     */
+    getHistory() {
+        logger.info('DATAMANAGER', 'getHistory called - checking for history data...');
+
+        // Check if TransactionStore has history tracking
+        if (this.store && this.store.getHistory) {
+            const history = this.store.getHistory();
+            logger.info('DATAMANAGER', 'Retrieved history from store', history?.length || 0, 'entries');
+            return history;
+        }
+
+        // Fallback: create basic history from transactions
+        if (this.store && this.store.transactions) {
+            const history = this.store.transactions.map((txn, index) => ({
+                id: txn.id || index,
+                action: `${txn.type} - ${txn.category}${txn.subcategory ? '.' + txn.subcategory : ''}`,
+                amount: txn.amount,
+                propertyId: txn.propertyId,
+                timestamp: txn.date || new Date().toISOString(),
+                type: 'transaction'
+            }));
+
+            logger.info('DATAMANAGER', 'Generated fallback history', history.length, 'entries');
+            return history;
+        }
+
+        logger.info('DATAMANAGER', 'No history data available');
+        return [];
+    }
+
+    /**
+     * Get standardized data counts for consistency across modules
+     * @returns {Object} Standardized data counts
+     */
+    getDataCounts() {
+        return this.store.getDataCounts();
     }
 
     /**
      * Debug data information
      */
     debug() {
-        console.log('[DATAMANAGER DEBUG] === DATA MANAGER INFO ===');
-        console.log('[DATAMANAGER DEBUG] Properties:', this.data.properties.length);
-        console.log('[DATAMANAGER DEBUG] Categories:', this.data.expenseCategories.length);
-        console.log('[DATAMANAGER DEBUG] Current period:', this.data.currentTimePeriod);
-        console.log('[DATAMANAGER DEBUG] Current view:', this.data.currentView);
-        console.log('[DATAMANAGER DEBUG] Has unsaved changes:', this._hasUnsavedChanges);
-        console.log('[DATAMANAGER DEBUG] Last saved:', this.lastSaved);
-        console.log('[DATAMANAGER DEBUG] Store stats:', this.store.getStatistics());
-        console.log('[DATAMANAGER DEBUG] === END DEBUG ===');
+        logger.debug('DATAMANAGER', '=== DATA MANAGER INFO ===');
+        logger.debug('DATAMANAGER', 'Properties:', this.data.properties.length);
+        logger.debug('DATAMANAGER', 'Categories:', this.data.expenseCategories.length);
+        logger.debug('DATAMANAGER', 'Current period:', this.data.currentTimePeriod);
+        logger.debug('DATAMANAGER', 'Current view:', this.data.currentView);
+        logger.debug('DATAMANAGER', 'Has unsaved changes:', this._hasUnsavedChanges);
+        logger.debug('DATAMANAGER', 'Last saved:', this.lastSaved);
+        logger.debug('DATAMANAGER', 'Store stats:', this.store.getStatistics());
+
+        // PERFORMANCE OPTIMIZATION INFO
+        logger.debug('DATAMANAGER', '=== PERFORMANCE OPTIMIZATIONS ===');
+        logger.debug('DATAMANAGER', 'Initialized:', this._initialized);
+        logger.debug('DATAMANAGER', 'Store empty:', this._isStoreEmpty());
+        logger.debug('DATAMANAGER', 'Cache timeout (empty):', this._storage?._emptyCacheTimeout || 'N/A');
+        logger.debug('DATAMANAGER', 'Cache timeout (normal):', this._storage?._cacheTimeout || 'N/A');
+
+        logger.debug('DATAMANAGER', '=== END DEBUG ===');
     }
 }
 
