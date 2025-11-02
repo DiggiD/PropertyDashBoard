@@ -59,8 +59,8 @@ describe('Module Integration - Normalized Data Architecture', () => {
         // Sample import data with hierarchical structure (for import/export tests)
         sampleImportData = {
             properties: [
-                { id: 1, name: 'Downtown Office', expenses: { Rent: -4000, Utilities: { Electricity: -1200, Water: -400 } }, incomes: { Rent: 5500 } },
-                { id: 2, name: 'Suburban Apartment', expenses: { Rent: -3500 }, incomes: { Rent: 4500 } }
+                [1, { id: 1, name: 'Downtown Office', expenses: { Rent: -4000, Utilities: { Electricity: -1200, Water: -400 } }, incomes: { Rent: 5500 } }],
+                [2, { id: 2, name: 'Suburban Apartment', expenses: { Rent: -3500 }, incomes: { Rent: 4500 } }]
             ],
             transactions: sampleTxns,
             expenseCategories: ['Rent', 'Utilities'],
@@ -81,10 +81,10 @@ describe('Module Integration - Normalized Data Architecture', () => {
         // Fix DataManager validator reference (app code bug, but we can't change it)
         dataManager.validator = mockValidator;
 
-        // Initialize DataManager with sample data
+        // Initialize DataManager with sample data in TransactionStore format
         await dataManager.initialize({
             transactions: sampleTxns,
-            properties: sampleProps,
+            properties: sampleProps.map(p => [p.id, p]), // Convert to [id, metadata] format
             expenseCategories: ['Rent', 'Utilities'],
             incomeCategories: ['Rent']
         });
@@ -375,7 +375,7 @@ describe('Module Integration - Normalized Data Architecture', () => {
             // Perform bulk import through DataManager
             const importData = {
                 transactions: bulkTransactions,
-                properties: sampleProps,
+                properties: sampleProps.map(p => [p.id, p]), // Convert to [id, metadata] format
                 expenseCategories: ['Rent', 'Utilities'],
                 incomeCategories: ['Rent']
             };

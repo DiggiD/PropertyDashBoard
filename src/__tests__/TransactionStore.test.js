@@ -18,6 +18,9 @@ const mockStorage = {
     load: jest.fn(),
     save: jest.fn().mockResolvedValue(true),
     clearAllData: jest.fn(),
+    loadHistoryFromStorage: jest.fn().mockResolvedValue([]),
+    saveHistorySnapshot: jest.fn().mockResolvedValue(true),
+    updateHistorySnapshot: jest.fn().mockResolvedValue(true),
 };
 
 const mockValidator = {
@@ -123,8 +126,8 @@ describe('TransactionStore', () => {
                 transactions: [
                     { id: 'txn1', propertyId: 1, category: 'Rent', amount: -1000, date: '2025-01-15', type: 'expense' },
                 ],
-                properties: [{ id: 1, name: 'Property 1', created: '2025-01-01' }],
-                categories: ['Rent'],
+                properties: [[1, { id: 1, name: 'Property 1', created: '2025-01-01' }]],
+                expenseCategories: ['Rent'],
                 incomeCategories: ['Income'],
             };
             const testStorage = {
@@ -145,8 +148,8 @@ describe('TransactionStore', () => {
                 transactions: [
                     { id: 'txn1', propertyId: 1, category: 'Rent', amount: -1000, date: '2025-01-15', type: 'expense' },
                 ],
-                properties: [{ id: 1, name: 'Property 1', created: '2025-01-01' }],
-                categories: ['Rent'],
+                properties: [[1, { id: 1, name: 'Property 1', created: '2025-01-01' }]],
+                expenseCategories: ['Rent'],
                 incomeCategories: [],
             };
             mockStorage.load.mockResolvedValue(mockData);
@@ -624,8 +627,8 @@ describe('TransactionStore', () => {
                     date: '2025-01-15',
                     type: 'expense',
                 }],
-                properties: [{ id: 1, name: 'Property 1', created: '2025-01-01' }],
-                categories: ['Rent'],
+                properties: [[1, { id: 1, name: 'Property 1', created: '2025-01-01' }]],
+                expenseCategories: ['Rent'],
                 incomeCategories: [],
             };
 
@@ -1036,8 +1039,8 @@ describe('TransactionStore', () => {
                     { id: 'txn1', propertyId: 1, category: 'Rent', amount: -1000, date: '2025-01-15', type: 'expense' },
                     { id: 'txn2', propertyId: 1, category: 'Utilities', amount: -500, date: '2025-01-20', type: 'expense' },
                 ],
-                properties: [{ id: 1, name: 'Property 1', created: '2025-01-01' }],
-                categories: ['Rent', 'Utilities'],
+                properties: [[1, { id: 1, name: 'Property 1', created: '2025-01-01' }]],
+                expenseCategories: ['Rent', 'Utilities'],
                 incomeCategories: [],
             };
 
@@ -1068,8 +1071,8 @@ describe('TransactionStore', () => {
                 transactions: [
                     { id: 'txn1', propertyId: 1, category: 'Rent', amount: -1000, date: '2025-01-15', type: 'expense' },
                 ],
-                properties: [{ id: 1, name: 'Property 1', created: '2025-01-01' }],
-                categories: ['Rent'],
+                properties: [[1, { id: 1, name: 'Property 1', created: '2025-01-01' }]],
+                expenseCategories: ['Rent'],
                 incomeCategories: [],
             };
 
@@ -1138,8 +1141,8 @@ describe('TransactionStore', () => {
                     transactions: [
                         { id: 'txn1', propertyId: 1, category: 'Rent', amount: -1000, date: '2025-01-15', type: 'expense' },
                     ],
-                    properties: [{ id: 1, name: 'Property 1', created: '2025-01-01' }],
-                    categories: ['Rent'],
+                    properties: [[1, { id: 1, name: 'Property 1', created: '2025-01-01' }]],
+                    expenseCategories: ['Rent'],
                     incomeCategories: [],
                 },
                 1,
@@ -1152,8 +1155,8 @@ describe('TransactionStore', () => {
                         { id: 'txn1', propertyId: 1, category: 'Rent', amount: -1000, date: '2025-01-15', type: 'expense' },
                         { id: 'txn2', propertyId: 1, category: 'Utilities', amount: -500, date: '2025-01-20', type: 'expense' },
                     ],
-                    properties: [{ id: 1, name: 'Property 1', created: '2025-01-01' }],
-                    categories: ['Rent', 'Utilities'],
+                    properties: [[1, { id: 1, name: 'Property 1', created: '2025-01-01' }]],
+                    expenseCategories: ['Rent', 'Utilities'],
                     incomeCategories: [],
                 },
                 2,
@@ -1478,8 +1481,8 @@ describe('TransactionStore', () => {
                     { id: 'txn1', propertyId: 1, category: 'Rent', amount: -1000, date: '2025-01-15', type: 'expense' },
                     { id: 'txn2', propertyId: 1, category: '', amount: -500, date: '2025-01-15', type: 'expense' }, // Invalid
                 ],
-                properties: [{ id: 1, name: 'Property 1', created: '2025-01-01' }],
-                categories: ['Rent'],
+                properties: [[1, { id: 1, name: 'Property 1', created: '2025-01-01' }]],
+                expenseCategories: ['Rent'],
                 incomeCategories: [],
             };
 
@@ -1517,8 +1520,8 @@ describe('TransactionStore', () => {
         test('should initialize with provided data (console log branch)', async () => {
             const initialData = {
                 transactions: [{ id: 'txn1', propertyId: 1, category: 'Rent', amount: -1000, date: '2025-01-15', type: 'expense' }],
-                properties: [{ id: 1, name: 'Property 1', created: '2025-01-01' }],
-                categories: ['Rent'],
+                properties: [[1, { id: 1, name: 'Property 1', created: '2025-01-01' }]],
+                expenseCategories: ['Rent'],
                 incomeCategories: [],
             };
 
@@ -1673,8 +1676,8 @@ describe('TransactionStore', () => {
 
             const importData = {
                 transactions: [{ id: 'txn1', propertyId: 1, category: 'Rent', amount: -1000, date: '2025-01-15', type: 'expense' }],
-                properties: [{ id: 1, name: 'Property 1', created: '2025-01-01' }],
-                categories: ['Rent'],
+                properties: [[1, { id: 1, name: 'Property 1', created: '2025-01-01' }]],
+                expenseCategories: ['Rent'],
                 incomeCategories: [],
             };
 
@@ -1787,8 +1790,8 @@ describe('TransactionStore', () => {
 
             const importData = {
                 transactions: [{ id: 'txn1', propertyId: 1, category: 'Rent', amount: -1000, date: '2025-01-15', type: 'expense' }],
-                properties: [{ id: 1, name: 'Property 1', created: '2025-01-01' }],
-                categories: ['Rent'],
+                properties: [[1, { id: 1, name: 'Property 1', created: '2025-01-01' }]],
+                expenseCategories: ['Rent'],
                 incomeCategories: [],
             };
 

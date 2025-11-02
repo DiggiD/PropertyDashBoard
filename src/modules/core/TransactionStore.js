@@ -339,21 +339,22 @@ class TransactionStore {
      * Process properties with optimized loading
      */
     async _processPropertiesOptimized(properties) {
-        if (Array.isArray(properties)) {
-            // OPTIMIZED: Batch property processing
-            properties.forEach(prop => {
-                if (prop && prop.id) {
-                    this.properties.set(prop.id, {
-                        id: prop.id,
-                        name: prop.name || `Property ${prop.id}`,
-                        created: prop.created || new Date().toISOString(),
-                    });
-                }
-            });
+    if (Array.isArray(properties)) {
+        // OPTIMIZED: Batch property processing
+        properties.forEach(([id, prop]) => {
+            if (prop && prop.id) {
+                this.properties.set(prop.id, {
+                    id: prop.id,
+                    name: prop.name || `Property ${prop.id}`,
+                    created: prop.created || new Date().toISOString(),
+                });
+            }
+        });
         } else if (properties instanceof Map) {
             this.properties = new Map(properties);
         }
     }
+
 
     /**
      * Process categories with optimized loading

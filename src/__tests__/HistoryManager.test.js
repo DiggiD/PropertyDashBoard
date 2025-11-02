@@ -20,6 +20,7 @@ const mockDataManager = {
     calculateTotalExpenses: jest.fn().mockReturnValue(1200),
     calculateTotalExpensesFromData: jest.fn().mockReturnValue(1200),
     getDataStatistics: jest.fn().mockReturnValue({ properties: 1, categories: 2 }),
+    _initialized: true, // Add this property to fix initialization timeout
 };
 
 // Test data
@@ -135,7 +136,26 @@ describe('HistoryManager - Full Implementation Tests', () => {
             contains: jest.fn(() => true),
         };
 
-        document.getElementById = jest.fn(() => null);
+        // Create a proper mock modal element for DOM operations
+        const mockModal = {
+            ...mockElement,
+            id: 'historyManagerModal',
+            querySelector: jest.fn((selector) => {
+                if (selector === '.modal-body') {
+                    return { innerHTML: '' };
+                }
+                return null;
+            }),
+            querySelectorAll: jest.fn(() => []),
+            parentNode: { ...mockElement.parentNode },
+        };
+
+        document.getElementById = jest.fn((id) => {
+            if (id === 'historyManagerModal') {
+                return mockModal;
+            }
+            return null;
+        });
         document.createElement = jest.fn((tagName) => {
             const element = Object.create(mockElement);
             element.tagName = tagName.toUpperCase();
@@ -148,7 +168,12 @@ describe('HistoryManager - Full Implementation Tests', () => {
         document.contains = jest.fn(() => true);
 
         // Mock document.querySelector for modal operations
-        document.querySelector = jest.fn(() => null);
+        document.querySelector = jest.fn((selector) => {
+            if (selector === '.modal:has(.history-modal)' || selector === '.modal .history-modal') {
+                return mockModal;
+            }
+            return null;
+        });
         document.querySelectorAll = jest.fn(() => []);
 
         mockDataManager.getData.mockReturnValue(testData1);
@@ -197,18 +222,30 @@ describe('HistoryManager - Full Implementation Tests', () => {
         });
 
         test('initialize() should skip initial snapshot when history exists', async () => {
+            // Create a fresh manager for this test to avoid state pollution
+            const freshMockStorage = {
+                saveHistorySnapshot: jest.fn().mockResolvedValue(true),
+                loadHistoryFromStorage: jest.fn().mockResolvedValue([]),
+                updateHistorySnapshot: jest.fn().mockResolvedValue(true),
+            };
+            const freshManager = new HistoryManager(freshMockStorage, mockDataManager);
+
             const existingHistory = [{ id: '1', description: 'Existing entry' }];
-            mockStorage.loadHistoryFromStorage.mockResolvedValue(existingHistory);
+            // Set up the mock to return the existing history
+            freshMockStorage.loadHistoryFromStorage.mockResolvedValue(existingHistory);
             mockDataManager.getData.mockReturnValue(testData1);
 
             const loggerSpy = jest.spyOn(logger, 'info').mockImplementation(() => {});
+            const debugSpy = jest.spyOn(logger, 'debug').mockImplementation(() => {});
 
-            await manager.initialize();
+            await freshManager.initialize();
 
             expect(loggerSpy).toHaveBeenCalledWith('HISTORY', 'Initializing history manager...');
+            expect(debugSpy).toHaveBeenCalledWith('HISTORY', 'Loaded 1 history entries');
             expect(loggerSpy).toHaveBeenCalledWith('HISTORY', 'History already exists or no data available, skipping initial snapshot creation');
 
             loggerSpy.mockRestore();
+            debugSpy.mockRestore();
         });
 
         test('initialize() should skip initial snapshot when no data available', async () => {
@@ -872,6 +909,13 @@ describe('HistoryManager - Full Implementation Tests', () => {
 
     describe('UI Modal Operations', () => {
         test('openHistoryManager() should create modal successfully', async () => {
+            // Reset mocks to ensure clean state
+            document.createElement.mockClear();
+            document.body.appendChild.mockClear();
+
+            // Ensure no existing modal
+            document.getElementById.mockReturnValue(null);
+
             const result = await manager.openHistoryManager();
 
             expect(result.success).toBe(true);
@@ -890,6 +934,12 @@ describe('HistoryManager - Full Implementation Tests', () => {
         });
 
         test('openHistoryManager() should handle errors', async () => {
+            // Ensure no existing modal so it tries to create a new one
+            document.getElementById.mockReturnValue(null);
+
+            // Save original implementation
+            const originalCreateElement = document.createElement;
+
             document.createElement.mockImplementation(() => { throw new Error('DOM error'); });
             const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
@@ -898,6 +948,8 @@ describe('HistoryManager - Full Implementation Tests', () => {
             expect(result.success).toBe(false);
             expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to open history manager'), expect.any(Error));
 
+            // Restore original implementation
+            document.createElement = originalCreateElement;
             consoleSpy.mockRestore();
         });
 
