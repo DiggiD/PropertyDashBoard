@@ -110,7 +110,6 @@ async function initializeApplication() {
         const propertiesManager = new PropertiesManager(
             dataManager,
             uiManager,
-            null,
             historyManager,
             chartRenderer,
         );

@@ -74,7 +74,7 @@ describe('Module Integration - Normalized Data Architecture', () => {
         uiManager = new UIManager(mockFormatter, themeManager);
         dataManager = new DataManager(mockStorage, mockValidator, mockFormatter);
         historyManager = new HistoryManager();
-        propertiesManager = new PropertiesManager(dataManager, uiManager, null, historyManager);
+        propertiesManager = new PropertiesManager(dataManager, uiManager, historyManager);
 
         // Fix DataManager validator reference (app code bug, but we can't change it)
         dataManager.validator = mockValidator;
@@ -230,7 +230,6 @@ describe('Module Integration - Normalized Data Architecture', () => {
     // Test that all module instances exist
         expect(dataManager).toBeDefined();
         expect(uiManager).toBeDefined();
-        expect(eventHandler).toBeDefined();
         expect(propertiesManager).toBeDefined();
         expect(themeManager).toBeDefined();
         expect(historyManager).toBeDefined();
@@ -257,7 +256,6 @@ describe('Module Integration - Normalized Data Architecture', () => {
             chartRenderer.renderNodes = jest.fn();
             chartRenderer.renderLinks = jest.fn();
             chartRenderer.renderLabels = jest.fn();
-            chartRenderer.setupEventHandlers = jest.fn();
             chartRenderer.cleanup = jest.fn();
         });
 

@@ -129,7 +129,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
         };
 
         // Create PropertiesManager with mixed real/mocked dependencies
-        propertiesManager = new PropertiesManager(dataManager, uiManager, null, historyManager);
+        propertiesManager = new PropertiesManager(dataManager, uiManager, historyManager);
 
         // Fix fixtures with real spies
         // Note: PropertiesManager doesn't have filterProperties method
@@ -185,12 +185,12 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
         });
 
         test('should handle missing DataManager gracefully', async () => {
-            const brokenManager = new PropertiesManager(null, uiManager, null, historyManager);
+            const brokenManager = new PropertiesManager(null, uiManager, historyManager);
             await expect(brokenManager.initialize()).resolves.not.toThrow();
         });
 
         test('should handle missing UIManager gracefully', async () => {
-            const brokenManager = new PropertiesManager(dataManager, null, null, historyManager);
+            const brokenManager = new PropertiesManager(dataManager, null, historyManager);
             await expect(brokenManager.initialize()).resolves.not.toThrow();
         });
 
@@ -2422,7 +2422,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
     describe('Error Handling Edge Cases', () => {
         test('should handle missing dependencies gracefully', () => {
-            const brokenManager = new PropertiesManager(null, null, null, null, null);
+            const brokenManager = new PropertiesManager(null, null, null, null);
 
             expect(() => brokenManager.initialize()).not.toThrow();
         });
@@ -3811,7 +3811,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
         });
 
         test('should cover initialize error handling - missing dependencies', async () => {
-            const brokenManager = new PropertiesManager(null, null, null, null, null);
+            const brokenManager = new PropertiesManager(null, null, null, null);
 
             // Mock console.error to avoid noise
             const originalError = console.error;
@@ -3827,7 +3827,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
                 ...dataManager,
                 getProperties: jest.fn(() => { throw new Error('DataManager error'); }),
             };
-            const brokenManager = new PropertiesManager(throwingDataManager, uiManager, null, historyManager);
+            const brokenManager = new PropertiesManager(throwingDataManager, uiManager, historyManager);
 
             const originalError = console.error;
             console.error = jest.fn();
@@ -4697,7 +4697,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
                 ...dataManager,
                 getProperties: jest.fn(() => { throw new Error('DataManager error'); }),
             };
-            const brokenManager = new PropertiesManager(throwingDataManager, uiManager, null, historyManager);
+            const brokenManager = new PropertiesManager(throwingDataManager, uiManager, historyManager);
 
             const originalError = console.error;
             console.error = jest.fn();

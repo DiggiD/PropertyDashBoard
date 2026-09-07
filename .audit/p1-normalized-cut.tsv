@@ -21,3 +21,4 @@ ts	phase	decision	why	evidence	result
 2026-09-07T21:10:00Z	leftover	saveToDatabase writes data.transactions, drop savePropertyMonthly*	load already mapped Dexie rows to transactions	Storage.js TransactionStore._saveToStorage	deleted
 2026-09-07T21:10:00Z	leftover	HistoryManager totals from transactions not property.expenses	snapshots are exportData transaction arrays	HistoryManager.calculateTotalExpensesFromData	deleted
 2026-09-07T21:15:00Z	verify	full npm test 17 suites 1734 tests	sample-boot years 2021-2025	npm test --ci --runInBand --coverage=false --silent	tests green
+2026-09-07T21:40:00Z	leftover	drop PropertiesManager eventHandler constructor slot	EventHandler.js already deleted in 099d940	index.js PropertiesManager.js integration.test.js setupTests.js	deleted

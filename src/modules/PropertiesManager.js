@@ -9,10 +9,9 @@
 import logger from './utils/Logger.js';
 
 class PropertiesManager {
-    constructor(dataManager, uiManager, eventHandler, historyManager, chartRenderer) {
+    constructor(dataManager, uiManager, historyManager, chartRenderer) {
         this.dataManager = dataManager;
         this.uiManager = uiManager;
-        this.eventHandler = eventHandler;
         this.historyManager = historyManager;
         this.chartRenderer = chartRenderer;
 

@@ -112,9 +112,6 @@ beforeAll(() => {
         window.uiManager = {
             hideLoadingState: jest.fn(),
         };
-        window.eventHandler = {
-            setupEventHandlers: jest.fn(),
-        };
         window.themeManager = jest.fn();
     }
 });
