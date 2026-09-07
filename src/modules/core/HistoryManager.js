@@ -72,8 +72,7 @@ class HistoryManager {
         }
 
         try {
-            // Get current data state
-            const currentData = this.dataManager.getData();
+            const currentData = this._captureFlatData();
 
             // Calculate total expenses for accurate description
             // Use snapshot total from metadata if provided (for snapshot creation)
@@ -185,17 +184,7 @@ class HistoryManager {
                 logger.info('HISTORY', 'Undoing file import operation');
             }
 
-            // Remove the current history entry being undone
-            const removedEntry = this.history.splice(this.historyIndex, 1)[0];
-            logger.debug('HISTORY', 'Removed history entry:', removedEntry.description);
-
-            // Adjust history index since we removed an entry
             this.historyIndex--;
-
-            // If we removed the last entry and there are no more entries, reset index
-            if (this.history.length === 0) {
-                this.historyIndex = -1;
-            }
 
             // Restore the data to the previous state
             if (targetState) {
@@ -206,7 +195,6 @@ class HistoryManager {
                 }
                 logger.debug('HISTORY', `Restored data to: "${targetState.description}"`);
             } else {
-                // If no target state, initialize with empty data
                 await this.dataManager.initialize({
                     properties: [],
                     expenseCategories: [],
@@ -218,10 +206,9 @@ class HistoryManager {
                 logger.info('HISTORY', 'Restored to empty state');
             }
 
-            // Save the updated history to storage
             await this.saveHistoryToStorage();
 
-            logger.debug('HISTORY', `Undid and removed: "${removedEntry.description}"`);
+            logger.debug('HISTORY', `Undid: "${currentState.description}"`);
 
             // Update UI
             this.updateUndoRedoButtons();
@@ -233,9 +220,8 @@ class HistoryManager {
 
             return {
                 success: true,
-                message: `Undid and removed: ${removedEntry.description}`,
+                message: `Undid: ${currentState.description}`,
                 restoredState: targetState,
-                removedEntry: removedEntry,
             };
         } catch (error) {
             logger.error('HISTORY', 'Undo failed', error);
@@ -364,10 +350,11 @@ class HistoryManager {
      */
     async createSnapshot(name = null, description = '', silent = false) {
         try {
-            const currentData = this.dataManager.getData();
+            const currentData = this._captureFlatData();
             logger.debug('HISTORY', 'Creating snapshot with data:', {
                 properties: currentData.properties?.length || 0,
-                categories: currentData.expenseCategories?.length || 0
+                categories: currentData.expenseCategories?.length || 0,
+                transactions: currentData.transactions?.length || 0,
             });
 
             const snapshot = {
@@ -982,6 +969,20 @@ class HistoryManager {
             this.historyIndex = -1;
             return false;
         }
+    }
+
+    _captureFlatData() {
+        const currentData = typeof this.dataManager.getData === 'function'
+            ? this.dataManager.getData() || {}
+            : {};
+        const exported = this.dataManager.store
+            && typeof this.dataManager.store.exportData === 'function'
+            ? this.dataManager.store.exportData()
+            : null;
+        if (exported && Array.isArray(exported.transactions)) {
+            return JSON.parse(JSON.stringify({ ...currentData, ...exported }));
+        }
+        return JSON.parse(JSON.stringify(currentData));
     }
 
     /**

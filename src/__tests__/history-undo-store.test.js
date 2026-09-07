@@ -53,6 +53,15 @@ describe('Undo restores TransactionStore after Properties save', () => {
         expect(dataManager.getAggregatedSankeyData('all', 'all').propExpenses.get(1)).toBe(1500);
         expect(historyManager.canUndo()).toBe(true);
 
+        const saved = historyManager.history[historyManager.historyIndex];
+        expect(Array.isArray(saved.data.transactions)).toBe(true);
+        expect(saved.data.transactions.some(t => t.category === 'Rent' && t.amount === -1500)).toBe(true);
+        expect(saved.data.properties[0]).toEqual(expect.objectContaining({
+            id: 1,
+            name: 'Office',
+        }));
+        expect(saved.data.properties[0].expenses).toBeUndefined();
+
         const result = await historyManager.undo();
         expect(result.success).toBe(true);
 
@@ -65,5 +74,16 @@ describe('Undo restores TransactionStore after Properties save', () => {
         expect(afterUndo).toHaveLength(0);
         expect(afterAgg.propExpenses.get(1) || 0).toBe(0);
         expect(afterAgg.catTotals.get('Rent') || 0).toBe(0);
+        expect(historyManager.canRedo()).toBe(true);
+
+        const redo = await historyManager.redo();
+        expect(redo.success).toBe(true);
+        expect(dataManager.store.queryTransactions({
+            propertyId: 1,
+            category: 'Rent',
+            type: 'expense',
+        })).toHaveLength(1);
+        expect(dataManager.getAggregatedSankeyData('all', 'all').propExpenses.get(1)).toBe(1500);
+        expect(dataManager.store.queryAggregatedSankey('all', 'all').propExpenses.get(1)).toBe(1500);
     });
 });

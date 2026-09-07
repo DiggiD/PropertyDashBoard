@@ -361,7 +361,7 @@ describe('HistoryManager - Full Implementation Tests', () => {
             const result = await manager.undo();
 
             expect(result.success).toBe(true);
-            expect(result.message).toContain('Undid and removed');
+            expect(result.message).toContain('Undid:');
             expect(manager.historyIndex).toBe(0);
             expect(mockDataManager.initialize).toHaveBeenCalled();
         });
