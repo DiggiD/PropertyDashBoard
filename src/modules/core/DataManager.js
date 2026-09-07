@@ -911,11 +911,10 @@ class DataManager {
             };
         }
 
-        // Add category to store
         this.store.categories.add(name.trim());
-
-        // Note: Categories are available for when users add actual expenses
-        // No need to create 0-amount transactions
+        if (typeof this.store._markAsChanged === 'function') {
+            this.store._markAsChanged();
+        }
 
         logger.info('DATAMANAGER', 'Expense category added', name);
 
@@ -1250,6 +1249,52 @@ class DataManager {
         };
     }
 
+    renamePropertyCategory(propertyId, oldCategory, newCategory) {
+        if (!oldCategory || !newCategory) {
+            return { success: false, message: 'Category name is required' };
+        }
+        const propertyMeta = this._resolvePropertyMeta(propertyId);
+        if (!propertyMeta) {
+            return { success: false, message: 'Property not found' };
+        }
+        const matches = this.store.queryTransactions({
+            propertyId: propertyMeta.id,
+            category: oldCategory,
+        });
+        matches.forEach(txn => {
+            this.store.updateTransaction(txn.id, { category: newCategory });
+        });
+        if (this.store.categories.has(oldCategory) || matches.some(txn => txn.type === 'expense')) {
+            this.store.categories.add(newCategory);
+        }
+        if (this.store.incomeCategories.has(oldCategory) || matches.some(txn => txn.type === 'income')) {
+            this.store.incomeCategories.add(newCategory);
+        }
+        this.clearSankeyCache();
+        this.emit('dataChange');
+        return { success: true };
+    }
+
+    renamePropertySubcategory(propertyId, category, oldSubcategory, newSubcategory) {
+        if (!category || !oldSubcategory || !newSubcategory) {
+            return { success: false, message: 'Subcategory name is required' };
+        }
+        const propertyMeta = this._resolvePropertyMeta(propertyId);
+        if (!propertyMeta) {
+            return { success: false, message: 'Property not found' };
+        }
+        const matches = this.store.queryTransactions({
+            propertyId: propertyMeta.id,
+            category,
+        }).filter(txn => txn.subcategory === oldSubcategory);
+        matches.forEach(txn => {
+            this.store.updateTransaction(txn.id, { subcategory: newSubcategory });
+        });
+        this.clearSankeyCache();
+        this.emit('dataChange');
+        return { success: true };
+    }
+
     deletePropertyLines({ propertyId, category, subcategory = null }) {
         const propertyMeta = this._resolvePropertyMeta(propertyId);
         if (!propertyMeta || !category) {
@@ -1514,9 +1559,10 @@ class DataManager {
      */
     async save() {
         try {
-            // REFACTORED: Delegate to TransactionStore's save mechanism
-            // TransactionStore handles auto-save with debouncing, but we can trigger immediate save if needed
-            await this.store._saveToStorage();
+            if (this.store) {
+                this.store._hasUnsavedChanges = true;
+                await this.store._saveToStorage();
+            }
             this._hasUnsavedChanges = false;
             this.lastSaved = new Date();
             return true;

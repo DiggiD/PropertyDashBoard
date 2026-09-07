@@ -78,6 +78,8 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
             upsertPropertyLine: jest.fn().mockReturnValue({ success: true }),
             deletePropertyLines: jest.fn().mockReturnValue({ success: true }),
             addExpenseCategory: jest.fn().mockReturnValue({ success: true }),
+            renamePropertyCategory: jest.fn().mockReturnValue({ success: true }),
+            renamePropertySubcategory: jest.fn().mockReturnValue({ success: true }),
             data: {
                 currentTimePeriod: 'all',
                 properties: mockProperties,

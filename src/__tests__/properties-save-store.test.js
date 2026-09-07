@@ -6,9 +6,10 @@ import Validator from '../modules/utils/Validator.js';
 describe('Properties save writes TransactionStore', () => {
     let dataManager;
     let propertiesManager;
+    let storage;
 
     beforeEach(async () => {
-        const storage = {
+        storage = {
             load: jest.fn().mockResolvedValue(null),
             save: jest.fn().mockResolvedValue(true),
             initialize: jest.fn().mockResolvedValue(),
@@ -33,8 +34,8 @@ describe('Properties save writes TransactionStore', () => {
         document.body.innerHTML = '<div id="propertiesDashboard"></div>';
     });
 
-    test('saveExpenseValue adds a store transaction and Sankey expenses', () => {
-        propertiesManager.saveExpenseValue('Rent', null, 1500);
+    test('saveExpenseValue adds a store transaction and Sankey expenses', async () => {
+        await propertiesManager.saveExpenseValue('Rent', null, 1500);
 
         const txns = dataManager.store.transactions.filter(t => t.propertyId === 1 && t.category === 'Rent');
         expect(txns).toHaveLength(1);
@@ -43,10 +44,13 @@ describe('Properties save writes TransactionStore', () => {
 
         const aggregated = dataManager.getAggregatedSankeyData('all', 'all');
         expect(aggregated.propExpenses.get(1)).toBe(1500);
+        expect(storage.save).toHaveBeenCalled();
+        const payload = storage.save.mock.calls[storage.save.mock.calls.length - 1][0];
+        expect(payload.transactions.some(t => t.category === 'Rent' && t.amount === -1500)).toBe(true);
     });
 
-    test('saveExpenseValue with subcategory writes subcategory on the transaction', () => {
-        propertiesManager.saveExpenseValue('Utilities', 'Electricity', 400);
+    test('saveExpenseValue with subcategory writes subcategory on the transaction', async () => {
+        await propertiesManager.saveExpenseValue('Utilities', 'Electricity', 400);
 
         const txns = dataManager.store.transactions.filter(
             t => t.propertyId === 1 && t.category === 'Utilities' && t.subcategory === 'Electricity',
@@ -55,8 +59,8 @@ describe('Properties save writes TransactionStore', () => {
         expect(txns[0].amount).toBe(-400);
     });
 
-    test('saveExpenseValue income category writes a positive income transaction', () => {
-        propertiesManager.saveExpenseValue('Salary', null, 2000);
+    test('saveExpenseValue income category writes a positive income transaction', async () => {
+        await propertiesManager.saveExpenseValue('Salary', null, 2000);
 
         const txns = dataManager.store.transactions.filter(t => t.propertyId === 1 && t.category === 'Salary');
         expect(txns).toHaveLength(1);
@@ -66,5 +70,28 @@ describe('Properties save writes TransactionStore', () => {
         const aggregated = dataManager.getAggregatedSankeyData('all', 'all');
         expect(aggregated.propIncomes.get(1)).toBe(2000);
         expect(aggregated.hasIncome).toBe(true);
+    });
+
+    test('updateCategoryName renames the transaction category and persists', async () => {
+        await propertiesManager.saveExpenseValue('Rent', null, 1500);
+        propertiesManager.updateCategoryName('Rent', 'Lease');
+
+        const txns = dataManager.store.transactions.filter(t => t.propertyId === 1);
+        expect(txns).toHaveLength(1);
+        expect(txns[0].category).toBe('Lease');
+        await dataManager.save();
+        const payload = storage.save.mock.calls[storage.save.mock.calls.length - 1][0];
+        expect(payload.transactions.some(t => t.category === 'Lease')).toBe(true);
+    });
+
+    test('deleteCategory removes matching transactions and persists', async () => {
+        await propertiesManager.saveExpenseValue('Rent', null, 1500);
+        propertiesManager.deleteCategory('Rent');
+
+        const txns = dataManager.store.transactions.filter(t => t.propertyId === 1 && t.category === 'Rent');
+        expect(txns).toHaveLength(0);
+        await dataManager.save();
+        const payload = storage.save.mock.calls[storage.save.mock.calls.length - 1][0];
+        expect(payload.transactions.some(t => t.category === 'Rent')).toBe(false);
     });
 });

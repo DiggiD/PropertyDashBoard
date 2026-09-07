@@ -1434,7 +1434,7 @@ class PropertiesManager {
      * Note: Expense categories store negative values, income categories store positive values
      * User input is preserved - positive values stay positive, negative values stay negative
      */
-    saveExpenseValue(category, subcategory, value) {
+    async saveExpenseValue(category, subcategory, value) {
         const property = this.dataManager.getPropertyById(this.currentPropertyId);
         if (!property) {return;}
 
@@ -1485,9 +1485,8 @@ class PropertiesManager {
             }
         }
 
-        this.dataManager.save();
+        await this.dataManager.save();
 
-        // Re-render properties dashboard
         this.renderPropertiesDashboard();
 
         // Force UI refresh to update totals
@@ -2168,23 +2167,33 @@ class PropertiesManager {
      */
     updateCategoryName(oldCategory, newCategory) {
         const property = this.dataManager.getPropertyById(this.currentPropertyId);
-        if (!property || !property.expenses.hasOwnProperty(oldCategory)) {return;}
+        if (!property) {return;}
 
-        // Check if new category name already exists
-        if (property.expenses.hasOwnProperty(newCategory) && newCategory !== oldCategory) {
+        if (property.expenses && property.expenses.hasOwnProperty(newCategory) && newCategory !== oldCategory) {
             this.uiManager.showToast('Category name already exists', 'error');
             return;
         }
 
-        // Create snapshot
         this.historyManager.createSnapshot(`Renamed category "${oldCategory}" to "${newCategory}"`, '', false);
 
-        // Update the category name in expenses object
-        const categoryValue = property.expenses[oldCategory];
-        delete property.expenses[oldCategory];
-        property.expenses[newCategory] = categoryValue;
+        if (typeof this.dataManager.renamePropertyCategory === 'function') {
+            const result = this.dataManager.renamePropertyCategory(
+                this.currentPropertyId,
+                oldCategory,
+                newCategory,
+            );
+            if (!result.success) {
+                this.uiManager.showToast(result.message, 'error');
+                return;
+            }
+        }
 
-        // Save and refresh
+        if (property.expenses && property.expenses.hasOwnProperty(oldCategory)) {
+            const categoryValue = property.expenses[oldCategory];
+            delete property.expenses[oldCategory];
+            property.expenses[newCategory] = categoryValue;
+        }
+
         this.dataManager.save();
         this.renderPropertiesDashboard();
         this.uiManager.showToast(`Category renamed to "${newCategory}"`, 'success');
@@ -2195,26 +2204,39 @@ class PropertiesManager {
      */
     updateSubcategoryName(category, oldSubcategory, newSubcategory) {
         const property = this.dataManager.getPropertyById(this.currentPropertyId);
-        if (!property || !property.expenses.hasOwnProperty(category)) {return;}
+        if (!property) {return;}
 
-        const categoryValue = property.expenses[category];
-        if (typeof categoryValue !== 'object' || !categoryValue.hasOwnProperty(oldSubcategory)) {return;}
-
-        // Check if new subcategory name already exists
-        if (categoryValue.hasOwnProperty(newSubcategory) && newSubcategory !== oldSubcategory) {
+        if (property.expenses && property.expenses[category]
+            && typeof property.expenses[category] === 'object'
+            && property.expenses[category].hasOwnProperty(newSubcategory)
+            && newSubcategory !== oldSubcategory) {
             this.uiManager.showToast('Subcategory name already exists', 'error');
             return;
         }
 
-        // Create snapshot
         this.historyManager.createSnapshot(`Renamed subcategory "${oldSubcategory}" to "${newSubcategory}" in ${category}`, '', false);
 
-        // Update the subcategory name in expenses object
-        const subcategoryValue = categoryValue[oldSubcategory];
-        delete categoryValue[oldSubcategory];
-        categoryValue[newSubcategory] = subcategoryValue;
+        if (typeof this.dataManager.renamePropertySubcategory === 'function') {
+            const result = this.dataManager.renamePropertySubcategory(
+                this.currentPropertyId,
+                category,
+                oldSubcategory,
+                newSubcategory,
+            );
+            if (!result.success) {
+                this.uiManager.showToast(result.message, 'error');
+                return;
+            }
+        }
 
-        // Save and refresh
+        if (property.expenses && property.expenses[category]
+            && typeof property.expenses[category] === 'object'
+            && property.expenses[category].hasOwnProperty(oldSubcategory)) {
+            const subcategoryValue = property.expenses[category][oldSubcategory];
+            delete property.expenses[category][oldSubcategory];
+            property.expenses[category][newSubcategory] = subcategoryValue;
+        }
+
         this.dataManager.save();
         this.renderPropertiesDashboard();
         this.uiManager.showToast(`Subcategory renamed to "${newSubcategory}"`, 'success');
