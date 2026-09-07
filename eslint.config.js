@@ -22,6 +22,7 @@ export default [
                 document: 'readonly',
                 console: 'readonly',
                 localStorage: 'readonly',
+                indexedDB: 'readonly',
                 URL: 'readonly',
                 Blob: 'readonly',
                 FileReader: 'readonly',
@@ -48,6 +49,8 @@ export default [
                 // Browser APIs
                 confirm: 'readonly',
                 prompt: 'readonly',
+                alert: 'readonly',
+                ResizeObserver: 'readonly',
                 performance: 'readonly',
                 PerformanceObserver: 'readonly',
                 requestAnimationFrame: 'readonly',

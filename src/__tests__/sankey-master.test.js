@@ -2135,31 +2135,22 @@ describe('Master Sankey Test Suite', () => {
                 });
 
                 test('should calculate property totals correctly', () => {
-                    // Setup property with expenses object (this is how the actual implementation works)
-                    const mockProperty = {
-                        id: 1,
-                        name: 'Property A',
-                        expenses: {
-                            'Maintenance': -1000,
-                            'Utilities': -500,
-                            'Insurance': -300,
-                        },
-                    };
-
-                    // Mock the getPropertyById method to return our test property
-                    const originalGetPropertyById = dataManager.getPropertyById;
-                    dataManager.getPropertyById = jest.fn().mockReturnValue(mockProperty);
+                    const mockProperty = { id: 1, name: 'Property A' };
+                    dataManager.store.transactions = [
+                        { id: '1', propertyId: 1, category: 'Maintenance', amount: -1000, date: '2025-01-15', type: 'expense' },
+                        { id: '2', propertyId: 1, category: 'Utilities', amount: -500, date: '2025-01-15', type: 'expense' },
+                        { id: '3', propertyId: 1, category: 'Insurance', amount: -300, date: '2025-01-15', type: 'expense' },
+                    ];
+                    if (dataManager.store._queryCache && typeof dataManager.store._queryCache.clear === 'function') {
+                        dataManager.store._queryCache.clear();
+                    }
 
                     const expenseData = dataManager.getPropertyExpenseData(mockProperty, false);
 
-                    // The method returns negative values as stored in expenses object
-                    expect(expenseData.total).toBe(-1800); // -(1000 + 500 + 300)
-                    expect(expenseData.expenses['Maintenance']).toBe(-1000);
-                    expect(expenseData.expenses['Utilities']).toBe(-500);
-                    expect(expenseData.expenses['Insurance']).toBe(-300);
-
-                    // Restore original method
-                    dataManager.getPropertyById = originalGetPropertyById;
+                    expect(expenseData.total).toBe(1800);
+                    expect(expenseData.expenses.Maintenance).toBe(1000);
+                    expect(expenseData.expenses.Utilities).toBe(500);
+                    expect(expenseData.expenses.Insurance).toBe(300);
                 });
 
                 test('should calculate average expense per property correctly', () => {

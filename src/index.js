@@ -232,7 +232,7 @@ function setupEventListeners(
 
                 if (historyData && historyData.length > 0) {
                     const historyText = historyData.map((entry, index) =>
-                        `${index + 1}. ${entry.action} - ${entry.timestamp}`
+                        `${index + 1}. ${entry.action} - ${entry.timestamp}`,
                     ).join('\n');
 
                     alert(`Data History:\n\n${historyText}`);

@@ -366,8 +366,8 @@ class DataManager {
         this._ensureInitialized();
         this.data = {
             properties: this.store.queryProperties(),
-            expenseCategories: this.store.queryCategories('expense'),
-            incomeCategories: this.store.queryCategories('income'),
+            expenseCategories: this.store.queryCategories({ type: 'expense' }).map(cat => cat.name),
+            incomeCategories: this.store.queryCategories({ type: 'income' }).map(cat => cat.name),
             currentTimePeriod: this.data?.currentTimePeriod || 'all',
             currentView: this.data?.currentView || 'overview',
             selectedYear: this.data?.selectedYear || 'all',
@@ -380,7 +380,7 @@ class DataManager {
      * @returns {boolean} True if store is empty
      */
     _isStoreEmpty() {
-        if (!this.store) return true;
+        if (!this.store) {return true;}
 
         const stats = this.store.getStatistics();
         return stats.totalTransactions === 0 &&
@@ -601,7 +601,7 @@ class DataManager {
                 expenseCategories: [],
                 incomeCategories: [],
                 isValid: false,
-                errors: ['Invalid data format']
+                errors: ['Invalid data format'],
             };
         }
 
@@ -610,7 +610,7 @@ class DataManager {
             expenseCategories: [],
             incomeCategories: [],
             isValid: true,
-            errors: []
+            errors: [],
         };
 
         try {
@@ -657,6 +657,19 @@ class DataManager {
       * @returns {Object} Current data
       */
     getData() {
+        if (this.store && typeof this.store.exportData === 'function') {
+            const exported = this.store.exportData();
+            if (exported && typeof exported === 'object' && Array.isArray(exported.transactions)) {
+                return {
+                    ...this.data,
+                    ...exported,
+                    currentTimePeriod: this.data?.currentTimePeriod || 'all',
+                    currentView: this.data?.currentView || 'overview',
+                    selectedYear: this.data?.selectedYear || 'all',
+                    selectedMonth: this.data?.selectedMonth || 'all',
+                };
+            }
+        }
         return { ...this.data };
     }
 
@@ -1413,10 +1426,10 @@ class DataManager {
         }
 
         // OPTIMIZED: Cache the result
-        if (!this._expenseCache) this._expenseCache = {};
+        if (!this._expenseCache) {this._expenseCache = {};}
         this._expenseCache[cacheKey] = {
             value: total,
-            timestamp: Date.now()
+            timestamp: Date.now(),
         };
 
         return total;
@@ -1442,10 +1455,10 @@ class DataManager {
         const average = propertyCount > 0 ? totalExpenses / propertyCount : 0;
 
         // OPTIMIZED: Cache the result
-        if (!this._expenseCache) this._expenseCache = {};
+        if (!this._expenseCache) {this._expenseCache = {};}
         this._expenseCache[cacheKey] = {
             value: average,
-            timestamp: Date.now()
+            timestamp: Date.now(),
         };
 
         return average;
@@ -1469,22 +1482,22 @@ class DataManager {
         // OPTIMIZED: Use store's category query for better performance
         const categories = this.store.queryCategories({
             type: 'expense',
-            sortBy: { field: 'totalAmount', order: 'desc' }
+            sortBy: { field: 'totalAmount', order: 'desc' },
         });
 
         const topCategory = categories.length > 0 ? {
             name: categories[0].name,
-            amount: Math.abs(categories[0].totalAmount)
+            amount: Math.abs(categories[0].totalAmount),
         } : {
             name: 'None',
             amount: 0,
         };
 
         // OPTIMIZED: Cache the result
-        if (!this._categoryCache) this._categoryCache = {};
+        if (!this._categoryCache) {this._categoryCache = {};}
         this._categoryCache[cacheKey] = {
             value: topCategory,
-            timestamp: Date.now()
+            timestamp: Date.now(),
         };
 
         return topCategory;
@@ -1661,8 +1674,8 @@ class DataManager {
                 // Re-derive data from store
                 this.data = {
                     properties: this.store.queryProperties(),
-                    expenseCategories: this.store.queryCategories('expense'),
-                    incomeCategories: this.store.queryCategories('income'),
+                    expenseCategories: this.store.queryCategories({ type: 'expense' }).map(cat => cat.name),
+                    incomeCategories: this.store.queryCategories({ type: 'income' }).map(cat => cat.name),
                     currentTimePeriod: this.data?.currentTimePeriod || 'all',
                     currentView: this.data?.currentView || 'overview',
                     selectedYear: this.data?.selectedYear || 'all',
@@ -1772,35 +1785,7 @@ class DataManager {
      * @returns {Object} Expense data with total and expenses
      */
     getPropertyExpenseData(property, preserveHierarchy = false) {
-        if (!property || !property.expenses) {
-            return { total: 0, expenses: {} };
-        }
-
-        const expenses = { ...property.expenses };
-        let total = 0;
-
-        // Process each category
-        Object.keys(expenses).forEach(category => {
-            const value = expenses[category];
-
-            if (typeof value === 'object' && value !== null) {
-                // Hierarchical category
-                if (preserveHierarchy) {
-                    // Keep hierarchical structure
-                    total += Object.values(value).reduce((sum, val) => sum + (val || 0), 0);
-                } else {
-                    // Sum hierarchical values
-                    const categoryTotal = Object.values(value).reduce((sum, val) => sum + (val || 0), 0);
-                    expenses[category] = categoryTotal;
-                    total += categoryTotal;
-                }
-            } else {
-                // Flat category
-                total += value || 0;
-            }
-        });
-
-        return { total, expenses };
+        return this.getCurrentPeriodData(property, null, preserveHierarchy);
     }
 
     /**
@@ -2295,7 +2280,7 @@ class DataManager {
                 amount: txn.amount,
                 propertyId: txn.propertyId,
                 timestamp: txn.date || new Date().toISOString(),
-                type: 'transaction'
+                type: 'transaction',
             }));
 
             logger.info('DATAMANAGER', 'Generated fallback history', history.length, 'entries');

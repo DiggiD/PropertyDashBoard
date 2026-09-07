@@ -1,4 +1,5 @@
 import logger from '../utils/Logger.js';
+import { migrateToFlat } from '../utils/legacyMigrator.js';
 /**
  * TransactionStore Module
  * Reactive data store for normalized flat transaction data
@@ -55,16 +56,16 @@ import logger from '../utils/Logger.js';
  */
 
 class TransactionStore {
-    constructor(storage, options = {}) {
-        // LIGHTWEIGHT: Only store configuration and dependencies
+    constructor(storage, validator = null, formatter = null, options = {}) {
         this.storage = storage;
+        this._validator = validator;
+        this._formatter = formatter;
         this.options = {
             debounceMs: 500,
             maxTransactions: 10000,
             ...options,
         };
 
-        // Initialize flag - start as false, will be set to true in initialize()
         this._isInitialized = false;
 
         logger.info('TRANSACTIONSTORE', 'TransactionStore constructor completed (lightweight)');
@@ -111,7 +112,7 @@ class TransactionStore {
                 const storageCheckStart = performance.now();
                 const stored = await this.storage.load();
                 const storageCheckTime = performance.now() - storageCheckStart;
-    
+
                 // EARLY EMPTY DETECTION: If no meaningful data, skip expensive operations
                 if (!stored || (stored.properties.length === 0 && stored.expenseCategories.length === 0)) {
                     logger.info('TRANSACTIONSTORE', `No stored data found (storage check: ${storageCheckTime.toFixed(2)}ms), using fast empty initialization`);
@@ -230,7 +231,8 @@ class TransactionStore {
         const loadStart = performance.now();
         logger.info('TRANSACTIONSTORE', 'Starting optimized data loading...');
 
-        // FAST PATH: Skip expensive operations for empty data
+        data = migrateToFlat(data);
+
         const hasTransactions = Array.isArray(data.transactions) && data.transactions.length > 0;
         const hasProperties = data.properties && data.properties.length > 0;
         const hasCategories = (Array.isArray(data.expenseCategories) && data.expenseCategories.length > 0) ||
@@ -342,7 +344,7 @@ class TransactionStore {
         if (Array.isArray(properties)) {
             properties.forEach(item => {
                 const prop = Array.isArray(item) ? item[1] : item;
-                if (prop && prop.id != null) {
+                if (prop && prop.id !== null && prop.id !== undefined) {
                     this.properties.set(prop.id, {
                         id: prop.id,
                         name: prop.name || `Property ${prop.id}`,
@@ -802,15 +804,15 @@ class TransactionStore {
      * Query categories with transaction summaries
      */
     queryCategories(filters = {}) {
-        const cacheKey = `categories_${JSON.stringify(filters)}`;
+        const normalized = typeof filters === 'string' ? { type: filters } : (filters || {});
+        const { sortBy, ...txnFilters } = normalized;
+        const cacheKey = `categories_${JSON.stringify(normalized)}`;
         if (this._queryCache.has(cacheKey)) {
             return this._queryCache.get(cacheKey);
         }
 
         const categories = new Map();
-
-        // Get relevant transactions
-        const txns = this.queryTransactions(filters);
+        const txns = this.queryTransactions(txnFilters);
 
         txns.forEach(txn => {
             const key = txn.category;
@@ -851,8 +853,8 @@ class TransactionStore {
             properties: Array.from(cat.properties),
         }));
 
-        if (filters.sortBy) {
-            const { field, order = 'asc' } = filters.sortBy;
+        if (sortBy) {
+            const { field, order = 'asc' } = sortBy;
             result.sort((a, b) => {
                 const aVal = a[field];
                 const bVal = b[field];
@@ -862,7 +864,6 @@ class TransactionStore {
                 return 0;
             });
         } else {
-            // Default sort by total amount descending
             result.sort((a, b) => Math.abs(b.totalAmount) - Math.abs(a.totalAmount));
         }
 
@@ -1195,7 +1196,11 @@ class TransactionStore {
     exportData() {
         return {
             transactions: this.transactions,
-            properties: Array.from(this.properties.entries()),
+            properties: Array.from(this.properties.values()).map(prop => ({
+                id: prop.id,
+                name: prop.name,
+                created: prop.created,
+            })),
             expenseCategories: Array.from(this.categories),
             incomeCategories: Array.from(this.incomeCategories),
             version: '1.0',
@@ -1218,14 +1223,14 @@ class TransactionStore {
             hasProperties: !!(data && data.properties),
             propertiesType: data && data.properties ? typeof data.properties : 'N/A',
             hasCategories: !!(data && data.categories),
-            categoriesType: data && data.categories ? typeof data.categories : 'N/A'
+            categoriesType: data && data.categories ? typeof data.categories : 'N/A',
         });
 
         if (!data || !data.transactions) {
             logger.error('TRANSACTIONSTORE', 'Import validation failed', {
                 dataExists: !!data,
                 transactionsExists: !!(data && data.transactions),
-                dataValue: data
+                dataValue: data,
             });
             throw new Error('Invalid import data');
         }

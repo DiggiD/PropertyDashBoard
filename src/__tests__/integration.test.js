@@ -84,7 +84,7 @@ describe('Module Integration - Normalized Data Architecture', () => {
         // Initialize DataManager with sample data in TransactionStore format
         await dataManager.initialize({
             transactions: sampleTxns,
-            properties: sampleProps.map(p => [p.id, p]), // Convert to [id, metadata] format
+            properties: sampleProps,
             expenseCategories: ['Rent', 'Utilities'],
             incomeCategories: ['Rent']
         });
@@ -99,12 +99,8 @@ describe('Module Integration - Normalized Data Architecture', () => {
         expect(data.properties).toHaveLength(2);
         expect(data.properties[0].name).toBe('Downtown Office');
         expect(data.properties[1].name).toBe('Suburban Apartment');
-        // expenseCategories is now an array of category objects from TransactionStore
-        expect(data.expenseCategories).toHaveLength(2);
-        expect(data.expenseCategories.some(cat => cat.name === 'Rent')).toBe(true);
-        expect(data.expenseCategories.some(cat => cat.name === 'Utilities')).toBe(true);
-        expect(data.incomeCategories).toHaveLength(2);
-        expect(data.incomeCategories.some(cat => cat.name === 'Rent')).toBe(true);
+        expect(data.expenseCategories).toEqual(expect.arrayContaining(['Rent', 'Utilities']));
+        expect(data.incomeCategories).toEqual(expect.arrayContaining(['Rent']));
     });
 
     test('2. PropertiesManager add property → DataManager update → UI render', async () => {
@@ -198,8 +194,7 @@ describe('Module Integration - Normalized Data Architecture', () => {
         // Verify data was imported and converted
         const data = dataManager.getData();
         expect(data.properties).toHaveLength(2);
-        expect(data.expenseCategories.some(cat => cat.name === 'Rent')).toBe(true);
-        expect(data.expenseCategories.some(cat => cat.name === 'Utilities')).toBe(true);
+        expect(data.expenseCategories).toEqual(expect.arrayContaining(['Rent', 'Utilities']));
 
         // Verify transactions were imported (import replaces data, so should be same count)
         const transactions = dataManager.store.queryTransactions();
@@ -375,7 +370,7 @@ describe('Module Integration - Normalized Data Architecture', () => {
             // Perform bulk import through DataManager
             const importData = {
                 transactions: bulkTransactions,
-                properties: sampleProps.map(p => [p.id, p]), // Convert to [id, metadata] format
+                properties: sampleProps,
                 expenseCategories: ['Rent', 'Utilities'],
                 incomeCategories: ['Rent']
             };
@@ -483,7 +478,7 @@ describe('Module Integration - Normalized Data Architecture', () => {
             expect(validTransactions.length).toBe(transactions.length); // All should be valid
 
             // Verify categories exist
-            const categories = dataManager.store.queryCategories('expense');
+            const categories = dataManager.store.queryCategories({ type: 'expense' });
             expect(categories.length).toBeGreaterThan(0);
 
             // Render chart with validated data
@@ -832,8 +827,7 @@ describe('Module Integration - Normalized Data Architecture', () => {
             console.log('[INTEGRATION TEST] Step 2: Verifying DataManager data...');
             const dataManagerData = dataManager.getData();
             expect(dataManagerData.properties.length).toBeGreaterThanOrEqual(2);
-            expect(dataManagerData.expenseCategories.some(cat => cat.name === 'Rent')).toBe(true);
-            expect(dataManagerData.expenseCategories.some(cat => cat.name === 'Utilities')).toBe(true);
+            expect(dataManagerData.expenseCategories).toEqual(expect.arrayContaining(['Rent', 'Utilities']));
             console.log('[INTEGRATION TEST] ✓ DataManager data verified');
 
             // STEP 3: Verify ChartRenderer received data

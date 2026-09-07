@@ -9,6 +9,7 @@
 
 import Dexie from 'dexie';
 import logger from './Logger.js';
+import { migrateToFlat } from './legacyMigrator.js';
 
 class Storage {
     constructor() {
@@ -532,7 +533,7 @@ class Storage {
                 transactions: data.transactions.length,
             });
 
-            return data;
+            return migrateToFlat(data);
         } catch (error) {
             this.logger.error('Failed to load from database:', error);
 
@@ -875,7 +876,7 @@ class Storage {
       * @returns {Promise<boolean>} True if database is empty
       */
     async _quickEmptyCheck() {
-        if (!this.db) return true;
+        if (!this.db) {return true;}
 
         try {
             // Check if any tables have data (fast check)
@@ -898,7 +899,7 @@ class Storage {
         return {
             properties: [],
             expenseCategories: [],
-            incomeCategories: []
+            incomeCategories: [],
         };
     }
 

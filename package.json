@@ -6,8 +6,9 @@
   "main": "app.js",
   "scripts": {
     "dev": "vite",
-    "build": "babel src --out-dir dist",
-    "watch": "babel src --out-dir dist --watch",
+    "build": "vite build",
+    "build:babel": "babel src --out-dir dist-cjs",
+    "watch": "vite build --watch",
     "preview": "vite preview",
     "test": "NODE_ENV=test jest",
     "prepare": "husky install",
@@ -28,9 +29,9 @@
     "test:performance": "jest src/__tests__/PerformanceOptimizer.test.js",
     "test:utils:fast": "jest src/__tests__/Formatter.test.js src/__tests__/Validator.test.js src/__tests__/Storage.test.js src/__tests__/PerformanceOptimizer.test.js --runInBand",
     "lint": "eslint src/",
-    "lint:fix": "eslint app.js --fix",
-    "format": "prettier --write app.js index.html style.css",
-    "format:check": "prettier --check app.js index.html style.css",
+    "lint:fix": "eslint src/ --fix",
+    "format": "prettier --write src index.html style.css",
+    "format:check": "prettier --check src index.html style.css",
     "lint:staged": "eslint --fix"
   },
   "devDependencies": {

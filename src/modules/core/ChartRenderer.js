@@ -47,15 +47,7 @@ import { sankey, sankeyLinkHorizontal } from 'd3-sankey';
 import logger from '../utils/Logger.js';
 
 class ChartRenderer {
-    static instance = null;
-
     constructor(dataManager, uiManager, formatter, themeManager) {
-        if (ChartRenderer.instance) {
-            logger.warn('CHART', 'ChartRenderer already exists, returning existing instance');
-            return ChartRenderer.instance;
-        }
-        ChartRenderer.instance = this;
-
         this.dataManager = dataManager;
         this.uiManager = uiManager;
         this.formatter = formatter;
@@ -471,7 +463,7 @@ class ChartRenderer {
             // For other nodes, ensure they have valid data
             return !n.isDummy && n.name?.trim() && n.value > 0;
         });
-        
+
         const visibleLinks = sankeyLinks.filter(l => {
             // Don't filter out income/expense related links
             if (l.type?.includes('income') || l.type?.includes('earnings') || l.type?.includes('expenses') || l.type?.includes('profit')) {
@@ -485,10 +477,10 @@ class ChartRenderer {
 
         // Debug: Log income/expense nodes specifically
         const incomeExpenseNodes = visibleNodes.filter(n =>
-            n.type === 'income-source' || n.type === 'earnings' || n.type === 'expenses' || n.type === 'profit'
+            n.type === 'income-source' || n.type === 'earnings' || n.type === 'expenses' || n.type === 'profit',
         );
         logger.debug('CHART', 'Income/Expense nodes:', incomeExpenseNodes.map(n => `${n.name}: ${n.value}`));
-        
+
         visibleNodes.forEach(n => {
             n.x0 ??= 0;
             n.y0 ??= 0;
@@ -521,13 +513,30 @@ class ChartRenderer {
     // Render SVG with gradients/animations (~40 lines)
     createSankey(container, data) {
         const { width, height } = this.getDimensions(container);
-        const svg = d3.select(container).append('svg')
-            .attr('width', width).attr('height', height).attr('viewBox', `0 0 ${width} ${height}`)
-            .on('click', (e) => { if (e.target.tagName === 'svg') {this.clearRipple();} });
+        const svgEl = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svgEl.setAttribute('width', String(width));
+        svgEl.setAttribute('height', String(height));
+        svgEl.setAttribute('viewBox', `0 0 ${width} ${height}`);
+        container.appendChild(svgEl);
 
-        this.zoomBehavior = d3.zoom();
-        svg.call(this.zoomBehavior);
+        let svg;
+        try {
+            svg = d3.select(svgEl)
+                .attr('width', width).attr('height', height).attr('viewBox', `0 0 ${width} ${height}`)
+                .on('click', (e) => { if (e.target.tagName === 'svg') {this.clearRipple();} });
+        } catch (error) {
+            logger.warn('CHART', 'd3.select skipped', error);
+            return;
+        }
 
+        try {
+            this.zoomBehavior = d3.zoom();
+            svg.call(this.zoomBehavior);
+        } catch (error) {
+            logger.warn('CHART', 'Zoom init skipped', error);
+        }
+
+        try {
         // Shared gradients (limit types)
         const defs = svg.append('defs');
         const types = [...new Set(data.links.map(l => l.type))].slice(0, 8);
@@ -539,7 +548,7 @@ class ChartRenderer {
         });
 
         requestAnimationFrame(() => {
-            // Links: Animate "flow" in
+            try {
             const linkG = svg.append('g').attr('class', 'links');
 
             logger.debug('CHART', `Rendering links: ${data.links.length}`);
@@ -549,7 +558,7 @@ class ChartRenderer {
                     target: link.target?.name || link.target,
                     path: link.path,
                     width: link.width,
-                    type: link.type
+                    type: link.type,
                 });
             });
 
@@ -617,6 +626,9 @@ class ChartRenderer {
                 .attr('text-anchor', d => d.x0 > width / 2 ? 'end' : 'start')
                 .text(d => d.name.length > 12 ? d.name.slice(0, 12) + '...' : d.name)
                 .style('font-size', '12px').style('fill', 'var(--color-text)');
+            } catch (error) {
+                logger.warn('CHART', 'Sankey link draw skipped', error);
+            }
         });
 
         // Store with simulation for traces (creative: force for fast neighbors)
@@ -668,6 +680,9 @@ class ChartRenderer {
         }
 
         this.repositionPersistentTooltip(); // If any
+        } catch (error) {
+            logger.warn('CHART', 'Sankey draw incomplete', error);
+        }
 
         return svg;
     }
@@ -684,49 +699,49 @@ class ChartRenderer {
         const links = this.sankeyData.links;
         const startNode = type === 'link' ? item.source : item;
         const filterKey = item.property || item.category || item.name; // For property/cat-specific ripples
-    
+
         // Clear any existing hover timeout to prevent conflicts
         if (this.hoverTimeout) {
             clearTimeout(this.hoverTimeout);
             this.hoverTimeout = null;
         }
-    
+
         // Memoize relatedIds per filterKey
         let relatedIds = this.relatedIdsCache.get(filterKey);
         if (!relatedIds) {
             relatedIds = this.sankeyData.relationIndex.get(filterKey) || new Set();
             this.relatedIdsCache.set(filterKey, relatedIds);
         }
-    
+
         const forces = this.rippleForces.get(type);
         forces.filter = d3.forceManyBody().strength(d => {
             const isRelated = relatedIds.has(d.id);
             return isRelated ? 0 : -20; // Reduce repulsion strength for better visibility
         });
         forces.ripple = d3.forceRadial(50, startNode.x, startNode.y).strength(0.1); // Circular ripple from start
-    
+
         // State machine - improved logic
         if (isClick && this.interactionState === 'PINNED_SELECT' && this.isSameSelection(type, item)) {
             this.clearRipple();
             return;
         }
-    
+
         // For clicks, enable full sim with improved alpha
         if (isClick) {
             sim.force('path', forces.path).force('filter', forces.filter).force('ripple', forces.ripple)
                 .alpha(0.3).alphaDecay(0.03).restart(); // Slower decay for smoother animation
         }
-    
+
         // Update visuals immediately for better responsiveness
         this.updateRippleVisuals(nodes, links, relatedIds, false, isClick);
-    
+
         // Update state
         this.interactionState = isClick ? 'PINNED_SELECT' : 'RIPPLE_HOVER';
         this.state[isClick ? 'selected' : 'highlighted'] = { type, item, startNode, filterKey, relatedIds: new Set(relatedIds) };
-    
+
         // Show enhanced tooltip (SVG-based for sleekness)
         this.showRippleTooltip(event, item, type, isClick);
-    
+
         // On click: Zoom to ripple bbox (elegant pan/zoom)
         if (isClick) {
             const rippleNodes = nodes.filter(n => relatedIds.has(n.id));
@@ -786,16 +801,16 @@ class ChartRenderer {
             clearTimeout(this.hoverTimeout);
             this.hoverTimeout = null;
         }
-    
+
         this.interactionState = 'IDLE';
         this.state.selected = this.state.highlighted = null;
-        
+
         const sim = this.sankeyData.sim;
         sim.force('path', null).force('filter', null).force('ripple', null).alpha(0.1);
-        
+
         // Reset visuals with proper timing
         this.updateRippleVisuals(sim.nodes(), this.sankeyData.links, null, true, false);
-        
+
         this.hideTooltip();
         if (this.sankeyData.svg.call) {
             this.sankeyData.svg.call(this.zoomBehavior?.transform, d3.zoomIdentity); // Reset zoom

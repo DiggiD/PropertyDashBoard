@@ -161,12 +161,12 @@ describe('ChartRenderer with High Coverage', () => {
             expect(chartRenderer.uiManager).toBe(mockUIManager);
         });
 
-        test('should handle singleton pattern', () => {
+        test('creates a new instance instead of a singleton', () => {
             const mockFormatter2 = {
                 formatCurrency: jest.fn((val) => `$${val}`),
             };
             const secondInstance = new ChartRenderer(mockDataManager, mockUIManager, mockFormatter2);
-            expect(secondInstance).toBe(chartRenderer); // Should return existing instance
+            expect(secondInstance).not.toBe(chartRenderer);
         });
 
         test('should initialize with default chart config', () => {
@@ -232,10 +232,10 @@ describe('ChartRenderer with High Coverage', () => {
             expect(spy).toHaveBeenCalled();
         });
 
-        test('should enforce singleton pattern', () => {
+        test('does not reuse ChartRenderer instances', () => {
             const first = new ChartRenderer(mockDataManager, mockUIManager, mockFormatter);
             const second = new ChartRenderer(mockDataManager, mockUIManager, mockFormatter);
-            expect(second).toBe(first);
+            expect(second).not.toBe(first);
         });
 
         test('should handle error when chart-container not found', () => {
