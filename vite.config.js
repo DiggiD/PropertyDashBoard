@@ -6,20 +6,10 @@ export default defineConfig({
     port: 3000
   },
   build: {
-    outDir: 'dist',
-    rollupOptions: {
-      output: {
-        globals: {
-          d3: 'd3'
-        }
-      }
-    }
+    outDir: 'dist'
   },
   esbuild: {
     target: 'es2020'
-  },
-  optimizeDeps: {
-    exclude: ['d3']
   },
   define: {
     global: 'window'

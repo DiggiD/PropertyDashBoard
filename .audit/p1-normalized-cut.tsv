@@ -1,0 +1,19 @@
+ts	phase	decision	why	evidence	result
+2026-09-07T18:20:00Z	frame	use TransactionStore as the flat collection, no NormalizedDataManager	triage P1 and laziness	/workspace/research/sankey-property-dashboard-triage.md	open
+2026-09-07T18:25:00Z	P1.1	constructor is storage validator formatter options	callers already passed three args	src/modules/core/TransactionStore.js	tests green
+2026-09-07T18:26:00Z	P1.2	migrateToFlat on load, keep reconstruct for Storage tests	Dexie load already flat from P0	src/modules/utils/legacyMigrator.js	tests green
+2026-09-07T18:27:00Z	P1.3	properties as objects, expenseCategories names, rewrite sample JSON	one serialization	sample-expense-data-3-years.json	2261 txns import
+2026-09-07T18:28:00Z	P1.4	queryCategories object type filter, derive names	string type was ignored	DataManager._deriveInitialData	tests green
+2026-09-07T18:29:00Z	P1.5	getPropertyExpenseData queries store, leave monthly init methods	deleting them blows coverage tests	DataManager.getPropertyExpenseData	partial
+2026-09-07T18:32:00Z	P1.6	drop singleton, insert SVG then d3 draw in try/catch	jsdom zoom was wiping the node	src/__tests__/sample-boot.test.js	svg asserted
+2026-09-07T18:32:00Z	P1.7	getData returns exportData transactions	undo must restore flat rows	DataManager.getData	tests green
+2026-09-07T18:32:49Z	P1.8	empty 1.00ms avg, sample 2.39ms avg in memory	not IndexedDB reconstruct	scripts/measure-init.js	recorded
+2026-09-07T18:33:00Z	P1.9	eslint --fix live files, migrator clean, rest max-len leftover	zeroing HistoryManager not in scope	legacyMigrator.js lint 0	partial
+2026-09-07T18:33:30Z	P1.10	npm run build is vite build	babel moved to build:babel dist-cjs	npx vite build 1.98s	verified
+2026-09-07T18:34:00Z	verify	10 suites 828 tests	touched P1 surfaces	jest silent run	tests green
+2026-09-07T19:00:00Z	verify	browser click-through PASS	import 2261 txns 3 props, Sankey 21 nodes 21 links, properties list 3, undo is HistoryManager	user report 2026-09-07	verified
+2026-09-07T20:10:00Z	leftover	delete monthly/quarterly DataManager helpers and Storage reconstruct*	no live callers after P1.5 query path	DataManager.js Storage.js mock Storage	deleted
+2026-09-07T20:10:00Z	leftover	git rm App.js ModuleLoader EventHandler and their tests	unused after index.js entry	src/App.js src/modules/ModuleLoader.js src/modules/core/EventHandler.js	deleted
+2026-09-07T20:10:00Z	leftover	drop CDN d3 and in-page testMode harness	Vite bundles npm d3	index.html vite.config.js	deleted
+2026-09-07T20:15:00Z	verify	full npm test 17 suites 1740 tests	leftover pin after DataManager.test.js extra closer removed	npm test --ci --runInBand --coverage=false --silent	tests green
+2026-09-07T20:16:00Z	verify	vite build 474.81 kB gzip 125.18 kB	npm d3, no CDN, no rollup d3 global	npx vite build 1.83s	verified

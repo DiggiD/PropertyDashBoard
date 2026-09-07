@@ -59,8 +59,6 @@ export default [
                 // Module system
                 module: 'readonly',
                 require: 'readonly',
-                // Module classes (will be defined when loaded)
-                ModuleLoader: 'readonly',
                 Formatter: 'readonly',
                 Storage: 'readonly',
                 Validator: 'readonly',
@@ -68,9 +66,7 @@ export default [
                 DataManager: 'readonly',
                 UIManager: 'readonly',
                 HistoryManager: 'readonly',
-                EventHandler: 'readonly',
                 ChartRenderer: 'readonly',
-                App: 'readonly',
                 PerformanceOptimizer: 'readonly',
             },
         },

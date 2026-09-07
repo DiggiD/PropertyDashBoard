@@ -48,7 +48,6 @@
  */
 
 import TransactionStore from './TransactionStore.js';
-import UIManager from './UIManager.js';
 import logger from '../utils/Logger.js';
 import PerformanceOptimizer from '../utils/PerformanceOptimizer.js';
 
@@ -479,114 +478,6 @@ class DataManager {
         this.lastSaved = null;
         this.emit('dataChange');
         return true;
-    }
-
-    /**
-     * Initialize expenses from monthly data for a property
-     * @param {Object} property - Property object
-     * @param {boolean} force - Whether to force initialization even if expenses already exist
-     */
-    initializeExpensesFromMonthlyData(property, force = false) {
-        if (!property.monthlyData || typeof property.monthlyData !== 'object') {
-            logger.warn('DATAMANAGER', 'Invalid monthly data for property', property.name);
-            return;
-        }
-
-        try {
-            // Get all months and sort them
-            const months = Object.keys(property.monthlyData).sort();
-
-            if (months.length === 0) {
-                logger.warn('DATAMANAGER', 'No months found in monthly data for property', property.name);
-                return;
-            }
-
-            // Use the most recent month
-            const latestMonth = months[months.length - 1];
-            const latestMonthData = property.monthlyData[latestMonth];
-
-            if (!latestMonthData || !latestMonthData.expenses) {
-                logger.warn('DATAMANAGER', 'No expenses found in latest month for property', property.name);
-                return;
-            }
-
-            logger.debug('DATAMANAGER', `Initializing expenses from month: ${latestMonth} for property: ${property.name}`);
-
-            // Copy expenses from the latest month
-            Object.entries(latestMonthData.expenses).forEach(([category, value]) => {
-                if (typeof value === 'object' && value !== null) {
-                    // Handle hierarchical expenses - sum the values and ensure negative for expenses
-                    const total = Object.values(value).reduce((sum, val) => sum + (val || 0), 0);
-                    // Ensure the total is negative for expenses
-                    property.expenses[category] = total > 0 ? -total : total;
-                    logger.debug('DATAMANAGER', `Hierarchical expense ${category}: ${property.expenses[category]}`);
-                } else if (typeof value === 'number') {
-                    // Ensure flat values are negative for expenses
-                    property.expenses[category] = value > 0 ? -value : value;
-                    logger.debug('DATAMANAGER', `Flat expense ${category}: ${property.expenses[category]}`);
-                } else {
-                    logger.warn('DATAMANAGER', `Invalid expense value for ${category}: ${value}`);
-                    property.expenses[category] = 0;
-                }
-            });
-
-        } catch (error) {
-            logger.error('DATAMANAGER', 'Error initializing expenses from monthly data', error);
-        }
-    }
-
-    /**
-     * Initialize expenses from quarterly data for a property
-     * @param {Object} property - Property object
-     * @param {boolean} force - Whether to force initialization even if expenses already exist
-     */
-    initializeExpensesFromQuarterlyData(property, force = false) {
-        if (!property.quarterlyData || typeof property.quarterlyData !== 'object') {
-            logger.warn('DATAMANAGER', 'Invalid quarterly data for property', property.name);
-            return;
-        }
-
-        try {
-            // Get all quarters and sort them
-            const quarters = Object.keys(property.quarterlyData).sort();
-
-            if (quarters.length === 0) {
-                logger.warn('DATAMANAGER', 'No quarters found in quarterly data for property', property.name);
-                return;
-            }
-
-            // Use the most recent quarter
-            const latestQuarter = quarters[quarters.length - 1];
-            const latestQuarterData = property.quarterlyData[latestQuarter];
-
-            if (!latestQuarterData || !latestQuarterData.expenses) {
-                logger.warn('DATAMANAGER', 'No expenses found in latest quarter for property', property.name);
-                return;
-            }
-
-            logger.debug('DATAMANAGER', `Initializing expenses from quarter: ${latestQuarter} for property: ${property.name}`);
-
-            // Copy expenses from the latest quarter
-            Object.entries(latestQuarterData.expenses).forEach(([category, value]) => {
-                if (typeof value === 'object' && value !== null) {
-                    // Handle hierarchical expenses - sum the values and ensure negative for expenses
-                    const total = Object.values(value).reduce((sum, val) => sum + (val || 0), 0);
-                    // Ensure the total is negative for expenses
-                    property.expenses[category] = total > 0 ? -total : total;
-                    logger.debug('DATAMANAGER', `Hierarchical expense ${category}: ${property.expenses[category]}`);
-                } else if (typeof value === 'number') {
-                    // Ensure flat values are negative for expenses
-                    property.expenses[category] = value > 0 ? -value : value;
-                    logger.debug('DATAMANAGER', `Flat expense ${category}: ${property.expenses[category]}`);
-                } else {
-                    logger.warn('DATAMANAGER', `Invalid expense value for ${category}: ${value}`);
-                    property.expenses[category] = 0;
-                }
-            });
-
-        } catch (error) {
-            logger.error('DATAMANAGER', 'Error initializing expenses from quarterly data', error);
-        }
     }
 
     /**
@@ -1740,45 +1631,6 @@ class DataManager {
     }
 
     /**
-     * Initialize monthly data structure for a new property
-     * @param {Object} property - The new property object
-     */
-    initializeMonthlyDataForNewProperty(property) {
-        // Get current date to determine the current month
-        const now = new Date();
-        const currentYear = now.getFullYear();
-        const currentMonth = now.getMonth() + 1; // JavaScript months are 0-indexed
-
-        // Format month as "MMM YYYY" (e.g., "Jan 2025")
-        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        const monthKey = `${monthNames[currentMonth - 1]} ${currentYear}`;
-
-        // Initialize monthly data structure
-        property.monthlyData = {};
-        property.monthlyData[monthKey] = {
-            expenses: {},
-            total: 0,
-        };
-
-        // Copy the expense structure to monthly data
-        Object.entries(property.expenses).forEach(([category, value]) => {
-            if (typeof value === 'object' && value !== null) {
-                // Hierarchical category - copy the structure
-                property.monthlyData[monthKey].expenses[category] = { ...value };
-            } else {
-                // Flat category - copy the value
-                property.monthlyData[monthKey].expenses[category] = value;
-            }
-        });
-
-        // Calculate initial total
-        property.monthlyData[monthKey].total = this.calculatePropertyTotal(property.expenses);
-
-        logger.debug('DATAMANAGER', `Initialized monthly data for new property: ${property.name}, Month: ${monthKey}`);
-    }
-
-
-    /**
      * Get property expense data directly from expenses object
      * @param {Object} property - Property object
      * @param {boolean} preserveHierarchy - Whether to preserve hierarchical structure
@@ -1786,29 +1638,6 @@ class DataManager {
      */
     getPropertyExpenseData(property, preserveHierarchy = false) {
         return this.getCurrentPeriodData(property, null, preserveHierarchy);
-    }
-
-    /**
-     * Calculate total expenses for a property from its expenses object
-     * @param {Object} expenses - Expenses object
-     * @returns {number} Total amount
-     */
-    calculatePropertyTotal(expenses) {
-        let total = 0;
-
-        Object.values(expenses).forEach(value => {
-            if (typeof value === 'object' && value !== null) {
-                // Sum hierarchical values
-                Object.values(value).forEach(subValue => {
-                    total += subValue || 0;
-                });
-            } else {
-                // Add flat value
-                total += value || 0;
-            }
-        });
-
-        return total;
     }
 
     /**

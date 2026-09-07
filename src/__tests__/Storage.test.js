@@ -345,110 +345,6 @@ describe('Storage', () => {
         });
     });
 
-    describe('Data Reconstruction', () => {
-        test('should reconstruct monthly data from expenses', () => {
-            const mockExpenses = [
-                {
-                    property_id: 1,
-                    category: 'Rent',
-                    amount: 1000,
-                    month: 'Jan 2023',
-                    subcategory: null,
-                },
-                {
-                    property_id: 1,
-                    category: 'Utilities',
-                    subcategory: 'Electricity',
-                    amount: 200,
-                    month: 'Jan 2023',
-                },
-            ];
-
-            const result = storage.reconstructMonthlyData(mockExpenses);
-
-            expect(result[1]['Jan 2023']).toBeDefined();
-            expect(result[1]['Jan 2023'].expenses.Rent).toBe(1000);
-            expect(result[1]['Jan 2023'].expenses.Utilities.Electricity).toBe(200);
-        });
-
-        test('should calculate month total correctly', () => {
-            const expenses = {
-                Rent: 1000,
-                Utilities: { Electricity: 200, Water: 100 },
-                Maintenance: 300,
-            };
-
-            const result = storage.calculateMonthTotal(expenses);
-            expect(result).toBe(1600); // 1000 + 200 + 100 + 300
-        });
-
-        test('should reconstruct monthly incomes', () => {
-            const mockIncomes = [
-                {
-                    property_id: 1,
-                    category: 'Rental Income',
-                    amount: 2000,
-                    month: 'Jan 2023',
-                    subcategory: null,
-                },
-                {
-                    property_id: 1,
-                    category: 'Other Income',
-                    subcategory: 'Interest',
-                    amount: 100,
-                    month: 'Jan 2023',
-                },
-            ];
-
-            const result = storage.reconstructMonthlyIncomes(mockIncomes);
-
-            expect(result[1]['Jan 2023']).toBeDefined();
-            expect(result[1]['Jan 2023'].incomes['Rental Income']).toBe(2000);
-            expect(result[1]['Jan 2023'].incomes['Other Income'].Interest).toBe(100);
-        });
-
-        test('should merge monthly data from expenses and incomes', () => {
-            const expensesData = {
-                'Jan 2023': { expenses: { Rent: 1000 }, total: 1000 },
-            };
-            const incomesData = {
-                'Jan 2023': { incomes: { 'Rental Income': 2000 } },
-            };
-
-            const result = storage.mergeMonthlyData(expensesData, incomesData);
-
-            expect(result['Jan 2023']).toBeDefined();
-            expect(result['Jan 2023'].expenses.Rent).toBe(1000);
-            expect(result['Jan 2023'].incomes['Rental Income']).toBe(2000);
-            expect(result['Jan 2023'].total).toBe(3000); // 1000 + 2000
-        });
-
-        test('should calculate expenses from monthly data', () => {
-            const monthlyData = {
-                'Jan 2023': { expenses: { Rent: 1000, Utilities: 200 } },
-                'Feb 2023': { expenses: { Rent: 1100, Maintenance: 300 } },
-            };
-
-            const result = storage.calculateExpensesFromMonthly(monthlyData);
-
-            expect(result.Rent).toBe(1100); // Latest value
-            expect(result.Utilities).toBe(200); // Latest value
-            expect(result.Maintenance).toBe(300); // Latest value
-        });
-
-        test('should calculate incomes from monthly data', () => {
-            const monthlyData = {
-                'Jan 2023': { incomes: { 'Rental Income': 2000 } },
-                'Feb 2023': { incomes: { 'Rental Income': 2200, 'Other Income': 100 } },
-            };
-
-            const result = storage.calculateIncomesFromMonthly(monthlyData);
-
-            expect(result['Rental Income']).toBe(2200); // Latest value
-            expect(result['Other Income']).toBe(100); // Latest value
-        });
-    });
-
     describe('Database Operations', () => {
         beforeEach(() => {
             // Setup mock database
@@ -554,38 +450,19 @@ describe('Storage', () => {
             expect(result).toBe(true);
         });
 
-        test('should load data from database successfully', async () => {
-            const mockProperties = [
-                {
-                    id: 1,
-                    name: 'Test Property',
-                    created_date: '2023-01-01',
-                },
-            ];
-            const mockCategories = [
-                { name: 'Rent' },
-                { name: 'Utilities' },
-            ];
-            const mockExpenses = [
-                {
-                    property_id: 1,
-                    category: 'Rent',
-                    amount: 1000,
-                    month: 'Jan 2023',
-                },
-            ];
-
-            // Ensure database is available for this test
+        test('should load data from database as flat transactions', async () => {
             storage.db = {
                 properties: {
                     where: jest.fn().mockReturnThis(),
                     equals: jest.fn().mockReturnThis(),
-                    toArray: jest.fn().mockResolvedValue(mockProperties),
+                    toArray: jest.fn().mockResolvedValue([
+                        { id: 1, name: 'Test Property', created_date: '2023-01-01' },
+                    ]),
                 },
                 expenseCategories: {
                     where: jest.fn().mockReturnThis(),
                     equals: jest.fn().mockReturnThis(),
-                    toArray: jest.fn().mockResolvedValue(mockCategories),
+                    toArray: jest.fn().mockResolvedValue([{ name: 'Rent' }, { name: 'Utilities' }]),
                 },
                 incomeCategories: {
                     where: jest.fn().mockReturnThis(),
@@ -595,7 +472,9 @@ describe('Storage', () => {
                 expenses: {
                     where: jest.fn().mockReturnThis(),
                     equals: jest.fn().mockReturnThis(),
-                    toArray: jest.fn().mockResolvedValue(mockExpenses),
+                    toArray: jest.fn().mockResolvedValue([
+                        { property_id: 1, category: 'Rent', amount: 1000, month: 'Jan 2023' },
+                    ]),
                 },
                 incomes: {
                     where: jest.fn().mockReturnThis(),
@@ -607,18 +486,13 @@ describe('Storage', () => {
                 },
             };
 
-            // Mock the data reconstruction methods
-            storage.reconstructMonthlyData = jest.fn().mockReturnValue({});
-            storage.reconstructMonthlyIncomes = jest.fn().mockReturnValue({});
-            storage.mergeMonthlyData = jest.fn().mockReturnValue({});
-            storage.calculateExpensesFromMonthly = jest.fn().mockReturnValue({});
-            storage.calculateIncomesFromMonthly = jest.fn().mockReturnValue({});
-
             const result = await storage.loadFromDatabase();
 
             expect(result).toBeDefined();
             expect(result.properties).toHaveLength(1);
             expect(result.expenseCategories).toEqual(['Rent', 'Utilities']);
+            expect(Array.isArray(result.transactions)).toBe(true);
+            expect(result.transactions.length).toBeGreaterThan(0);
         });
 
         test('should handle database save errors gracefully', async () => {

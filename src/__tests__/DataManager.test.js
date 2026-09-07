@@ -1165,14 +1165,6 @@ describe('DataManager with Isolated Mocks (80%+ Coverage)', () => {
             const data = { properties: [], _lastSaved: new Date().toISOString() };
             expect(data).toEqual(expect.objectContaining({ properties: [], _lastSaved: expect.any(String) }));
         });
-
-        test('should execute initializeExpensesFromMonthlyData with force flag', async () => {
-            const prop = { id: 1, name: 'Test', monthlyData: {} };
-            const latestMonth = dataManager.initializeExpensesFromMonthlyData(prop, true);
-
-            // Should handle empty monthly data gracefully
-            expect(typeof prop.monthlyData).toBe('object');
-        });
     });
 
     // ============================================================================
@@ -1737,27 +1729,10 @@ describe('DataManager with Isolated Mocks (80%+ Coverage)', () => {
                 expect(result).toHaveProperty('isValid');
             });
 
-            test('should cover calculatePropertyTotal method', () => {
-                const expenses = {
-                    'Rent': 1000,
-                    'Utilities': { 'Electricity': 200, 'Water': 100 },
-                    'Maintenance': 500,
-                };
-                const total = dataManager.calculatePropertyTotal(expenses);
-                expect(total).toBe(1800); // 1000 + 200 + 100 + 500
-            });
-
             test('should cover getPropertyExpenseData method', () => {
                 const property = { id: 999, name: 'No txns' };
                 const flatData = dataManager.getPropertyExpenseData(property, false);
                 expect(flatData).toEqual({ total: 0, expenses: {} });
-            });
-
-            test('should cover initializeMonthlyDataForNewProperty method', () => {
-                const property = { id: 1, name: 'Test Property', expenses: { 'Rent': 1000 } };
-                dataManager.initializeMonthlyDataForNewProperty(property);
-                expect(property.monthlyData).toBeDefined();
-                expect(Object.keys(property.monthlyData).length).toBe(1);
             });
 
 
@@ -1768,44 +1743,6 @@ describe('DataManager with Isolated Mocks (80%+ Coverage)', () => {
                 const property = dataManager.getPropertyById(propResult.property.id);
                 const subtotal = dataManager.computeSubTotalForProperty(property, 'Utilities', 'Electricity', 'all');
                 expect(subtotal).toBe(300);
-            });
-
-            test('should cover initializeExpensesFromMonthlyData method', () => {
-                const property = {
-                    name: 'Monthly Test',
-                    monthlyData: {
-                        'Jan 2025': {
-                            expenses: {
-                                'Rent': 1000,
-                                'Utilities': { 'Electricity': 200, 'Water': 100 },
-                            },
-                        },
-                    },
-                    expenses: {},
-                };
-
-                dataManager.initializeExpensesFromMonthlyData(property);
-                expect(property.expenses.Rent).toBe(-1000); // Negative for expenses
-                expect(property.expenses.Utilities).toBe(-300); // Sum of subcategories
-            });
-
-            test('should cover initializeExpensesFromQuarterlyData method', () => {
-                const property = {
-                    name: 'Quarterly Test',
-                    quarterlyData: {
-                        'Q1 2025': {
-                            expenses: {
-                                'Rent': 1000,
-                                'Utilities': { 'Electricity': 200, 'Water': 100 },
-                            },
-                        },
-                    },
-                    expenses: {},
-                };
-
-                dataManager.initializeExpensesFromQuarterlyData(property);
-                expect(property.expenses.Rent).toBe(-1000);
-                expect(property.expenses.Utilities).toBe(-300);
             });
 
             // Test uncovered branches
@@ -2224,13 +2161,6 @@ describe('DataManager with Isolated Mocks (80%+ Coverage)', () => {
             });
 
             // Test additional edge cases for higher coverage
-            test('should handle initializeExpensesFromMonthlyData with invalid monthly data', () => {
-                const property = { name: 'Test', monthlyData: null };
-                dataManager.initializeExpensesFromMonthlyData(property);
-                // Should handle gracefully
-                expect(property.expenses).toBeUndefined();
-            });
-
 
             test('should handle getPropertyExpenseData with null property', () => {
                 const data = dataManager.getPropertyExpenseData(null);
@@ -2243,17 +2173,6 @@ describe('DataManager with Isolated Mocks (80%+ Coverage)', () => {
                 const data = dataManager.getPropertyExpenseData(property);
                 expect(data.total).toBe(0);
                 expect(data.expenses).toEqual({});
-            });
-
-            test('should handle calculatePropertyTotal with empty expenses', () => {
-                const total = dataManager.calculatePropertyTotal({});
-                expect(total).toBe(0);
-            });
-
-            test('should handle calculatePropertyTotal with null values', () => {
-                const expenses = { 'Rent': null, 'Utilities': undefined };
-                const total = dataManager.calculatePropertyTotal(expenses);
-                expect(total).toBe(0);
             });
 
             test('should handle computeSubTotalForProperty with null property', () => {
@@ -2393,13 +2312,6 @@ describe('DataManager with Isolated Mocks (80%+ Coverage)', () => {
                 dataManager.on('testEvent', callback);
                 dataManager.emit('testEvent', { test: 'data' });
                 expect(callback).toHaveBeenCalledWith({ test: 'data' });
-            });
-
-            test('should cover initializeExpensesFromMonthlyData with invalid data', () => {
-                const property = { name: 'Test', monthlyData: null };
-                dataManager.initializeExpensesFromMonthlyData(property);
-                // Should handle gracefully without throwing
-                expect(property.expenses).toBeUndefined();
             });
 
             test('should cover getAvailableYears with monthly data', async () => {
@@ -2938,18 +2850,6 @@ describe('DataManager with Isolated Mocks (80%+ Coverage)', () => {
                 loggerDebugSpy.mockRestore();
             });
 
-            test('should handle initializeExpensesFromMonthlyData with invalid monthly data', () => {
-                const property = { name: 'Test', monthlyData: null };
-                dataManager.initializeExpensesFromMonthlyData(property);
-                expect(property.expenses).toBeUndefined();
-            });
-
-            test('should handle initializeExpensesFromQuarterlyData with invalid quarterly data', () => {
-                const property = { name: 'Test', quarterlyData: null };
-                dataManager.initializeExpensesFromQuarterlyData(property);
-                expect(property.expenses).toBeUndefined();
-            });
-
             test('should handle getPropertyExpenseData with null property', () => {
                 const data = dataManager.getPropertyExpenseData(null);
                 expect(data.total).toBe(0);
@@ -2961,17 +2861,6 @@ describe('DataManager with Isolated Mocks (80%+ Coverage)', () => {
                 const data = dataManager.getPropertyExpenseData(property);
                 expect(data.total).toBe(0);
                 expect(data.expenses).toEqual({});
-            });
-
-            test('should handle calculatePropertyTotal with empty expenses', () => {
-                const total = dataManager.calculatePropertyTotal({});
-                expect(total).toBe(0);
-            });
-
-            test('should handle calculatePropertyTotal with null values', () => {
-                const expenses = { 'Rent': null, 'Utilities': undefined };
-                const total = dataManager.calculatePropertyTotal(expenses);
-                expect(total).toBe(0);
             });
 
             test('should handle computeSubTotalForProperty with null property', () => {
@@ -3104,12 +2993,6 @@ describe('DataManager with Isolated Mocks (80%+ Coverage)', () => {
                 dataManager.on('testEvent', callback);
                 dataManager.emit('testEvent', { test: 'data' });
                 expect(callback).toHaveBeenCalledWith({ test: 'data' });
-            });
-
-            test('should cover initializeExpensesFromMonthlyData with invalid data', () => {
-                const property = { name: 'Test', monthlyData: null };
-                dataManager.initializeExpensesFromMonthlyData(property);
-                expect(property.expenses).toBeUndefined();
             });
 
             test('should cover getAvailableYears with monthly data', async () => {
@@ -3277,63 +3160,6 @@ describe('DataManager with Isolated Mocks (80%+ Coverage)', () => {
                 expect(dm._initialized).toBe(true);
                 // Restore
                 dm.store.transactions = originalTransactions;
-            });
-
-            test('should cover initializeExpensesFromMonthlyData with hierarchical data', () => {
-                const property = {
-                    name: 'Monthly Test',
-                    monthlyData: {
-                        'Jan 2025': {
-                            expenses: {
-                                'Utilities': { 'Electricity': 200, 'Water': 100 },
-                            },
-                        },
-                    },
-                    expenses: {},
-                };
-                dataManager.initializeExpensesFromMonthlyData(property);
-                expect(property.expenses.Utilities).toBe(-300); // Sum of subcategories
-            });
-
-            test('should cover initializeExpensesFromMonthlyData with flat data', () => {
-                const property = {
-                    name: 'Monthly Test',
-                    monthlyData: {
-                        'Jan 2025': {
-                            expenses: {
-                                'Rent': 1000,
-                            },
-                        },
-                    },
-                    expenses: {},
-                };
-                dataManager.initializeExpensesFromMonthlyData(property);
-                expect(property.expenses.Rent).toBe(-1000);
-            });
-
-            test('should cover initializeExpensesFromMonthlyData with null expenses in monthly data', () => {
-                const property = {
-                    name: 'Monthly Test',
-                    monthlyData: {
-                        'Jan 2025': {
-                            expenses: null,
-                        },
-                    },
-                    expenses: {},
-                };
-                dataManager.initializeExpensesFromMonthlyData(property);
-                // Should handle gracefully
-                expect(property.expenses).toEqual({});
-            });
-
-            test('should cover initializeExpensesFromMonthlyData with empty monthly data', () => {
-                const property = {
-                    name: 'Monthly Test',
-                    monthlyData: {},
-                    expenses: {},
-                };
-                dataManager.initializeExpensesFromMonthlyData(property);
-                expect(property.expenses).toEqual({});
             });
 
 
@@ -3590,7 +3416,5 @@ describe('DataManager with Isolated Mocks (80%+ Coverage)', () => {
             });
         });
     });
-
-
-
 });
+

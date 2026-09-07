@@ -6,7 +6,6 @@
 
 // Sorted alphabetically for consistency
 import DataManager from 'src/modules/core/DataManager.js';
-import EventHandler from 'src/modules/core/EventHandler.js';
 import Formatter from 'src/modules/utils/Formatter.js';
 import HistoryManager from 'src/modules/core/HistoryManager.js';
 import PropertiesManager from 'src/modules/PropertiesManager.js';
@@ -17,7 +16,7 @@ import Validator from 'src/modules/utils/Validator.js';
 
 describe('Module Integration - Normalized Data Architecture', () => {
     let mockStorage, mockValidator, mockFormatter;
-    let dataManager, uiManager, eventHandler, propertiesManager, themeManager, historyManager;
+    let dataManager, uiManager, propertiesManager, themeManager, historyManager;
     let sampleTxns, sampleProps, sampleImportData;
 
     beforeEach(async () => {
@@ -74,9 +73,8 @@ describe('Module Integration - Normalized Data Architecture', () => {
         themeManager = new ThemeManager();
         uiManager = new UIManager(mockFormatter, themeManager);
         dataManager = new DataManager(mockStorage, mockValidator, mockFormatter);
-        eventHandler = new EventHandler();
         historyManager = new HistoryManager();
-        propertiesManager = new PropertiesManager(dataManager, uiManager, eventHandler, historyManager);
+        propertiesManager = new PropertiesManager(dataManager, uiManager, null, historyManager);
 
         // Fix DataManager validator reference (app code bug, but we can't change it)
         dataManager.validator = mockValidator;
@@ -226,12 +224,6 @@ describe('Module Integration - Normalized Data Architecture', () => {
     // Test that PropertiesManager has DataManager reference
         expect(propertiesManager.dataManager).toBe(dataManager);
         expect(propertiesManager.dataManager).toBeDefined();
-    });
-
-    test('11. EventHandler basic operations exist', () => {
-    // Test that EventHandler has expected structure
-        expect(eventHandler).toBeDefined();
-        expect(typeof eventHandler).toBe('object');
     });
 
     test('12. Module instances are properly created', () => {
@@ -616,17 +608,6 @@ describe('Module Integration - Normalized Data Architecture', () => {
             // Test selection check
             const same = chartRenderer.isSameSelection('node', {});
             expect(same).toBe(false); // No selection set
-        });
-
-        test('30. EventHandler keyboard and form operations', () => {
-            // Mock uiManager on eventHandler instance
-            eventHandler.uiManager = { addEventListener: jest.fn() };
-
-            // Test keyboard shortcut binding (should not throw)
-            expect(() => eventHandler.bindKeyboardShortcut(['ctrl+s'], () => {})).not.toThrow();
-
-            // Test form binding (should not throw)
-            expect(() => eventHandler.bindFormEvents()).not.toThrow();
         });
 
         test('31. HistoryManager state operations', () => {

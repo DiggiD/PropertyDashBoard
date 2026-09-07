@@ -11,7 +11,7 @@ export default {
   moduleFileExtensions: ['js', 'jsx', 'ts', 'tsx', 'mjs'],
   testMatch: ['<rootDir>/src/__tests__/**/*.test.{js,jsx,ts,tsx}', '<rootDir>/src/**/__tests__/**/*.test.{js,jsx,ts,tsx}'],
   testPathIgnorePatterns: ['/node_modules/', '/\\._'],
-  collectCoverageFrom: ['src/modules/**/*.js', 'src/App.js', 'src/index.js', '!**/node_modules/**', '!**/__tests__/**'],
+  collectCoverageFrom: ['src/modules/**/*.js', 'src/index.js', '!**/node_modules/**', '!**/__tests__/**'],
   reporters: ['default'],
   coverageReporters: ['lcov', 'text', 'html'],
   coverageProvider: 'v8',
