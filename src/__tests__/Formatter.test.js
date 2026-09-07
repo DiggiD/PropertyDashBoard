@@ -54,7 +54,6 @@ const createDexieMock = () => ({
 // Now import real modules (after mocks are set up)
 import Formatter from '../modules/utils/Formatter.js';
 import Validator from '../modules/utils/Validator.js';
-import Storage from '../modules/utils/Storage.js';
 import PerformanceOptimizer from '../modules/utils/PerformanceOptimizer.js';
 
 // Mock Intl.NumberFormat specifically for Formatter tests - optimized for performance

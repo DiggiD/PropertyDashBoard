@@ -148,7 +148,7 @@ class TransactionStore {
 
             // EARLY EMPTY DETECTION: Check if we have meaningful data upfront
             const seed = initialData as DashboardData | null;
-            const hasInitialData = seed && (
+            const _hasInitialData = seed && (
                 (seed.transactions && seed.transactions.length > 0) ||
                 (seed.properties && seed.properties.length > 0) ||
                 (seed.expenseCategories && seed.expenseCategories.length > 0)
@@ -176,7 +176,10 @@ class TransactionStore {
 
                 // EARLY EMPTY DETECTION: If no meaningful data, skip expensive operations
                 if (!stored || (stored.properties.length === 0 && stored.expenseCategories.length === 0)) {
-                    logger.info('TRANSACTIONSTORE', `No stored data found (storage check: ${storageCheckTime.toFixed(2)}ms), using fast empty initialization`);
+                    logger.info(
+                        'TRANSACTIONSTORE',
+                        `No stored data found (storage check: ${storageCheckTime.toFixed(2)}ms), using fast empty initialization`,
+                    );
                     this._initializeEmpty();
                 } else {
                     logger.info('TRANSACTIONSTORE', 'Found stored data, loading normally');
@@ -331,7 +334,10 @@ class TransactionStore {
 
         const loadTime = performance.now() - loadStart;
         logger.info('TRANSACTIONSTORE', `Optimized data loading completed in ${loadTime.toFixed(2)}ms`);
-        logger.info('TRANSACTIONSTORE', `Loaded ${this.transactions.length} transactions, ${this.properties.size} properties, ${this.categories.size} categories`);
+        logger.info(
+            'TRANSACTIONSTORE',
+            `Loaded ${this.transactions.length} transactions, ${this.properties.size} properties, ${this.categories.size} categories`,
+        );
     }
 
     /**
@@ -914,7 +920,11 @@ class TransactionStore {
     /**
       * Get aggregated sankey data (compatible with existing DataManager API) - OPTIMIZED
       */
-    queryAggregatedSankey(period = 'all', year: string | number | null = null, month: string | number | null = null): AggregatedSankey {
+    queryAggregatedSankey(
+        period = 'all',
+        year: string | number | null = null,
+        month: string | number | null = null,
+    ): AggregatedSankey {
         // OPTIMIZED: Skip expensive operations when no data exists
         if (this._isEmpty()) {
             logger.debug('TRANSACTIONSTORE', 'Empty store, returning empty sankey data');
@@ -1213,7 +1223,8 @@ class TransactionStore {
             totalIncomeCategories: this.incomeCategories.size,
             totalExpenses: expenseTxns.reduce((sum, t) => sum + Math.abs(t.amount), 0),
             totalIncome: incomeTxns.reduce((sum, t) => sum + t.amount, 0),
-            netAmount: incomeTxns.reduce((sum, t) => sum + t.amount, 0) - expenseTxns.reduce((sum, t) => sum + Math.abs(t.amount), 0),
+            netAmount: incomeTxns.reduce((sum, t) => sum + t.amount, 0)
+                - expenseTxns.reduce((sum, t) => sum + Math.abs(t.amount), 0),
             hasUnsavedChanges: this._hasUnsavedChanges,
             lastSaved: this._lastSaved,
         };

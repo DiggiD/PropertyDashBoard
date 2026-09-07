@@ -1,6 +1,6 @@
 import DataManager from './modules/core/DataManager.js';
 import ChartRenderer from './modules/core/ChartRenderer.js';
-import Storage from './modules/utils/Storage.js';
+import DashboardStorage from './modules/utils/Storage.js';
 import Validator from './modules/utils/Validator.js';
 import Formatter from './modules/utils/Formatter.js';
 import UIManager from './modules/core/UIManager.js';
@@ -23,7 +23,7 @@ async function initializeApplication() {
 
         // Initialize dependencies with performance tracking
         const storageStart = performance.now();
-        const storage = new Storage();
+        const storage = new DashboardStorage();
         performanceOptimizer.measureModuleLoad('Storage', storageStart);
         logger.logPerformance('INDEX', 'Storage initialization', performance.now() - storageStart);
 
@@ -333,7 +333,10 @@ function setupEventListeners(
         if (chartRenderer) {
             chartRenderer.handleColorThemeChange(event);
         } else {
-            logger.debug('INDEX', 'ChartRenderer not available for color theme change, will apply when chart is initialized');
+            logger.debug(
+                'INDEX',
+                'ChartRenderer not available for color theme change, will apply when chart is initialized',
+            );
         }
     });
 
@@ -370,7 +373,11 @@ function setupLazyChartInitialization(dataManager, uiManager, formatter, themeMa
                 const chartRenderer = new ChartRenderer(dataManager, uiManager, formatter, themeManager);
                 await chartRenderer.initialize();
                 performanceOptimizer.measureModuleLoad('ChartRenderer', chartRendererStart);
-                logger.logPerformance('INDEX', 'ChartRenderer lazy initialization', performance.now() - chartRendererStart);
+                logger.logPerformance(
+                    'INDEX',
+                    'ChartRenderer lazy initialization',
+                    performance.now() - chartRendererStart,
+                );
 
                 const renderStart = performance.now();
                 await chartRenderer.renderOverviewSankey();
@@ -458,7 +465,11 @@ async function ensureChartRenderer(
         if (performanceOptimizer && typeof performanceOptimizer.measureModuleLoad === 'function') {
             performanceOptimizer.measureModuleLoad('ChartRenderer', chartRendererStart);
         }
-        logger.logPerformance('INDEX', 'ChartRenderer on-demand initialization', performance.now() - chartRendererStart);
+        logger.logPerformance(
+            'INDEX',
+            'ChartRenderer on-demand initialization',
+            performance.now() - chartRendererStart,
+        );
 
         // Expose globally for debugging
         window.chartRenderer = chartRenderer;

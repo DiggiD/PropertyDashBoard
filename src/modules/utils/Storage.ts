@@ -103,7 +103,7 @@ type DashboardDB = Dexie & {
     import?: (data: unknown) => Promise<unknown>;
 };
 
-class Storage {
+class DashboardStorage {
     storageKey: string;
     historyStorageKey: string;
     settingsStorageKey: string;
@@ -152,7 +152,7 @@ class Storage {
         this._emptyCacheTimeout = 1000; // Shorter timeout for empty databases (1 second)
 
         // Create module-specific logger first
-        this.logger = logger.createModuleLogger('STORAGE') as Storage['logger'];
+        this.logger = logger.createModuleLogger('STORAGE') as DashboardStorage['logger'];
 
         // Initialize Dexie database asynchronously
         this._initPromise = this.initDatabase();
@@ -194,20 +194,26 @@ class Storage {
                 incomeCategories: '++id, name, user_id',
 
                 // Enhanced expense tracking with chronological indexing
-                expenses: '++id, property_id, category, subcategory, amount, expense_date, month, year, user_id, [property_id+expense_date], [property_id+month], [user_id+expense_date]',
+                expenses: '++id, property_id, category, subcategory, amount, expense_date, '
+                    + 'month, year, user_id, [property_id+expense_date], [property_id+month], '
+                    + '[user_id+expense_date]',
 
                 // Income tracking for future income categories feature
-                incomes: '++id, property_id, category, subcategory, amount, income_date, month, year, user_id, [property_id+income_date], [property_id+month], [user_id+income_date]',
+                incomes: '++id, property_id, category, subcategory, amount, income_date, '
+                    + 'month, year, user_id, [property_id+income_date], [property_id+month], '
+                    + '[user_id+income_date]',
 
                 // User management for future multi-user features
                 users: '++id, username, email, last_sync, created_date',
 
                 // Audit trail for data integrity
-                audit_log: '++id, action, entity_type, entity_id, user_id, timestamp, [entity_type+timestamp], [user_id+timestamp]',
+                audit_log: '++id, action, entity_type, entity_id, user_id, timestamp, '
+                    + '[entity_type+timestamp], [user_id+timestamp]',
 
                 // Settings and metadata
                 settings: 'key, value, user_id',
-                history: '++id, timestamp, name, description, data, totalExpenses, propertyCount, categoryCount, user_id',
+                history: '++id, timestamp, name, description, data, totalExpenses, '
+                    + 'propertyCount, categoryCount, user_id',
                 metadata: 'key, value',
             });
 
@@ -909,7 +915,10 @@ class Storage {
             const loadTime = performance.now() - startTime;
 
             // Return null if localStorage also has no real data (consistent with database behavior)
-            if (!data || (data.properties.length === 0 && data.expenseCategories.length === 0 && (!data.incomeCategories || data.incomeCategories.length === 0))) {
+            if (!data
+                || (data.properties.length === 0
+                    && data.expenseCategories.length === 0
+                    && (!data.incomeCategories || data.incomeCategories.length === 0))) {
                 this.logger.debug('No data found in localStorage either, returning null');
                 return null;
             }
@@ -1373,7 +1382,7 @@ class Storage {
 
         // Calculate localStorage usage
         for (const key in localStorage) {
-            if (localStorage.hasOwnProperty(key)) {
+            if (Object.prototype.hasOwnProperty.call(localStorage, key)) {
                 localStorageUsed += this.getStringSize(localStorage[key]) + this.getStringSize(key);
             }
         }
@@ -1747,9 +1756,14 @@ class Storage {
     }
 }
 
-// Export for use in other modules
-export default Storage;
+export default DashboardStorage;
 
-// Expose globally for Babel standalone transpilation.
-// Window.Storage is the DOM Storage constructor, so this assignment is a name collision on purpose.
-(window as unknown as { Storage: typeof Storage }).Storage = Storage;
+declare global {
+    interface Window {
+        DashboardStorage: typeof DashboardStorage;
+    }
+}
+
+if (typeof window !== 'undefined') {
+    window.DashboardStorage = DashboardStorage;
+}

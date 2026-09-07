@@ -32,11 +32,17 @@ export default {
   cache: false, // Disable Jest cache for reliability and speed
   moduleNameMapper: {
     '^src/modules/core/TransactionStore\\.js$': '<rootDir>/src/modules/core/TransactionStore.ts',
+    '^src/modules/core/DataManager\\.js$': '<rootDir>/src/modules/core/DataManager.ts',
+    '^src/modules/core/ChartRenderer\\.js$': '<rootDir>/src/modules/core/ChartRenderer.ts',
     '^src/modules/utils/Storage\\.js$': '<rootDir>/src/modules/utils/Storage.ts',
     'transactionModel\\.js$': '<rootDir>/src/modules/core/transactionModel.ts',
     'modules/core/TransactionStore\\.js$': '<rootDir>/src/modules/core/TransactionStore.ts',
+    'modules/core/DataManager\\.js$': '<rootDir>/src/modules/core/DataManager.ts',
+    'modules/core/ChartRenderer\\.js$': '<rootDir>/src/modules/core/ChartRenderer.ts',
     'modules/utils/Storage\\.js$': '<rootDir>/src/modules/utils/Storage.ts',
     '^\\./TransactionStore\\.js$': '<rootDir>/src/modules/core/TransactionStore.ts',
+    '^\\./DataManager\\.js$': '<rootDir>/src/modules/core/DataManager.ts',
+    '^\\./ChartRenderer\\.js$': '<rootDir>/src/modules/core/ChartRenderer.ts',
     '^src/(.*)$': '<rootDir>/src/$1',
     '@modules/(.*)': '<rootDir>/src/modules/$1'
   }

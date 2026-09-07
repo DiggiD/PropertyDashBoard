@@ -9,7 +9,6 @@ import DataManager from 'src/modules/core/DataManager.js';
 import Formatter from 'src/modules/utils/Formatter.js';
 import HistoryManager from 'src/modules/core/HistoryManager.js';
 import PropertiesManager from 'src/modules/PropertiesManager.js';
-import Storage from 'src/modules/utils/Storage.js';
 import ThemeManager from 'src/modules/core/ThemeManager.js';
 import UIManager from 'src/modules/core/UIManager.js';
 import Validator from 'src/modules/utils/Validator.js';

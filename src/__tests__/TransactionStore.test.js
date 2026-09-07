@@ -6,9 +6,6 @@
  */
 
 import TransactionStore from 'src/modules/core/TransactionStore.js';
-import * as StorageModule from 'src/modules/utils/Storage.js';
-import * as ValidatorModule from 'src/modules/utils/Validator.js';
-import * as FormatterModule from 'src/modules/utils/Formatter.js';
 
 jest.mock('../modules/utils/Storage', () => require('../__mocks__/Storage'));
 jest.mock('../modules/core/ThemeManager', () => require('../__mocks__/ThemeManager'));

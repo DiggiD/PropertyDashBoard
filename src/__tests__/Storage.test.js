@@ -115,9 +115,9 @@ Object.defineProperty(window, 'indexedDB', {
 });
 
 // Now import real modules (after mocks are set up)
-import Storage from '../modules/utils/Storage.js';
+import DashboardStorage from '../modules/utils/Storage.js';
 
-describe('Storage', () => {
+describe('DashboardStorage', () => {
     let storage;
 
     beforeEach(() => {
@@ -137,7 +137,7 @@ describe('Storage', () => {
         });
 
         // Create fresh instances
-        storage = new Storage();
+        storage = new DashboardStorage();
 
         // Mock initialize methods to avoid real initialization
         jest.spyOn(storage, 'initialize').mockResolvedValue();
@@ -332,8 +332,8 @@ describe('Storage', () => {
             const originalDexie = global.Dexie;
             delete global.Dexie;
 
-            const newStorage = new Storage();
-            expect(() => new Storage()).not.toThrow();
+            const newStorage = new DashboardStorage();
+            expect(() => new DashboardStorage()).not.toThrow();
             await newStorage._initPromise;
 
             global.Dexie = originalDexie;
@@ -928,7 +928,7 @@ describe('Storage', () => {
             const originalIndexedDB = window.indexedDB;
             delete window.indexedDB;
 
-            const newStorage = new Storage();
+            const newStorage = new DashboardStorage();
             expect(newStorage.isIndexedDBAvailable()).toBe(false);
 
             window.indexedDB = originalIndexedDB;

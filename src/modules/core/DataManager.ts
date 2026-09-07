@@ -48,13 +48,74 @@
  */
 
 import TransactionStore from './TransactionStore.js';
-import logger from '../utils/Logger.js';
-import PerformanceOptimizer from '../utils/PerformanceOptimizer.js';
+import loggerJs from '../utils/Logger.js';
+
+const logger = loggerJs as {
+    info: (...args: unknown[]) => void;
+    warn: (...args: unknown[]) => void;
+    error: (...args: unknown[]) => void;
+    debug: (...args: unknown[]) => void;
+    logPerformance: (...args: unknown[]) => void;
+};
+
+type StoragePort = {
+    load: () => Promise<unknown>;
+    save: (data: any) => Promise<unknown>;
+    _emptyCacheTimeout?: number;
+    _cacheTimeout?: number;
+};
+
+type ValidationResult = {
+    isValid: boolean;
+    message?: string;
+    errors?: string[];
+    [key: string]: unknown;
+};
+
+type ValidatorPort = {
+    validatePropertyName: (name: string) => ValidationResult;
+    validateCategoryName: (name: string) => ValidationResult;
+    validateAmount: (amount: any) => ValidationResult;
+    validateDashboardData: (data: any) => ValidationResult;
+};
+
+type ManagerData = {
+    properties: unknown[];
+    expenseCategories: unknown[];
+    incomeCategories: unknown[];
+    currentTimePeriod: string;
+    currentView: string;
+    selectedYear: string | number;
+    selectedMonth: string | number;
+    [key: string]: unknown;
+};
+
+type EventCallback = (data?: unknown) => void;
+
+type CacheEntry = {
+    timestamp: number;
+    [key: string]: unknown;
+};
+
+type ExtraPerf = {
+    recordDataManagerInitialization?: (ms: number) => void;
+    measureModuleLoad?: (name: string, start: number) => void;
+};
+
+function extraPerf(): ExtraPerf | undefined {
+    return window.performanceOptimizer as unknown as ExtraPerf | undefined;
+}
+
+function categoryNames(store: TransactionStore, type: 'expense' | 'income'): string[] {
+    const rows = store.queryCategories({ type }) as Array<{ name: string }>;
+    return rows.map(cat => cat.name);
+}
+
 
 // Utility function for debouncing
-function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
+function debounce(func: (...args: unknown[]) => unknown, wait: number) {
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    return (...args: unknown[]) => {
         const later = () => {
             clearTimeout(timeout);
             func(...args);
@@ -65,12 +126,32 @@ function debounce(func, wait) {
 }
 
 class DataManager {
-    constructor(storage, validator, formatter) {
+    _storage: StoragePort;
+    _validator: ValidatorPort;
+    _formatter: unknown;
+    store!: TransactionStore;
+    _initialized: boolean;
+    eventListeners!: Map<string, EventCallback[]>;
+    sankeyCache!: Map<string, unknown>;
+    _sankeyCache!: Map<string, CacheEntry>;
+    _hasUnsavedChanges!: boolean;
+    lastSaved!: Date | null;
+    subscriptions!: unknown[];
+    _lastDataChange!: number | null;
+    _lastTransactionCount!: number | null;
+    _lastTransactionHash!: number | null;
+    _expenseCache!: Record<string, any>;
+    _categoryCache!: Record<string, any>;
+    _distributionTimer!: ReturnType<typeof setTimeout> | null;
+    _debouncedSave!: ((...args: unknown[]) => unknown) | null;
+    data!: ManagerData;
+
+    constructor(storage: StoragePort, validator: ValidatorPort, formatter: any = null) {
         // LIGHTWEIGHT: Only store essential dependencies
         this._storage = storage;
         this._validator = validator;
         this._formatter = formatter;
-        this.store = null; // Will be created during initialize()
+        this.store = undefined as unknown as TransactionStore;
 
         // Initialize flag - start as false
         this._initialized = false;
@@ -86,11 +167,11 @@ class DataManager {
      * @param {string} event - Event name
      * @param {Function} callback - Callback function
      */
-    on(event, callback) {
+    on(event: string, callback: EventCallback) {
         if (!this.eventListeners.has(event)) {
             this.eventListeners.set(event, []);
         }
-        this.eventListeners.get(event).push(callback);
+        this.eventListeners.get(event)!.push(callback);
     }
 
     /**
@@ -98,7 +179,7 @@ class DataManager {
      * @param {string} event - Event name
      * @param {*} data - Event data
      */
-    emit(event, data) {
+    emit(event: string, data?: unknown) {
         const listeners = this.eventListeners.get(event);
         if (listeners) {
             listeners.forEach(callback => callback(data));
@@ -109,7 +190,7 @@ class DataManager {
       * Initialize data manager with existing data - OPTIMIZED for performance
       * @param {Object} initialData - Initial data to load
       */
-    async replaceStoreData(initialData) {
+    async replaceStoreData(initialData: any) {
         if (!this.store || typeof this.store.replaceData !== 'function') {
             await this._createTransactionStore(initialData);
         } else {
@@ -120,7 +201,7 @@ class DataManager {
         this.emit('dataChange', this.getData());
     }
 
-    async initialize(initialData = null) {
+    async initialize(initialData: any = null) {
         if (this._initialized) {
             if (initialData) {
                 await this.replaceStoreData(initialData);
@@ -155,7 +236,10 @@ class DataManager {
             // FAST PATH: If no data, skip expensive operations
             if (!hasInitialData && this._isStoreEmpty()) {
                 const emptyStateCheckTime = performance.now() - emptyStateCheckStart;
-                logger.info('DATAMANAGER', `Empty database detected in ${emptyStateCheckTime.toFixed(2)}ms, using fast initialization path`);
+                logger.info(
+                    'DATAMANAGER',
+                    `Empty database detected in ${emptyStateCheckTime.toFixed(2)}ms, using fast initialization path`,
+                );
                 this._fastEmptyInitialization();
                 return;
             }
@@ -180,7 +264,7 @@ class DataManager {
             this._deriveInitialData();
 
             this.lastSaved = new Date();
-            this.hasUnsavedChanges = false;
+            this._hasUnsavedChanges = false;
 
             // LAZY LOADING: Defer non-critical operations
             this._scheduleLazyOperations();
@@ -191,7 +275,7 @@ class DataManager {
             // PERFORMANCE MONITORING: Record initialization time (lazy loaded)
             setTimeout(() => {
                 if (window.performanceOptimizer) {
-                    window.performanceOptimizer.recordDataManagerInitialization(initTime);
+                    extraPerf()?.recordDataManagerInitialization?.(initTime);
                 }
             }, 0);
 
@@ -251,7 +335,7 @@ class DataManager {
       * Create TransactionStore instance with proper initialization
       * @param {Object} initialData - Initial data to load
       */
-    async _createTransactionStore(initialData = null) {
+    async _createTransactionStore(initialData: any = null) {
         const storeStart = performance.now();
 
         // Create the TransactionStore instance (now lightweight)
@@ -265,7 +349,7 @@ class DataManager {
 
         // Track performance
         if (window.performanceOptimizer) {
-            window.performanceOptimizer.measureModuleLoad('TransactionStore', storeStart);
+            extraPerf()?.measureModuleLoad?.('TransactionStore', storeStart);
         }
     }
 
@@ -281,7 +365,7 @@ class DataManager {
     /**
       * Optimized data loading with parallel operations
       */
-    async _loadDataOptimized(initialData) {
+    async _loadDataOptimized(initialData: any) {
         // Store is already created and initialized in _createTransactionStore()
         // Just handle additional data loading if needed
 
@@ -379,9 +463,9 @@ class DataManager {
         this._ensureStoreAvailable();
         this._ensureInitialized();
         this.data = {
-            properties: this.store.queryProperties(),
-            expenseCategories: this.store.queryCategories({ type: 'expense' }).map(cat => cat.name),
-            incomeCategories: this.store.queryCategories({ type: 'income' }).map(cat => cat.name),
+            properties: this.store.queryProperties() as unknown[],
+            expenseCategories: categoryNames(this.store, 'expense'),
+            incomeCategories: categoryNames(this.store, 'income'),
             currentTimePeriod: this.data?.currentTimePeriod || 'all',
             currentView: this.data?.currentView || 'overview',
             selectedYear: this.data?.selectedYear || 'all',
@@ -411,7 +495,7 @@ class DataManager {
         // Set empty state immediately
         this.initializeEmptyState();
         this.lastSaved = new Date();
-        this.hasUnsavedChanges = false;
+        this._hasUnsavedChanges = false;
 
         // LAZY: Defer non-critical setup
         this._scheduleLazyOperations();
@@ -441,7 +525,7 @@ class DataManager {
                 // Only record if we actually did work
                 const hasData = this.data.properties.length > 0 || this.data.expenseCategories.length > 0;
                 if (hasData) {
-                    window.performanceOptimizer.recordDataManagerInitialization(performance.now());
+                    extraPerf()?.recordDataManagerInitialization?.(performance.now());
                 }
             }
         }, 100);
@@ -485,7 +569,7 @@ class DataManager {
      * @param {boolean} includeBackup - Whether to include backup
      * @returns {boolean} Success status
      */
-    async clearAllData(includeBackup = false) {
+    async clearAllData(_includeBackup: boolean = false) {
         // REFACTORED: Use TransactionStore's clearAllData method
         await this.store.clearAllData();
         this.initializeEmptyState();
@@ -500,7 +584,7 @@ class DataManager {
      * @param {Object} data - Data to validate and normalize
      * @returns {Object} Validation and normalization result
      */
-    validateAndNormalizeData(data) {
+    validateAndNormalizeData(data: any) {
         if (!data || typeof data !== 'object') {
             return {
                 properties: [],
@@ -511,7 +595,13 @@ class DataManager {
             };
         }
 
-        const result = {
+        const result: {
+            properties: any[];
+            expenseCategories: any[];
+            incomeCategories: any[];
+            isValid: boolean;
+            errors: string[];
+        } = {
             properties: [],
             expenseCategories: [],
             incomeCategories: [],
@@ -522,7 +612,7 @@ class DataManager {
         try {
             // Validate and normalize properties
             if (data.properties && Array.isArray(data.properties)) {
-                result.properties = data.properties.filter(property => {
+                result.properties = data.properties.filter((property: any) => {
                     if (!property || typeof property !== 'object') {
                         result.errors.push('Invalid property format');
                         return false;
@@ -537,21 +627,21 @@ class DataManager {
 
             // Validate and normalize expense categories
             if (data.expenseCategories && Array.isArray(data.expenseCategories)) {
-                result.expenseCategories = data.expenseCategories.filter(category => {
+                result.expenseCategories = data.expenseCategories.filter((category: any) => {
                     return typeof category === 'string' && category.trim().length > 0;
                 });
             }
 
             // Validate and normalize income categories
             if (data.incomeCategories && Array.isArray(data.incomeCategories)) {
-                result.incomeCategories = data.incomeCategories.filter(category => {
+                result.incomeCategories = data.incomeCategories.filter((category: any) => {
                     return typeof category === 'string' && category.trim().length > 0;
                 });
             }
 
         } catch (error) {
             result.isValid = false;
-            result.errors.push(`Validation error: ${error.message}`);
+            result.errors.push(`Validation error: ${error instanceof Error ? error.message : String(error)}`);
         }
 
         return result;
@@ -595,7 +685,9 @@ class DataManager {
     getProperties() {
         this._ensureStoreAvailable();
         const props = this.store.queryProperties();
-        logger.info('DATAMANAGER', 'getProperties called, properties with incomes', props.filter(p => p.totalIncome > 0).length);
+        const withIncome = (props as Array<{ totalIncome?: number }>)
+            .filter(p => (p.totalIncome || 0) > 0).length;
+        logger.info('DATAMANAGER', 'getProperties called, properties with incomes', withIncome);
         return props;
     }
 
@@ -605,7 +697,7 @@ class DataManager {
       */
     getExpenseCategories() {
         this._ensureStoreAvailable();
-        const fromTxns = this.store.queryCategories({ type: 'expense' }).map(cat => cat.name);
+        const fromTxns = categoryNames(this.store, 'expense');
         const fromMeta = this.store.categories ? Array.from(this.store.categories) : [];
         return [...new Set([...fromMeta, ...fromTxns])];
     }
@@ -642,7 +734,7 @@ class DataManager {
       * @param {string} timePeriod - Time period to set
       */
     // REFACTORED: Only support 'all', 'year', 'month'
-    setCurrentTimePeriod(timePeriod) {
+    setCurrentTimePeriod(timePeriod: string) {
         this._ensureInitialized();
         const validPeriods = ['all', 'year', 'month'];
         if (validPeriods.includes(timePeriod)) {
@@ -656,7 +748,7 @@ class DataManager {
      * Set current view
      * @param {string} view - View to set
      */
-    setCurrentView(view) {
+    setCurrentView(view: string) {
         const validViews = ['overview', 'trends', 'comparison', 'categories'];
         if (validViews.includes(view)) {
             this.data.currentView = view;
@@ -677,7 +769,7 @@ class DataManager {
      * Set selected year
      * @param {string} year - Year to set ('all' for all years)
      */
-    setSelectedYear(year) {
+    setSelectedYear(year: string | number) {
         this.data.selectedYear = year;
         this.markAsChanged();
         this.emit('dataChange');
@@ -696,7 +788,7 @@ class DataManager {
      * Set selected month
      * @param {string} month - Month to set ('all' for all months)
      */
-    setSelectedMonth(month) {
+    setSelectedMonth(month: string | number) {
         this.data.selectedMonth = month;
         this.markAsChanged();
         this.emit('dataChange');
@@ -732,9 +824,9 @@ class DataManager {
      * @param {string} name - Property name
      * @returns {Object} Result with success status and property data
      */
-    async addProperty(name) {
+    async addProperty(name: string) {
         // Handle null/undefined input
-        if (name == null) {
+        if (name === null || name === undefined) {
             return {
                 success: false,
                 message: 'Property name cannot be null or undefined',
@@ -814,7 +906,7 @@ class DataManager {
      * @param {string} newName - New property name
      * @returns {Object} Result with success status
      */
-    updatePropertyName(propertyId, newName) {
+    updatePropertyName(propertyId: any, newName: string) {
         const propertyMeta = this.store.properties.get(propertyId);
         if (!propertyMeta) {
             return {
@@ -860,7 +952,7 @@ class DataManager {
      * @param {number} propertyId - Property ID to delete
      * @returns {Object} Result with success status
      */
-    deleteProperty(propertyId) {
+    deleteProperty(propertyId: any) {
         const propertyMeta = this.store.properties.get(propertyId);
         if (!propertyMeta) {
             return {
@@ -891,8 +983,9 @@ class DataManager {
      * @param {number} propertyId - Property ID
      * @returns {Object|null} Property object or null if not found
      */
-    getPropertyById(propertyId) {
-        return this.store.queryProperties().find(p => p.id === propertyId) || null;
+    getPropertyById(propertyId: any) {
+        const properties = this.store.queryProperties() as Array<{ name?: string; id?: unknown }>;
+        return properties.find(p => p.id === propertyId) || null;
     }
 
     /**
@@ -900,7 +993,7 @@ class DataManager {
      * @param {string} name - Category name
      * @returns {Object} Result with success status
      */
-    addExpenseCategory(name) {
+    addExpenseCategory(name: string) {
         // Validate input
         const validation = this._validator.validateCategoryName(name);
         if (!validation.isValid) {
@@ -945,7 +1038,7 @@ class DataManager {
      * @param {string} newName - New category name
      * @returns {Object} Result with success status
      */
-    updateExpenseCategory(oldName, newName) {
+    updateExpenseCategory(oldName: string, newName: string) {
         if (!this.store.categories.has(oldName)) {
             return {
                 success: false,
@@ -993,7 +1086,7 @@ class DataManager {
      * @param {string} categoryName - Category name to delete
      * @returns {Object} Result with success status
      */
-    deleteExpenseCategory(categoryName) {
+    deleteExpenseCategory(categoryName: string) {
         if (!this.store.categories.has(categoryName)) {
             return {
                 success: false,
@@ -1023,7 +1116,7 @@ class DataManager {
      * @param {string} name - Category name
      * @returns {Object} Result with success status
      */
-    addIncomeCategory(name) {
+    addIncomeCategory(name: string) {
         // Validate input
         const validation = this._validator.validateCategoryName(name);
         if (!validation.isValid) {
@@ -1066,7 +1159,7 @@ class DataManager {
      * @param {string} newName - New category name
      * @returns {Object} Result with success status
      */
-    updateIncomeCategory(oldName, newName) {
+    updateIncomeCategory(oldName: string, newName: string) {
         if (!this.store.incomeCategories.has(oldName)) {
             return {
                 success: false,
@@ -1114,7 +1207,7 @@ class DataManager {
      * @param {string} categoryName - Category name to delete
      * @returns {Object} Result with success status
      */
-    deleteIncomeCategory(categoryName) {
+    deleteIncomeCategory(categoryName: string) {
         if (!this.store.incomeCategories.has(categoryName)) {
             return {
                 success: false,
@@ -1146,7 +1239,7 @@ class DataManager {
      * @param {number} amount - Expense amount
      * @returns {Object} Result with success status
      */
-    _resolvePropertyMeta(propertyId) {
+    _resolvePropertyMeta(propertyId: any) {
         return this.store.properties.get(propertyId)
             || this.store.properties.get(Number(propertyId))
             || null;
@@ -1176,7 +1269,7 @@ class DataManager {
         return null;
     }
 
-    upsertPropertyLine({ propertyId, category, subcategory = null, amount, type = 'expense' }) {
+    upsertPropertyLine({ propertyId, category, subcategory = null, amount, type = 'expense' }: any) {
         if (!category) {
             return {
                 success: false,
@@ -1210,11 +1303,11 @@ class DataManager {
         }
 
         const dateRange = this._dateRangeForSelection();
-        const filters = { propertyId: resolvedId, category, type };
+        const filters: Record<string, unknown> = { propertyId: resolvedId, category, type };
         if (dateRange) {
             filters.dateRange = dateRange;
         }
-        let matches = this.store.queryTransactions(filters);
+        let matches = this.store.queryTransactions(filters as any);
         if (subcategory) {
             matches = matches.filter(txn => txn.subcategory === subcategory);
         } else {
@@ -1264,7 +1357,7 @@ class DataManager {
         };
     }
 
-    renamePropertyCategory(propertyId, oldCategory, newCategory) {
+    renamePropertyCategory(propertyId: any, oldCategory: string, newCategory: string) {
         if (!oldCategory || !newCategory) {
             return { success: false, message: 'Category name is required' };
         }
@@ -1290,7 +1383,7 @@ class DataManager {
         return { success: true };
     }
 
-    renamePropertySubcategory(propertyId, category, oldSubcategory, newSubcategory) {
+    renamePropertySubcategory(propertyId: any, category: string, oldSubcategory: string, newSubcategory: string) {
         if (!category || !oldSubcategory || !newSubcategory) {
             return { success: false, message: 'Subcategory name is required' };
         }
@@ -1310,7 +1403,7 @@ class DataManager {
         return { success: true };
     }
 
-    deletePropertyLines({ propertyId, category, subcategory = null }) {
+    deletePropertyLines({ propertyId, category, subcategory = null }: any) {
         const propertyMeta = this._resolvePropertyMeta(propertyId);
         if (!propertyMeta || !category) {
             return {
@@ -1331,7 +1424,7 @@ class DataManager {
         return { success: true };
     }
 
-    updatePropertyExpense(propertyId, category, amount) {
+    updatePropertyExpense(propertyId: any, category: string, amount: any) {
         if (!category) {
             return {
                 success: false,
@@ -1378,7 +1471,7 @@ class DataManager {
      * @param {boolean} preserveHierarchy - Whether to preserve hierarchical structure for sankey charts
      * @returns {Object} Current period data with {total: number, expenses: {cat: number|obj}}
      */
-    getCurrentPeriodData(property, timePeriod = null, preserveHierarchy = false) {
+    getCurrentPeriodData(property: any, timePeriod: string | null = null, preserveHierarchy: boolean = false) {
         try {
             const period = timePeriod || this.data?.currentTimePeriod || 'all';
 
@@ -1401,14 +1494,14 @@ class DataManager {
             });
 
             // Aggregate by category and subcategory
-            const expenses = {};
+            const expenses: Record<string, any> = {};
             let total = 0;
 
             transactions.forEach(txn => {
                 try {
                     const category = txn?.category;
                     const subcategory = txn?.subcategory;
-                    const amount = Math.abs(txn?.amount || 0); // Expenses are stored as negative, but we want positive for display
+                    const amount = Math.abs(txn?.amount || 0);
 
                     if (subcategory && preserveHierarchy) {
                         // Hierarchical structure
@@ -1439,7 +1532,7 @@ class DataManager {
      * @param {string} timePeriod - Time period (optional)
      * @returns {number} Total expenses
      */
-    calculateTotalExpenses(timePeriod = null) {
+    calculateTotalExpenses(timePeriod: string | null = null) {
         const period = timePeriod || this.data?.currentTimePeriod || 'all';
         const cacheKey = `total_expenses_${period}_${this.data?.selectedYear || 'all'}`;
 
@@ -1478,7 +1571,7 @@ class DataManager {
      * @param {string} timePeriod - Time period (optional)
      * @returns {number} Average expense per property
      */
-    calculateAverageExpensePerProperty(timePeriod = null) {
+    calculateAverageExpensePerProperty(timePeriod: string | null = null) {
         const period = timePeriod || this.data?.currentTimePeriod || 'all';
         const cacheKey = `avg_expense_${period}_${this.data?.selectedYear || 'all'}`;
 
@@ -1507,7 +1600,7 @@ class DataManager {
      * @param {string} timePeriod - Time period (optional)
      * @returns {Object} Top category data
      */
-    getTopExpenseCategory(timePeriod = null) {
+    getTopExpenseCategory(timePeriod: string | null = null) {
         const period = timePeriod || this.data?.currentTimePeriod || 'all';
         const cacheKey = `top_category_${period}_${this.data?.selectedYear || 'all'}`;
 
@@ -1521,7 +1614,7 @@ class DataManager {
         const categories = this.store.queryCategories({
             type: 'expense',
             sortBy: { field: 'totalAmount', order: 'desc' },
-        });
+        }) as Array<{ name: string; totalAmount: number }>;
 
         const topCategory = categories.length > 0 ? {
             name: categories[0].name,
@@ -1631,7 +1724,7 @@ class DataManager {
      * @param {Object|string} importData - Data to import (object or JSON string)
      * @returns {boolean} Success status
      */
-    async importData(importData) {
+    async importData(importData: any) {
         try {
             logger.info('DATAMANAGER', '===== STARTING IMPORT PROCESS =====');
             // Handle null/undefined input
@@ -1712,9 +1805,9 @@ class DataManager {
 
                 // Re-derive data from store
                 this.data = {
-                    properties: this.store.queryProperties(),
-                    expenseCategories: this.store.queryCategories({ type: 'expense' }).map(cat => cat.name),
-                    incomeCategories: this.store.queryCategories({ type: 'income' }).map(cat => cat.name),
+                    properties: this.store.queryProperties() as unknown[],
+                    expenseCategories: categoryNames(this.store, 'expense'),
+                    incomeCategories: categoryNames(this.store, 'income'),
                     currentTimePeriod: this.data?.currentTimePeriod || 'all',
                     currentView: this.data?.currentView || 'overview',
                     selectedYear: this.data?.selectedYear || 'all',
@@ -1764,28 +1857,13 @@ class DataManager {
     }
 
     /**
-     * Clear all data
-     * @param {boolean} includeBackup - Whether to include backup
-     * @returns {boolean} Success status
-     */
-    async clearAllData(includeBackup = false) {
-        // REFACTORED: Use TransactionStore's clearAllData method
-        await this.store.clearAllData();
-        this.initializeEmptyState();
-        this._hasUnsavedChanges = false;
-        this.lastSaved = null;
-        this.emit('dataChange');
-        return true;
-    }
-
-    /**
      * Get property expense data directly from expenses object
      * @param {Object} property - Property object
      * @param {boolean} preserveHierarchy - Whether to preserve hierarchical structure
      * @returns {Object} Expense data with total and expenses
      */
-    getPropertyExpenseData(property, preserveHierarchy = false) {
-        return this.getCurrentPeriodData(property, null, preserveHierarchy);
+    getPropertyExpenseData(property: any, preserveHierarchy: boolean = false) {
+        return this.getCurrentPeriodData(property, null as unknown as string, preserveHierarchy);
     }
 
     /**
@@ -1795,7 +1873,7 @@ class DataManager {
      * @param {string} year - Selected year ('all' for all years)
      * @returns {Object} Income data with total and income sources
      */
-    getPropertyIncomeData(property, period = null, year = null) {
+    getPropertyIncomeData(property: any, period: string | null = null, year: any = null) {
         const timePeriod = period || this.data?.currentTimePeriod || 'all';
         const selectedYear = year || this.data?.selectedYear || 'all';
 
@@ -1814,7 +1892,7 @@ class DataManager {
         });
 
         // Aggregate by category
-        const incomeSources = {};
+        const incomeSources: Record<string, number> = {};
         let total = 0;
 
         incomeTransactions.forEach(txn => {
@@ -1834,7 +1912,7 @@ class DataManager {
       * @param {string} year - Selected year ('all' for all years)
       * @returns {Object} Aggregated sankey data
       */
-    getAggregatedSankeyData(period = null, year = null) {
+    getAggregatedSankeyData(period: string | null = null, year: any = null) {
         this._ensureStoreAvailable();
         const timePeriod = period || this.data?.currentTimePeriod || 'all';
         const selectedYear = year || this.data?.selectedYear || 'all';
@@ -1887,7 +1965,7 @@ class DataManager {
      * @param {string} year - Selected year
      * @returns {boolean} Whether property has data
      */
-    hasData(property, period, year) {
+    hasData(property: any, period: string, year: any) {
         if (!property) {return false;}
 
         // Check if property has any expenses
@@ -1908,7 +1986,7 @@ class DataManager {
      * @param {string} year - Selected year
      * @returns {number} Subtotal amount
      */
-    computeSubTotalForProperty(property, category, subcategory, period, year) {
+    computeSubTotalForProperty(property: any, category: string, subcategory: string, period: string, _year: any) {
         if (!property) {return 0;}
 
         const periodData = this.getCurrentPeriodData(property, period, true);
@@ -1934,14 +2012,14 @@ class DataManager {
      * @param {string} year - Selected year ('all' for all years)
      * @returns {Object|null} Date range object or null for 'all'
      */
-    _getDateRangeForPeriod(period, year) {
+    _getDateRangeForPeriod(period: string, year: any) {
         const now = new Date();
 
         switch (period) {
-            case 'month':
-                const selectedYear = year && year !== 'all' ? parseInt(year) : now.getFullYear();
+            case 'month': {
+                const selectedYear = year && year !== 'all' ? parseInt(String(year)) : now.getFullYear();
                 const selectedMonth = this.data?.selectedMonth && this.data.selectedMonth !== 'all'
-                    ? parseInt(this.data.selectedMonth) - 1 // Convert to 0-based
+                    ? parseInt(String(this.data.selectedMonth)) - 1 // Convert to 0-based
                     : now.getMonth();
 
                 const startDate = new Date(selectedYear, selectedMonth, 1);
@@ -1950,7 +2028,7 @@ class DataManager {
                     start: startDate.toISOString().split('T')[0],
                     end: endDate.toISOString().split('T')[0],
                 };
-
+            }
             case 'year':
                 if (year && year !== 'all') {
                     // Use selected year
@@ -1996,7 +2074,7 @@ class DataManager {
 
         // Check if sankey cache entries are stale
         let hasStaleSankeyCache = false;
-        for (const [key, cached] of this._sankeyCache.entries()) {
+        for (const [_key, cached] of this._sankeyCache.entries()) {
             if (cached.timestamp < now - CACHE_TTL) {
                 hasStaleSankeyCache = true;
                 break;
@@ -2005,7 +2083,7 @@ class DataManager {
 
         // Check if expense cache entries are stale
         let hasStaleExpenseCache = false;
-        for (const [key, cached] of Object.entries(this._expenseCache)) {
+        for (const [_key, cached] of Object.entries(this._expenseCache)) {
             if (cached.timestamp < now - CACHE_TTL) {
                 hasStaleExpenseCache = true;
                 break;
@@ -2014,7 +2092,7 @@ class DataManager {
 
         // Check if category cache entries are stale
         let hasStaleCategoryCache = false;
-        for (const [key, cached] of Object.entries(this._categoryCache)) {
+        for (const [_key, cached] of Object.entries(this._categoryCache)) {
             if (cached.timestamp < now - CACHE_TTL) {
                 hasStaleCategoryCache = true;
                 break;
@@ -2127,8 +2205,11 @@ class DataManager {
             }
 
             // Distribute to TransactionStore if it has an update method
-            if (this.store && typeof this.store.updateFromDataManager === 'function') {
-                this.store.updateFromDataManager(this.getData());
+            const storeWithUpdate = this.store as TransactionStore & {
+                updateFromDataManager?: (data: unknown) => void;
+            };
+            if (storeWithUpdate && typeof storeWithUpdate.updateFromDataManager === 'function') {
+                storeWithUpdate.updateFromDataManager(this.getData());
                 logger.info('DATAMANAGER', 'Data distributed to TransactionStore');
             }
 
@@ -2152,7 +2233,7 @@ class DataManager {
      * @param {Object} data - Data to validate
      * @returns {Object} Validation result
      */
-    validateBulkData(data) {
+    validateBulkData(_data: any) {
         // Simple validation for test
         return { isValid: true, errors: [] };
     }
@@ -2195,7 +2276,7 @@ class DataManager {
      * @param {Object} data - Data to validate
      * @returns {Object} Validation result
      */
-    validateTransactionIntegrity(data) {
+    validateTransactionIntegrity(data: any) {
         // Simple validation for test
         return {
             isValid: false,
@@ -2243,8 +2324,9 @@ class DataManager {
         logger.info('DATAMANAGER', 'getHistory called - checking for history data...');
 
         // Check if TransactionStore has history tracking
-        if (this.store && this.store.getHistory) {
-            const history = this.store.getHistory();
+        const storeWithHistory = this.store as TransactionStore & { getHistory?: () => unknown[] };
+        if (storeWithHistory && storeWithHistory.getHistory) {
+            const history = storeWithHistory.getHistory();
             logger.info('DATAMANAGER', 'Retrieved history from store', history?.length || 0, 'entries');
             return history;
         }
@@ -2303,7 +2385,16 @@ class DataManager {
 // Export for use in other modules
 export default DataManager;
 
-// Expose globally for Babel standalone transpilation (only in browser)
+declare global {
+    interface Window {
+        DataManager: typeof DataManager;
+        chartRenderer?: { updateData?: (data: any) => void };
+        uiManager?: { updateDataDisplay?: (stats?: unknown) => void };
+        propertiesManager?: { updateData?: (data: any) => void };
+        dataManager?: DataManager;
+    }
+}
+
 if (typeof window !== 'undefined') {
     window.DataManager = DataManager;
 }

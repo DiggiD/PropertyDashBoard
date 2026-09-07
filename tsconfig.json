@@ -18,6 +18,9 @@
   "include": [
     "src/modules/core/transactionModel.ts",
     "src/modules/core/TransactionStore.ts",
-    "src/modules/utils/Storage.ts"
+    "src/modules/core/DataManager.ts",
+    "src/modules/core/ChartRenderer.ts",
+    "src/modules/utils/Storage.ts",
+    "src/types/d3-shim.d.ts"
   ]
 }
