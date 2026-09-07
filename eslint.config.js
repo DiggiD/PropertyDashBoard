@@ -9,6 +9,7 @@ export default [
             '*.min.js',
             'src/__mocks__/',
             'src/__tests__/',
+            '**/._*',
         ],
     },
     js.configs.recommended,
