@@ -43,7 +43,9 @@ describe('Undo restores TransactionStore after Properties save', () => {
     test('undo after saveExpenseValue reverts store query and Sankey totals', async () => {
         expect(dataManager.getAggregatedSankeyData('all', 'all').propExpenses.get(1) || 0).toBe(0);
 
+        expect(historyManager.hasFlatSnapshot()).toBe(false);
         await propertiesManager.saveExpenseValue('Rent', null, 1500);
+        expect(historyManager.hasFlatSnapshot()).toBe(true);
 
         expect(dataManager.store.queryTransactions({
             propertyId: 1,

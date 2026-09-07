@@ -65,6 +65,18 @@ class HistoryManager {
      * @param {boolean} isSnapshot - Whether this is a snapshot operation
      * @returns {boolean} Success status
      */
+    hasFlatSnapshot() {
+        return Array.isArray(this.history)
+            && this.history.some(entry => Array.isArray(entry?.data?.transactions));
+    }
+
+    async capture(description = 'Initial State') {
+        if (this.hasFlatSnapshot()) {
+            return false;
+        }
+        return this.saveState(description);
+    }
+
     async saveState(description = 'State change', metadata = {}, isSnapshot = false) {
         if (this.isUndoRedoInProgress) {
             logger.info('HISTORY', 'Skipping save during undo/redo operation');

@@ -1430,12 +1430,10 @@ class PropertiesManager {
     }
 
     async _ensureUndoBaseline() {
-        if (!this.historyManager || typeof this.historyManager.saveState !== 'function') {
+        if (!this.historyManager || typeof this.historyManager.capture !== 'function') {
             return;
         }
-        if (!Array.isArray(this.historyManager.history) || this.historyManager.history.length === 0) {
-            await this.historyManager.saveState('Initial State');
-        }
+        await this.historyManager.capture('Initial State');
     }
 
     async _recordHistory(description) {

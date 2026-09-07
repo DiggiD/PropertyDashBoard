@@ -105,7 +105,9 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
         mockHistoryManager = {
             createSnapshot: jest.fn(),
             saveState: jest.fn().mockResolvedValue(true),
-            history: [{ id: 'baseline' }],
+            capture: jest.fn().mockResolvedValue(false),
+            hasFlatSnapshot: jest.fn().mockReturnValue(true),
+            history: [{ id: 'baseline', data: { transactions: [] } }],
         };
 
         // Create real instances for complex tests

@@ -263,6 +263,69 @@ describe('HistoryManager - Full Implementation Tests', () => {
         });
     });
 
+    describe('capture', () => {
+        test('capture() saves a flat snapshot when history is empty', async () => {
+            mockDataManager.getData.mockReturnValue({
+                transactions: [],
+                properties: [{ id: 1, name: 'Office' }],
+                expenseCategories: ['Rent'],
+            });
+            mockDataManager.store = {
+                exportData: jest.fn().mockReturnValue({
+                    transactions: [],
+                    properties: [{ id: 1, name: 'Office' }],
+                    expenseCategories: ['Rent'],
+                    incomeCategories: [],
+                }),
+            };
+
+            const result = await manager.capture('Initial State');
+
+            expect(result).toBe(true);
+            expect(manager.history).toHaveLength(1);
+            expect(Array.isArray(manager.history[0].data.transactions)).toBe(true);
+        });
+
+        test('capture() skips when a flat snapshot already exists', async () => {
+            manager.history = [{
+                description: 'Existing',
+                data: { transactions: [], properties: [] },
+            }];
+            manager.historyIndex = 0;
+
+            const result = await manager.capture('Initial State');
+
+            expect(result).toBe(false);
+            expect(manager.history).toHaveLength(1);
+        });
+
+        test('capture() fills in when history has no transactions array', async () => {
+            manager.history = [{
+                description: 'Legacy tree',
+                data: { properties: [{ id: 1, expenses: { Rent: -1000 } }], expenseCategories: ['Rent'] },
+            }];
+            manager.historyIndex = 0;
+            mockDataManager.getData.mockReturnValue({
+                transactions: [],
+                properties: [{ id: 1, name: 'Office' }],
+            });
+            mockDataManager.store = {
+                exportData: jest.fn().mockReturnValue({
+                    transactions: [],
+                    properties: [{ id: 1, name: 'Office' }],
+                    expenseCategories: ['Rent'],
+                    incomeCategories: [],
+                }),
+            };
+
+            const result = await manager.capture('Initial State');
+
+            expect(result).toBe(true);
+            expect(manager.history).toHaveLength(2);
+            expect(Array.isArray(manager.history[1].data.transactions)).toBe(true);
+        });
+    });
+
     describe('State Saving (saveState)', () => {
         test('saveState() should save state successfully', async () => {
             mockDataManager.getData.mockReturnValue(testData1);
