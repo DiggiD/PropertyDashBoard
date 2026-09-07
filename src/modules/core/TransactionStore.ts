@@ -125,6 +125,16 @@ class TransactionStore {
       * Initialize the store with existing data or migrate legacy data - EXPANDED
       * @param {Object} initialData - Optional initial data to load
       */
+    async replaceData(data: unknown) {
+        this._initializeDataStructures();
+        await this._loadFromData(data);
+        this._setupReactiveProxy();
+        this._isInitialized = true;
+        this._hasUnsavedChanges = false;
+        this._lastSaved = new Date();
+        this._notifyChange('import', { transactionCount: this.transactions.length });
+    }
+
     async initialize(initialData: unknown = null) {
         if (this._isInitialized) {
             logger.info('TRANSACTIONSTORE', 'Already initialized, skipping');

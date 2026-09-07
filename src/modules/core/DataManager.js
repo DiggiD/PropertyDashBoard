@@ -109,8 +109,23 @@ class DataManager {
       * Initialize data manager with existing data - OPTIMIZED for performance
       * @param {Object} initialData - Initial data to load
       */
+    async replaceStoreData(initialData) {
+        if (!this.store || typeof this.store.replaceData !== 'function') {
+            await this._createTransactionStore(initialData);
+        } else {
+            await this.store.replaceData(initialData);
+        }
+        this._deriveInitialData();
+        this.clearSankeyCache();
+        this.emit('dataChange', this.getData());
+    }
+
     async initialize(initialData = null) {
         if (this._initialized) {
+            if (initialData) {
+                await this.replaceStoreData(initialData);
+                return;
+            }
             logger.info('DATAMANAGER', 'Already initialized, skipping');
             return;
         }

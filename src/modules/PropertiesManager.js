@@ -1429,6 +1429,22 @@ class PropertiesManager {
         return rawValue;
     }
 
+    async _ensureUndoBaseline() {
+        if (!this.historyManager || typeof this.historyManager.saveState !== 'function') {
+            return;
+        }
+        if (!Array.isArray(this.historyManager.history) || this.historyManager.history.length === 0) {
+            await this.historyManager.saveState('Initial State');
+        }
+    }
+
+    async _recordHistory(description) {
+        if (!this.historyManager || typeof this.historyManager.saveState !== 'function') {
+            return;
+        }
+        await this.historyManager.saveState(description);
+    }
+
     /**
      * Save expense value
      * Note: Expense categories store negative values, income categories store positive values
@@ -1441,10 +1457,8 @@ class PropertiesManager {
         // Determine if this is an expense or income category
         const isExpenseCategory = this.isExpenseCategory(category);
         const isIncomeCategory = this.isIncomeCategory(category);
-
-        // Create snapshot for undo
         const categoryType = isIncomeCategory ? 'income' : 'expense';
-        this.historyManager.createSnapshot(`Updated ${category}${subcategory ? ` - ${subcategory}` : ''} ${categoryType}`, '', false);
+        this._ensureUndoBaseline();
 
         // Handle NaN and invalid values
         let processedValue = value;
@@ -1473,6 +1487,10 @@ class PropertiesManager {
                 return;
             }
         }
+
+        this._recordHistory(
+            `Updated ${category}${subcategory ? ` - ${subcategory}` : ''} ${categoryType}`,
+        );
 
         if (property.expenses) {
             if (subcategory) {
@@ -2135,9 +2153,10 @@ class PropertiesManager {
      * Add property
      */
     async addProperty(name) {
+        this._ensureUndoBaseline();
         const result = await this.dataManager.addProperty(name.trim());
         if (result.success) {
-            this.historyManager.createSnapshot(`Added property "${name}"`, '', false);
+            this._recordHistory(`Added property "${name}"`);
 
             // Auto-select the newly added property
             const properties = this.dataManager.getProperties();
@@ -2159,9 +2178,10 @@ class PropertiesManager {
      * Update property name
      */
     updatePropertyName(propertyId, newName) {
+        this._ensureUndoBaseline();
         const result = this.dataManager.updatePropertyName(propertyId, newName);
         if (result.success) {
-            this.historyManager.createSnapshot(`Renamed property to "${newName}"`, '', false);
+            this._recordHistory(`Renamed property to "${newName}"`);
             this.renderPropertiesDashboard();
             this.uiManager.showToast(result.message, 'success');
         } else {
@@ -2181,7 +2201,7 @@ class PropertiesManager {
             return;
         }
 
-        this.historyManager.createSnapshot(`Renamed category "${oldCategory}" to "${newCategory}"`, '', false);
+        this._ensureUndoBaseline();
 
         if (typeof this.dataManager.renamePropertyCategory === 'function') {
             const result = this.dataManager.renamePropertyCategory(
@@ -2202,6 +2222,7 @@ class PropertiesManager {
         }
 
         this.dataManager.save();
+        this._recordHistory(`Renamed category "${oldCategory}" to "${newCategory}"`);
         this.renderPropertiesDashboard();
         this.refreshOverviewFromStore();
         this.uiManager.showToast(`Category renamed to "${newCategory}"`, 'success');
@@ -2222,7 +2243,7 @@ class PropertiesManager {
             return;
         }
 
-        this.historyManager.createSnapshot(`Renamed subcategory "${oldSubcategory}" to "${newSubcategory}" in ${category}`, '', false);
+        this._ensureUndoBaseline();
 
         if (typeof this.dataManager.renamePropertySubcategory === 'function') {
             const result = this.dataManager.renamePropertySubcategory(
@@ -2246,6 +2267,9 @@ class PropertiesManager {
         }
 
         this.dataManager.save();
+        this._recordHistory(
+            `Renamed subcategory "${oldSubcategory}" to "${newSubcategory}" in ${category}`,
+        );
         this.renderPropertiesDashboard();
         this.refreshOverviewFromStore();
         this.uiManager.showToast(`Subcategory renamed to "${newSubcategory}"`, 'success');
@@ -2269,6 +2293,7 @@ class PropertiesManager {
         const property = this.dataManager.getPropertyById(propertyId);
         if (!property) {return;}
 
+        this._ensureUndoBaseline();
         const result = await this.dataManager.deleteProperty(propertyId);
         if (result.success) {
             // Save the changes to storage to ensure persistence
@@ -2279,7 +2304,7 @@ class PropertiesManager {
                 return;
             }
 
-            this.historyManager.createSnapshot(`Deleted property "${property.name}"`, '', false);
+            this._recordHistory(`Deleted property "${property.name}"`);
             this.currentPropertyId = null;
             this.renderPropertiesDashboard();
             this.uiManager.showToast(result.message, 'success');
@@ -2300,8 +2325,7 @@ class PropertiesManager {
             return;
         }
 
-        // Create snapshot
-        this.historyManager.createSnapshot(`Added category "${name}" to ${property.name}`, '', false);
+        this._ensureUndoBaseline();
 
         if (property.expenses) {
             property.expenses[name] = isHierarchical ? {} : 0;
@@ -2311,6 +2335,7 @@ class PropertiesManager {
         }
 
         this.dataManager.save();
+        this._recordHistory(`Added category "${name}" to ${property.name}`);
         this.renderPropertiesDashboard();
         this.uiManager.showToast(`Category "${name}" added successfully`, 'success');
     }
@@ -2335,8 +2360,7 @@ class PropertiesManager {
             }
         }
 
-        // Create snapshot
-        this.historyManager.createSnapshot(`Added subcategory "${name}" to ${category}`, '', false);
+        this._ensureUndoBaseline();
 
         if (property.expenses) {
             property.expenses[category][name] = value;
@@ -2352,6 +2376,7 @@ class PropertiesManager {
         }
 
         this.dataManager.save();
+        this._recordHistory(`Added subcategory "${name}" to ${category}`);
         this.renderPropertiesDashboard();
         this.uiManager.showToast(`Subcategory "${name}" added successfully`, 'success');
     }
@@ -2374,8 +2399,7 @@ class PropertiesManager {
         if (!property) {return;}
         if (property.expenses && !property.expenses.hasOwnProperty(category)) {return;}
 
-        // Create snapshot
-        this.historyManager.createSnapshot(`Deleted category "${category}" from ${property.name}`, '', false);
+        this._ensureUndoBaseline();
 
         if (property.expenses) {
             delete property.expenses[category];
@@ -2388,6 +2412,7 @@ class PropertiesManager {
         }
 
         this.dataManager.save();
+        this._recordHistory(`Deleted category "${category}" from ${property.name}`);
         this.renderPropertiesDashboard();
         this.refreshOverviewFromStore();
         this.uiManager.showToast(`Category "${category}" deleted successfully`, 'success');
@@ -2417,8 +2442,7 @@ class PropertiesManager {
 
         if (!categoryValue.hasOwnProperty(subcategory)) {return;}
 
-        // Create snapshot
-        this.historyManager.createSnapshot(`Deleted subcategory "${subcategory}" from ${category}`, '', false);
+        this._ensureUndoBaseline();
 
         if (property.expenses && property.expenses[category] && typeof property.expenses[category] === 'object') {
             delete property.expenses[category][subcategory];
@@ -2435,6 +2459,7 @@ class PropertiesManager {
         }
 
         this.dataManager.save();
+        this._recordHistory(`Deleted subcategory "${subcategory}" from ${category}`);
         this.renderPropertiesDashboard();
         this.refreshOverviewFromStore();
         this.uiManager.showToast(`Subcategory "${subcategory}" deleted successfully`, 'success');

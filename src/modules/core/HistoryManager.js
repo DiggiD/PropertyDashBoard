@@ -201,13 +201,20 @@ class HistoryManager {
             if (targetState) {
                 const restoredData = JSON.parse(JSON.stringify(targetState.data));
                 await this.dataManager.initialize(restoredData);
+                if (typeof this.dataManager.save === 'function') {
+                    await this.dataManager.save();
+                }
                 logger.debug('HISTORY', `Restored data to: "${targetState.description}"`);
             } else {
                 // If no target state, initialize with empty data
                 await this.dataManager.initialize({
                     properties: [],
-                    expenseCategories: []
+                    expenseCategories: [],
+                    transactions: [],
                 });
+                if (typeof this.dataManager.save === 'function') {
+                    await this.dataManager.save();
+                }
                 logger.info('HISTORY', 'Restored to empty state');
             }
 
@@ -287,6 +294,9 @@ class HistoryManager {
             // Restore the data
             const restoredData = JSON.parse(JSON.stringify(targetState.data));
             await this.dataManager.initialize(restoredData);
+            if (typeof this.dataManager.save === 'function') {
+                await this.dataManager.save();
+            }
 
             // Save current state as a snapshot
             await this.saveHistoryToStorage();
@@ -521,6 +531,9 @@ class HistoryManager {
             });
 
             await this.dataManager.initialize(snapshotData);
+            if (typeof this.dataManager.save === 'function') {
+                await this.dataManager.save();
+            }
             logger.info('HISTORY', 'DataManager initialized with snapshot data');
 
             // Show toast notification with accurate statistics

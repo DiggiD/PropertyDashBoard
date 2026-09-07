@@ -104,6 +104,8 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
         };
         mockHistoryManager = {
             createSnapshot: jest.fn(),
+            saveState: jest.fn().mockResolvedValue(true),
+            history: [{ id: 'baseline' }],
         };
 
         // Create real instances for complex tests
@@ -253,7 +255,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
             await propertiesManager.addProperty('Test Property');
 
             expect(dataManager.addProperty).toHaveBeenCalledWith('Test Property');
-            expect(historyManager.createSnapshot).toHaveBeenCalled();
+            expect(historyManager.saveState).toHaveBeenCalled();
             expect(uiManager.showToast).toHaveBeenCalled();
         });
 
@@ -267,7 +269,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
             propertiesManager.updatePropertyName(1, 'Updated Name');
 
             expect(dataManager.updatePropertyName).toHaveBeenCalledWith(1, 'Updated Name');
-            expect(historyManager.createSnapshot).toHaveBeenCalled();
+            expect(historyManager.saveState).toHaveBeenCalled();
         });
 
         test('should delete property successfully', async () => {
@@ -277,7 +279,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
             await propertiesManager.deleteProperty(1);
 
             expect(dataManager.deleteProperty).toHaveBeenCalledWith(1);
-            expect(historyManager.createSnapshot).toHaveBeenCalledWith('Deleted property "Test Property"', '', false);
+            expect(historyManager.saveState).toHaveBeenCalledWith('Deleted property "Test Property"');
         });
 
         test('should handle addProperty failure', async () => {
@@ -347,7 +349,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
             propertiesManager.addCategory('Rent', false);
 
             expect(mockProperty.expenses['Rent']).toBe(0);
-            expect(historyManager.createSnapshot).toHaveBeenCalled();
+            expect(historyManager.saveState).toHaveBeenCalled();
         });
 
         test('should add hierarchical category', () => {
@@ -356,7 +358,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
             propertiesManager.addCategory('Utilities', true);
 
             expect(mockProperty.expenses['Utilities']).toEqual({});
-            expect(historyManager.createSnapshot).toHaveBeenCalled();
+            expect(historyManager.saveState).toHaveBeenCalled();
         });
 
         test('should add subcategory to hierarchical category', () => {
@@ -367,7 +369,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
             propertiesManager.addSubcategory('Electricity', 300);
 
             expect(mockProperty.expenses['Utilities']['Electricity']).toBe(300);
-            expect(historyManager.createSnapshot).toHaveBeenCalled();
+            expect(historyManager.saveState).toHaveBeenCalled();
         });
 
         test('should prevent duplicate category names', () => {
@@ -481,7 +483,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
             propertiesManager.handleExpenseSave({ target: mockInput });
 
-            expect(historyManager.createSnapshot).toHaveBeenCalled();
+            expect(historyManager.saveState).toHaveBeenCalled();
             expect(dataManager.save).toHaveBeenCalled();
         });
 

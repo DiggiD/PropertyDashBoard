@@ -30,7 +30,11 @@ describe('Properties save writes TransactionStore', () => {
             updateDataDisplay: jest.fn(),
             formatter: new Formatter(),
         };
-        const historyManager = { createSnapshot: jest.fn() };
+        const historyManager = {
+            createSnapshot: jest.fn(),
+            saveState: jest.fn().mockResolvedValue(true),
+            history: [{ id: 'baseline' }],
+        };
         propertiesManager = new PropertiesManager(dataManager, uiManager, historyManager);
         propertiesManager.currentPropertyId = 1;
         document.body.innerHTML = '<div id="propertiesDashboard"></div><div id="overviewChartContent"></div>';
