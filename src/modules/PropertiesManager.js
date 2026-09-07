@@ -2341,7 +2341,7 @@ class PropertiesManager {
     /**
      * Add subcategory
      */
-    addSubcategory(name, value = 0) {
+    async addSubcategory(name, value = 0) {
         const property = this.dataManager.getPropertyById(this.currentPropertyId);
         if (!property || !this.currentCategoryPath) {return;}
 
@@ -2376,6 +2376,7 @@ class PropertiesManager {
         this.dataManager.save();
         this._recordHistory(`Added subcategory "${name}" to ${category}`);
         this.renderPropertiesDashboard();
+        await this.refreshOverviewFromStore();
         this.uiManager.showToast(`Subcategory "${name}" added successfully`, 'success');
     }
 

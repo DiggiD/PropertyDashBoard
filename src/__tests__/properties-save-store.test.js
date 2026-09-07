@@ -191,4 +191,27 @@ describe('Properties save writes TransactionStore', () => {
         expect(afterEditAgg.catTotals.get('Rent')).toBe(2000);
         expect(afterEditAgg.propExpenses.get(1)).not.toBe(afterInsertAgg.propExpenses.get(1));
     });
+
+    test('addSubcategory writes a store line and refreshes Overview from store agg', async () => {
+        const renderOverviewSankey = jest.fn().mockImplementation(async () => {
+            const aggregated = dataManager.getAggregatedSankeyData('all', 'all');
+            expect(aggregated.propExpenses.get(1)).toBe(400);
+            expect(aggregated.catTotals.get('Utilities')).toBe(400);
+        });
+        propertiesManager.chartRenderer = { renderOverviewSankey };
+        propertiesManager.currentCategoryPath = { category: 'Utilities' };
+
+        await propertiesManager.addSubcategory('Electricity', 400);
+
+        const txns = dataManager.store.queryTransactions({
+            propertyId: 1,
+            category: 'Utilities',
+            type: 'expense',
+        });
+        expect(txns).toHaveLength(1);
+        expect(txns[0].subcategory).toBe('Electricity');
+        expect(dataManager.getAggregatedSankeyData('all', 'all').propExpenses.get(1)).toBe(400);
+        expect(dataManager.store.queryAggregatedSankey('all', 'all').catTotals.get('Utilities')).toBe(400);
+        expect(renderOverviewSankey).toHaveBeenCalled();
+    });
 });
