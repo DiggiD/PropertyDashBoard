@@ -1873,82 +1873,49 @@ class DataManager {
       * @returns {Object} Aggregated sankey data
       */
     getAggregatedSankeyData(period = null, year = null) {
+        this._ensureStoreAvailable();
         const timePeriod = period || this.data?.currentTimePeriod || 'all';
         const selectedYear = year || this.data?.selectedYear || 'all';
-        const cacheKey = `sankey_${timePeriod}_${selectedYear}_${this.data.selectedMonth}`;
+        const selectedMonth = this.data?.selectedMonth;
+        const cacheKey = `sankey_${timePeriod}_${selectedYear}_${selectedMonth}`;
 
-        // OPTIMIZED: Use cached result if available and valid (increased cache time)
-        const cached = this._sankeyCache.get(cacheKey);
-        if (cached && cached.timestamp > Date.now() - 30000) { // 30 second cache for sankey data
-            return cached.value;
-        }
-
-        // OPTIMIZED: Check if cache is stale before computing
-        this._checkAndClearStaleCache();
-
-        // OPTIMIZED: Implement lazy loading for Sankey data generation
-        return this._generateSankeyDataLazy(cacheKey, timePeriod, selectedYear);
-    }
-
-    /**
-      * Generate Sankey data with lazy loading - private method
-      * @param {string} cacheKey - Cache key for the operation
-      * @param {string} timePeriod - Time period
-      * @param {string} selectedYear - Selected year
-      * @returns {Promise<Object>} Aggregated sankey data
-      */
-    async _generateSankeyDataLazy(cacheKey, timePeriod, selectedYear) {
-        // OPTIMIZED: Return cached data immediately if available
         const cached = this._sankeyCache.get(cacheKey);
         if (cached && cached.timestamp > Date.now() - 30000) {
             return cached.value;
         }
 
-        // OPTIMIZED: Use requestIdleCallback for non-critical Sankey generation
-        return new Promise((resolve) => {
-            const generateSankey = () => {
-                const sankeyStart = performance.now();
+        this._checkAndClearStaleCache();
 
-                try {
-                    const result = this.store.queryAggregatedSankey(timePeriod, selectedYear, this.data.selectedMonth);
-                    const sankeyTime = performance.now() - sankeyStart;
-
-                    // OPTIMIZED: Cache the result with longer TTL
-                    this._sankeyCache.set(cacheKey, {
-                        value: result,
-                        timestamp: Date.now()
-                    });
-
-                    // PERFORMANCE MONITORING: Record sankey generation time
-                    if (window.performanceOptimizer) {
-                        window.performanceOptimizer.recordDataManagerOperation('sankey_generation', sankeyTime);
-                    }
-
-                    if (sankeyTime > 20) {
-                        logger.warn('DATAMANAGER', `Sankey data generation took ${sankeyTime.toFixed(2)}ms`);
-                    }
-
-                    resolve(result);
-                } catch (error) {
-                    logger.error('DATAMANAGER', 'Error generating Sankey data', error);
-                    resolve({
-                        hasIncome: false,
-                        sources: new Map(),
-                        propIncomes: new Map(),
-                        propExpenses: new Map(),
-                        catTotals: new Map(),
-                        subTotals: new Map(),
-                    });
-                }
+        const sankeyStart = performance.now();
+        let result;
+        try {
+            result = this.store.queryAggregatedSankey(timePeriod, selectedYear, selectedMonth);
+        } catch (error) {
+            logger.error('DATAMANAGER', 'Error generating Sankey data', error);
+            result = {
+                hasIncome: false,
+                sources: new Map(),
+                propIncomes: new Map(),
+                propExpenses: new Map(),
+                catTotals: new Map(),
+                subTotals: new Map(),
             };
+        }
 
-            // OPTIMIZED: Use requestIdleCallback if available, otherwise use setTimeout
-            if (window.requestIdleCallback) {
-                requestIdleCallback(generateSankey, { timeout: 1000 });
-            } else {
-                setTimeout(generateSankey, 0);
-            }
+        this._sankeyCache.set(cacheKey, {
+            value: result,
+            timestamp: Date.now(),
         });
+
+        const sankeyTime = performance.now() - sankeyStart;
+        if (window.performanceOptimizer) {
+            window.performanceOptimizer.recordDataManagerOperation('sankey_generation', sankeyTime);
+        }
+        if (sankeyTime > 20) {
+            logger.warn('DATAMANAGER', `Sankey data generation took ${sankeyTime.toFixed(2)}ms`);
+        }
+
+        return result;
     }
 
     /**

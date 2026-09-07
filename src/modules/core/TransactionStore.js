@@ -339,17 +339,17 @@ class TransactionStore {
      * Process properties with optimized loading
      */
     async _processPropertiesOptimized(properties) {
-    if (Array.isArray(properties)) {
-        // OPTIMIZED: Batch property processing
-        properties.forEach(([id, prop]) => {
-            if (prop && prop.id) {
-                this.properties.set(prop.id, {
-                    id: prop.id,
-                    name: prop.name || `Property ${prop.id}`,
-                    created: prop.created || new Date().toISOString(),
-                });
-            }
-        });
+        if (Array.isArray(properties)) {
+            properties.forEach(item => {
+                const prop = Array.isArray(item) ? item[1] : item;
+                if (prop && prop.id != null) {
+                    this.properties.set(prop.id, {
+                        id: prop.id,
+                        name: prop.name || `Property ${prop.id}`,
+                        created: prop.created || prop.created_date || new Date().toISOString(),
+                    });
+                }
+            });
         } else if (properties instanceof Map) {
             this.properties = new Map(properties);
         }
@@ -360,9 +360,9 @@ class TransactionStore {
      * Process categories with optimized loading
      */
     async _processCategoriesOptimized(data) {
-        if (Array.isArray(data.expenseCategories)) {
-            // OPTIMIZED: Direct set creation for better performance
-            this.categories = new Set(data.expenseCategories);
+        const expenseCategories = data.expenseCategories || data.categories;
+        if (Array.isArray(expenseCategories)) {
+            this.categories = new Set(expenseCategories);
         }
         if (Array.isArray(data.incomeCategories)) {
             this.incomeCategories = new Set(data.incomeCategories);

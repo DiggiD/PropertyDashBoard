@@ -543,7 +543,7 @@ describe('DataManager with Isolated Mocks (80%+ Coverage)', () => {
         // Mock internal methods that depend on external state
         dataManager._getDateRangeForPeriod = jest.fn((period, year) => {
             if (period === 'month') {
-                const selectedYear = year && year !== 'all' ? parseInt(year) : 2025;
+                const selectedYear = year && year !== 'all' ? parseInt(year) : new Date().getFullYear();
                 const selectedMonth = dataManager.data.selectedMonth && dataManager.data.selectedMonth !== 'all'
                     ? parseInt(dataManager.data.selectedMonth) - 1
                     : 0;
@@ -558,7 +558,7 @@ describe('DataManager with Isolated Mocks (80%+ Coverage)', () => {
                 if (year === 'all') {
                     return null;
                 }
-                const selectedYear = year && year !== 'all' ? year : '2025';
+                const selectedYear = year && year !== 'all' ? year : String(new Date().getFullYear());
                 return { start: `${selectedYear}-01-01`, end: `${selectedYear}-12-31` };
             }
             if (period === 'all') {
@@ -3510,7 +3510,8 @@ describe('DataManager with Isolated Mocks (80%+ Coverage)', () => {
                 dataManager._distributeDataToModules();
                 expect(mockUpdateData).toHaveBeenCalled();
                 const callArgs = mockUpdateData.mock.calls[0][0];
-                expect(callArgs).toBeInstanceOf(Promise);
+                expect(callArgs).toBeDefined();
+                expect(callArgs.propExpenses).toBeInstanceOf(Map);
                 delete global.window.chartRenderer;
             });
 

@@ -54,6 +54,15 @@ jest.mock('../modules/core/HistoryManager', () => ({
     default: jest.fn().mockImplementation(() => ({
         initialize: jest.fn().mockResolvedValue(),
         openHistoryManager: jest.fn(),
+        undo: jest.fn().mockResolvedValue({ success: true }),
+        redo: jest.fn().mockResolvedValue({ success: true }),
+    })),
+}));
+jest.mock('../modules/PropertiesManager.js', () => ({
+    default: jest.fn().mockImplementation(() => ({
+        initialize: jest.fn().mockResolvedValue(),
+        renderPropertiesDashboard: jest.fn(),
+        updateData: jest.fn(),
     })),
 }));
 
@@ -69,6 +78,7 @@ global.window = {
     uiManager: undefined,
     themeManager: undefined,
     historyManager: undefined,
+    propertiesManager: undefined,
     addEventListener: jest.fn(),
 };
 
@@ -482,9 +492,8 @@ describe('index.js', () => {
 
             if (undoCall) {
                 const undoHandler = undoCall[1];
-                global.alert = jest.fn();
                 undoHandler();
-                expect(global.alert).toHaveBeenCalledWith('Undo functionality - Coming Soon!');
+                expect(window.historyManager.undo).toHaveBeenCalled();
             } else {
                 console.log('UndoClick listener not found');
                 expect(true).toBe(true);
@@ -504,9 +513,8 @@ describe('index.js', () => {
 
             if (redoCall) {
                 const redoHandler = redoCall[1];
-                global.alert = jest.fn();
                 redoHandler();
-                expect(global.alert).toHaveBeenCalledWith('Redo functionality - Coming Soon!');
+                expect(window.historyManager.redo).toHaveBeenCalled();
             } else {
                 console.log('RedoClick listener not found');
                 expect(true).toBe(true);

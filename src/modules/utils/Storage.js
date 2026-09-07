@@ -7,6 +7,7 @@
  * - Storage validation and error handling
  */
 
+import Dexie from 'dexie';
 import logger from './Logger.js';
 
 class Storage {
@@ -61,12 +62,6 @@ class Storage {
             // Check IndexedDB availability first
             if (!this.isIndexedDBAvailable()) {
                 this.logger.warn('IndexedDB not available, will use localStorage fallback');
-                this.db = null;
-                return;
-            }
-
-            if (typeof Dexie === 'undefined') {
-                this.logger.warn('Dexie not available, falling back to localStorage only');
                 this.db = null;
                 return;
             }
@@ -503,31 +498,18 @@ class Storage {
                 return null;
             }
 
-            const reconstructionStartTime = performance.now();
-
-            // Reconstruct monthly data from expenses and incomes tables
-            const monthlyExpenses = this.reconstructMonthlyData(expenses);
-            const monthlyIncomes = this.reconstructMonthlyIncomes(incomesFromDB);
-
-            // Build properties data with optimized mapping
-            const propertiesData = properties.map(p => {
-                const propExpenses = monthlyExpenses[p.id] || {};
-                const propIncomes = monthlyIncomes[p.id] || {};
-
-                return {
-                    id: p.id,
-                    name: p.name,
-                    created_date: p.created_date,
-                    monthlyData: this.mergeMonthlyData(propExpenses, propIncomes),
-                    expenses: this.calculateExpensesFromMonthly(propExpenses),
-                    incomes: this.calculateIncomesFromMonthly(propIncomes),
-                };
-            });
+            const propertiesData = properties.map(p => ({
+                id: p.id,
+                name: p.name,
+                created: p.created_date,
+                created_date: p.created_date,
+            }));
 
             const data = {
                 properties: propertiesData,
                 expenseCategories: categories.map(c => c.name),
                 incomeCategories: incomeCategories.map(c => c.name),
+                transactions: this._transactionsFromTables(expenses, incomesFromDB),
             };
 
             // Load metadata efficiently
@@ -547,30 +529,60 @@ class Storage {
                 expenseCategories: data.expenseCategories.length,
                 incomeCategories: data.incomeCategories?.length || 0,
                 totalExpenses: expenses.length,
-                hasMonthlyData: data.properties.some(p => p.monthlyData && Object.keys(p.monthlyData).length > 0),
+                transactions: data.transactions.length,
             });
 
             return data;
         } catch (error) {
             this.logger.error('Failed to load from database:', error);
 
-            // Handle schema mismatch errors
-            if (error.name === 'NotFoundError' || error.message.includes('object stores was not found')) {
-                this.logger.warn('Database schema mismatch detected. Clearing database to recreate with correct schema...');
-
-                try {
-                    await this.db.delete();
-                    this.db = null;
-                    await this.initDatabase();
-                    this.logger.info('Database cleared and reinitialized successfully');
-                } catch (clearError) {
-                    this.logger.error('Failed to clear and reinitialize database:', clearError);
-                    this.db = null;
-                }
+            if (error.name === 'NotFoundError' || (error.message && error.message.includes('object stores was not found'))) {
+                this.logger.warn(
+                    'Database schema mismatch detected. IndexedDB left intact. Falling back to localStorage.',
+                );
+                this.db = null;
             }
 
             return null;
         }
+    }
+
+    _monthKeyToIsoDate(month) {
+        if (!month || typeof month !== 'string') {
+            return new Date().toISOString().split('T')[0];
+        }
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const parts = month.split(' ');
+        const monthIndex = monthNames.indexOf(parts[0]);
+        const year = parseInt(parts[1], 10);
+        if (monthIndex < 0 || !year) {
+            return new Date().toISOString().split('T')[0];
+        }
+        return `${year}-${String(monthIndex + 1).padStart(2, '0')}-01`;
+    }
+
+    _transactionsFromTables(expenses, incomes) {
+        const fromExpenses = (expenses || []).map(expense => ({
+            id: expense.id != null ? `exp_${expense.id}` : undefined,
+            propertyId: expense.property_id,
+            category: expense.category,
+            subcategory: expense.subcategory || undefined,
+            amount: typeof expense.amount === 'number'
+                ? (expense.amount > 0 ? -Math.abs(expense.amount) : expense.amount)
+                : 0,
+            date: expense.expense_date || this._monthKeyToIsoDate(expense.month),
+            type: 'expense',
+        }));
+        const fromIncomes = (incomes || []).map(income => ({
+            id: income.id != null ? `inc_${income.id}` : undefined,
+            propertyId: income.property_id,
+            category: income.category,
+            subcategory: income.subcategory || undefined,
+            amount: typeof income.amount === 'number' ? Math.abs(income.amount) : 0,
+            date: income.income_date || this._monthKeyToIsoDate(income.month),
+            type: 'income',
+        }));
+        return [...fromExpenses, ...fromIncomes];
     }
 
     /**

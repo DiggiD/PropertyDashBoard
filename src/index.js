@@ -6,6 +6,7 @@ import Formatter from './modules/utils/Formatter.js';
 import UIManager from './modules/core/UIManager.js';
 import ThemeManager from './modules/core/ThemeManager.js';
 import HistoryManager from './modules/core/HistoryManager.js';
+import PropertiesManager from './modules/PropertiesManager.js';
 import logger from './modules/utils/Logger.js';
 import PerformanceOptimizer from './modules/utils/PerformanceOptimizer.js';
 
@@ -104,18 +105,43 @@ async function initializeApplication() {
             setupLazyChartInitialization(dataManager, uiManager, formatter, themeManager, performanceOptimizer);
         }
 
+        logger.info('INDEX', 'Initializing PropertiesManager...');
+        const propertiesManagerStart = performance.now();
+        const propertiesManager = new PropertiesManager(
+            dataManager,
+            uiManager,
+            null,
+            historyManager,
+            chartRenderer,
+        );
+        await propertiesManager.initialize();
+        performanceOptimizer.measureModuleLoad('PropertiesManager', propertiesManagerStart);
+        logger.logPerformance(
+            'INDEX',
+            'PropertiesManager initialization',
+            performance.now() - propertiesManagerStart,
+        );
+
         logger.info('INDEX', 'Setting up event listeners...');
-        // Setup event listeners for UIManager events
-        setupEventListeners(uiManager, dataManager, chartRenderer, themeManager, historyManager);
+        setupEventListeners(
+            uiManager,
+            dataManager,
+            chartRenderer,
+            themeManager,
+            historyManager,
+            formatter,
+            performanceOptimizer,
+            propertiesManager,
+        );
         logger.info('INDEX', 'Event listeners setup complete');
 
-        // Expose globally for debugging (optional)
         window.DataManager = DataManager;
         window.dataManager = dataManager;
         window.chartRenderer = chartRenderer;
         window.uiManager = uiManager;
         window.themeManager = themeManager;
         window.historyManager = historyManager;
+        window.propertiesManager = propertiesManager;
         logger.debug('INDEX', 'Global objects exposed for debugging');
 
         const totalTime = Date.now() - startTime;
@@ -137,46 +163,57 @@ async function initializeApplication() {
 
 /**
  * Setup event listeners for UIManager events
- * @param {UIManager} uiManager - UI manager instance
- * @param {DataManager} dataManager - Data manager instance
- * @param {ChartRenderer} chartRenderer - Chart renderer instance
- * @param {ThemeManager} themeManager - Theme manager instance
- * @param {HistoryManager} historyManager - History manager instance
  */
- function setupEventListeners(uiManager, dataManager, chartRenderer, themeManager, historyManager) {
-     logger.debug('INDEX', 'Setting up UIManager event listeners...');
- 
-     // View change events
-     document.addEventListener('viewChange', (event) => {
-         const { view } = event.detail;
-         logger.debug('INDEX', `View change requested: ${view}`);
- 
-         uiManager.setCurrentView(view);
- 
-         // Handle view-specific actions
-         switch (view) {
-             case 'overview':
-                 logger.debug('INDEX', 'Switching to overview view');
-                 if (chartRenderer) {
-                     chartRenderer.renderOverviewSankey();
-                 } else {
-                     logger.debug('INDEX', 'ChartRenderer not available, attempting lazy initialization');
-                     // Attempt to initialize chart renderer if data is now available
-                     ensureChartRenderer(dataManager, uiManager, formatter, themeManager)
-                         .then(cr => cr?.renderOverviewSankey())
-                         .catch(error => logger.error('INDEX', 'Failed to render chart on view change:', error));
-                 }
-                 break;
-             case 'properties':
-                 logger.debug('INDEX', 'Switching to properties view');
-                 // Properties view logic would go here
-                 break;
-             case 'analytics':
-                 logger.debug('INDEX', 'Switching to analytics view');
-                 // Analytics view logic would go here
-                 break;
-         }
-     });
+function setupEventListeners(
+    uiManager,
+    dataManager,
+    chartRenderer,
+    themeManager,
+    historyManager,
+    formatter,
+    performanceOptimizer,
+    propertiesManager,
+) {
+    logger.debug('INDEX', 'Setting up UIManager event listeners...');
+
+    document.addEventListener('viewChange', (event) => {
+        const { view } = event.detail;
+        logger.debug('INDEX', `View change requested: ${view}`);
+
+        uiManager.setCurrentView(view);
+
+        switch (view) {
+            case 'overview':
+                logger.debug('INDEX', 'Switching to overview view');
+                if (chartRenderer) {
+                    chartRenderer.renderOverviewSankey();
+                } else {
+                    logger.debug('INDEX', 'ChartRenderer not available, attempting lazy initialization');
+                    ensureChartRenderer(
+                        dataManager,
+                        uiManager,
+                        formatter,
+                        themeManager,
+                        performanceOptimizer,
+                    )
+                        .then(cr => cr?.renderOverviewSankey())
+                        .catch(error => logger.error('INDEX', 'Failed to render chart on view change:', error));
+                }
+                break;
+            case 'properties':
+                logger.debug('INDEX', 'Switching to properties view');
+                if (propertiesManager && typeof propertiesManager.renderPropertiesDashboard === 'function') {
+                    propertiesManager.renderPropertiesDashboard();
+                }
+                break;
+            case 'analytics':
+                logger.debug('INDEX', 'Switching to analytics view');
+                break;
+            default:
+                logger.debug('INDEX', `Unhandled view: ${view}`);
+                break;
+        }
+    });
 
     // History button click - use HistoryManager if available
     document.addEventListener('historyClick', () => {
@@ -208,18 +245,22 @@ async function initializeApplication() {
         }
     });
 
-    // Undo button click
     document.addEventListener('undoClick', () => {
         logger.debug('INDEX', 'Undo button clicked');
-        // Handle undo functionality
-        alert('Undo functionality - Coming Soon!');
+        if (historyManager && typeof historyManager.undo === 'function') {
+            historyManager.undo();
+        } else {
+            logger.warn('INDEX', 'HistoryManager undo is not available');
+        }
     });
 
-    // Redo button click
     document.addEventListener('redoClick', () => {
         logger.debug('INDEX', 'Redo button clicked');
-        // Handle redo functionality
-        alert('Redo functionality - Coming Soon!');
+        if (historyManager && typeof historyManager.redo === 'function') {
+            historyManager.redo();
+        } else {
+            logger.warn('INDEX', 'HistoryManager redo is not available');
+        }
     });
 
     // Year change events
@@ -238,7 +279,13 @@ async function initializeApplication() {
         } else {
             logger.debug('INDEX', 'ChartRenderer not available for year change, attempting lazy initialization');
             // Attempt to initialize chart renderer if data is now available
-            ensureChartRenderer(dataManager, uiManager, formatter, themeManager)
+            ensureChartRenderer(
+                dataManager,
+                uiManager,
+                formatter,
+                themeManager,
+                performanceOptimizer,
+            )
                 .then(cr => cr?.renderOverviewSankey())
                 .catch(error => logger.error('INDEX', 'Failed to render chart on year change:', error));
         }
@@ -260,7 +307,13 @@ async function initializeApplication() {
         } else {
             logger.debug('INDEX', 'ChartRenderer not available for month change, attempting lazy initialization');
             // Attempt to initialize chart renderer if data is now available
-            ensureChartRenderer(dataManager, uiManager, formatter, themeManager)
+            ensureChartRenderer(
+                dataManager,
+                uiManager,
+                formatter,
+                themeManager,
+                performanceOptimizer,
+            )
                 .then(cr => cr?.renderOverviewSankey())
                 .catch(error => logger.error('INDEX', 'Failed to render chart on month change:', error));
         }
@@ -268,7 +321,7 @@ async function initializeApplication() {
 
     // Theme change events
     document.addEventListener('themeChange', (event) => {
-        const { theme, isDark, colors } = event.detail;
+        const { theme } = event.detail;
         logger.debug('INDEX', `Theme changed to: ${theme}`);
 
         // Theme is already handled by ThemeManager
@@ -277,7 +330,7 @@ async function initializeApplication() {
 
     // Color theme change events
     document.addEventListener('colorThemeChange', (event) => {
-        const { theme, colors } = event.detail;
+        const { theme } = event.detail;
         logger.debug('INDEX', `Color theme changed to: ${theme}`);
 
         // Update chart colors if chart is rendered
@@ -382,7 +435,13 @@ function setupOnDemandOnboardingTooltips(uiManager) {
  * @param {ThemeManager} themeManager - Theme manager instance
  * @returns {Promise<ChartRenderer|null>} ChartRenderer instance or null if no data
  */
-async function ensureChartRenderer(dataManager, uiManager, formatter, themeManager) {
+async function ensureChartRenderer(
+    dataManager,
+    uiManager,
+    formatter,
+    themeManager,
+    performanceOptimizer,
+) {
     // Check if chartRenderer is already available globally
     if (window.chartRenderer) {
         return window.chartRenderer;
@@ -400,7 +459,9 @@ async function ensureChartRenderer(dataManager, uiManager, formatter, themeManag
         const chartRendererStart = performance.now();
         const chartRenderer = new ChartRenderer(dataManager, uiManager, formatter, themeManager);
         await chartRenderer.initialize();
-        performanceOptimizer.measureModuleLoad('ChartRenderer', chartRendererStart);
+        if (performanceOptimizer && typeof performanceOptimizer.measureModuleLoad === 'function') {
+            performanceOptimizer.measureModuleLoad('ChartRenderer', chartRendererStart);
+        }
         logger.logPerformance('INDEX', 'ChartRenderer on-demand initialization', performance.now() - chartRendererStart);
 
         // Expose globally for debugging

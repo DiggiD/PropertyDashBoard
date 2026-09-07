@@ -3133,11 +3133,14 @@ class PropertiesManager {
         // Remove event listeners if needed
         logger.info('PROPERTIES', 'PropertiesManager cleaned up');
     }
+
+    updateData(_data) {
+        this.renderPropertiesDashboard();
+    }
 }
 
-// Export for use in other modules
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = PropertiesManager;
-} else {
+export default PropertiesManager;
+
+if (typeof window !== 'undefined') {
     window.PropertiesManager = PropertiesManager;
 }

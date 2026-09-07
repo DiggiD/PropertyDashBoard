@@ -328,14 +328,13 @@ describe('Storage', () => {
             await expect(storage.initialize()).resolves.not.toThrow();
         });
 
-        test('should handle Dexie unavailability', async () => {
-            // Mock Dexie as undefined
+        test('uses npm Dexie even when the Dexie global is missing', async () => {
             const originalDexie = global.Dexie;
             delete global.Dexie;
 
             const newStorage = new Storage();
-            await newStorage.initialize();
-            expect(newStorage.db).toBe(null);
+            expect(() => new Storage()).not.toThrow();
+            await newStorage._initPromise;
 
             global.Dexie = originalDexie;
         });
