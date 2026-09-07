@@ -1,5 +1,26 @@
 import logger from '../utils/Logger.js';
 import { migrateToFlat } from '../utils/legacyMigrator.js';
+import {
+    parseTransaction,
+    type AggregatedSankey,
+    type DashboardData,
+    type PropertyRecord,
+    type Transaction,
+    type TransactionQuery,
+    type TransactionType,
+} from './transactionModel.js';
+
+type StoragePort = {
+    load: () => Promise<unknown>;
+    save: (data: unknown) => Promise<unknown>;
+};
+
+type StoreOptions = {
+    debounceMs: number;
+    maxTransactions: number;
+};
+
+type ChangeListener = (changeType: string, data: unknown) => void;
 /**
  * TransactionStore Module
  * Reactive data store for normalized flat transaction data
@@ -56,7 +77,30 @@ import { migrateToFlat } from '../utils/legacyMigrator.js';
  */
 
 class TransactionStore {
-    constructor(storage, validator = null, formatter = null, options = {}) {
+    storage: StoragePort;
+    _validator: unknown;
+    _formatter: unknown;
+    options: StoreOptions;
+    _isInitialized: boolean;
+    transactions!: Transaction[];
+    properties!: Map<PropertyRecord['id'], PropertyRecord>;
+    categories!: Set<string>;
+    incomeCategories!: Set<string>;
+    _reactiveTransactions: Transaction[] | null;
+    _changeListeners!: Set<ChangeListener>;
+    _debounceTimer: ReturnType<typeof setTimeout> | null;
+    _hasUnsavedChanges: boolean;
+    _lastSaved: Date | null;
+    _queryCache!: Map<string, unknown>;
+    _cacheInvalidationTimer: ReturnType<typeof setTimeout> | null;
+    _lastCacheInvalidation: number | null;
+
+    constructor(
+        storage: StoragePort,
+        validator: unknown = null,
+        formatter: unknown = null,
+        options: Partial<StoreOptions> = {},
+    ) {
         this.storage = storage;
         this._validator = validator;
         this._formatter = formatter;
@@ -67,6 +111,12 @@ class TransactionStore {
         };
 
         this._isInitialized = false;
+        this._reactiveTransactions = null;
+        this._debounceTimer = null;
+        this._hasUnsavedChanges = false;
+        this._lastSaved = null;
+        this._cacheInvalidationTimer = null;
+        this._lastCacheInvalidation = null;
 
         logger.info('TRANSACTIONSTORE', 'TransactionStore constructor completed (lightweight)');
     }
@@ -75,7 +125,7 @@ class TransactionStore {
       * Initialize the store with existing data or migrate legacy data - EXPANDED
       * @param {Object} initialData - Optional initial data to load
       */
-    async initialize(initialData = null) {
+    async initialize(initialData: unknown = null) {
         if (this._isInitialized) {
             logger.info('TRANSACTIONSTORE', 'Already initialized, skipping');
             return;
@@ -87,30 +137,31 @@ class TransactionStore {
             logger.info('TRANSACTIONSTORE', 'Starting optimized initialization...');
 
             // EARLY EMPTY DETECTION: Check if we have meaningful data upfront
-            const hasInitialData = initialData && (
-                (initialData.transactions && initialData.transactions.length > 0) ||
-                (initialData.properties && initialData.properties.length > 0) ||
-                (initialData.expenseCategories && initialData.expenseCategories.length > 0)
+            const seed = initialData as DashboardData | null;
+            const hasInitialData = seed && (
+                (seed.transactions && seed.transactions.length > 0) ||
+                (seed.properties && seed.properties.length > 0) ||
+                (seed.expenseCategories && seed.expenseCategories.length > 0)
             );
 
             // EXPANDED: Initialize all data structures (moved from constructor)
             this._initializeDataStructures();
 
-            logger.info('TRANSACTIONSTORE', 'Initial data provided', !!initialData);
-            if (initialData) {
-                logger.info('TRANSACTIONSTORE', 'Initial data keys', Object.keys(initialData));
-                logger.info('TRANSACTIONSTORE', 'Initial data transactions', initialData.transactions?.length || 0);
-                logger.info('TRANSACTIONSTORE', 'Initial data properties', initialData.properties?.length || 0);
+            logger.info('TRANSACTIONSTORE', 'Initial data provided', !!seed);
+            if (seed) {
+                logger.info('TRANSACTIONSTORE', 'Initial data keys', Object.keys(seed));
+                logger.info('TRANSACTIONSTORE', 'Initial data transactions', seed.transactions?.length || 0);
+                logger.info('TRANSACTIONSTORE', 'Initial data properties', seed.properties?.length || 0);
             }
 
-            if (initialData) {
+            if (seed) {
                 logger.info('TRANSACTIONSTORE', 'Initializing with provided data');
-                await this._loadFromData(initialData);
+                await this._loadFromData(seed);
             } else {
                 // FAST PATH: Check storage for existing data first
                 logger.info('TRANSACTIONSTORE', 'Checking storage for existing data...');
                 const storageCheckStart = performance.now();
-                const stored = await this.storage.load();
+                const stored = await this.storage.load() as DashboardData | null;
                 const storageCheckTime = performance.now() - storageCheckStart;
 
                 // EARLY EMPTY DETECTION: If no meaningful data, skip expensive operations
@@ -227,16 +278,16 @@ class TransactionStore {
     /**
       * Load data from provided data object - OPTIMIZED for performance
       */
-    async _loadFromData(data) {
+    async _loadFromData(data: unknown) {
         const loadStart = performance.now();
         logger.info('TRANSACTIONSTORE', 'Starting optimized data loading...');
 
-        data = migrateToFlat(data);
+        const loaded = migrateToFlat(data) as DashboardData & { categories?: string[] };
 
-        const hasTransactions = Array.isArray(data.transactions) && data.transactions.length > 0;
-        const hasProperties = data.properties && data.properties.length > 0;
-        const hasCategories = (Array.isArray(data.expenseCategories) && data.expenseCategories.length > 0) ||
-                            (Array.isArray(data.incomeCategories) && data.incomeCategories.length > 0);
+        const hasTransactions = Array.isArray(loaded.transactions) && loaded.transactions.length > 0;
+        const hasProperties = loaded.properties && loaded.properties.length > 0;
+        const hasCategories = (Array.isArray(loaded.expenseCategories) && loaded.expenseCategories.length > 0) ||
+                            (Array.isArray(loaded.incomeCategories) && loaded.incomeCategories.length > 0);
 
         if (!hasTransactions && !hasProperties && !hasCategories) {
             logger.info('TRANSACTIONSTORE', 'No data to load, skipping expensive operations');
@@ -246,21 +297,21 @@ class TransactionStore {
         }
 
         // OPTIMIZED: Parallel processing of different data types (only for non-empty data)
-        const promises = [];
+        const promises: Promise<void>[] = [];
 
         // Process transactions asynchronously
         if (hasTransactions) {
-            promises.push(this._processTransactionsOptimized(data.transactions));
+            promises.push(this._processTransactionsOptimized(loaded.transactions));
         }
 
         // Process properties asynchronously
         if (hasProperties) {
-            promises.push(this._processPropertiesOptimized(data.properties));
+            promises.push(this._processPropertiesOptimized(loaded.properties));
         }
 
         // Process categories asynchronously
         if (hasCategories) {
-            promises.push(this._processCategoriesOptimized(data));
+            promises.push(this._processCategoriesOptimized(loaded));
         }
 
         // Wait for all parallel operations to complete
@@ -276,12 +327,12 @@ class TransactionStore {
     /**
      * Process transactions with optimized validation
      */
-    async _processTransactionsOptimized(transactions) {
+    async _processTransactionsOptimized(transactions: unknown[]) {
         logger.info('TRANSACTIONSTORE', `Processing ${transactions.length} transactions...`);
 
         // OPTIMIZED: Increased batch size for better performance
         const batchSize = 500; // Increased from 100 to 500 for better throughput
-        const validatedTransactions = [];
+        const validatedTransactions: Transaction[] = [];
 
         for (let i = 0; i < transactions.length; i += batchSize) {
             const batch = transactions.slice(i, i + batchSize);
@@ -289,7 +340,7 @@ class TransactionStore {
             const batchResults = await Promise.all(batchPromises);
 
             // Filter out null results and add to validated transactions
-            validatedTransactions.push(...batchResults.filter(Boolean));
+            validatedTransactions.push(...batchResults.filter((row): row is Transaction => row !== null));
         }
 
         this.transactions = validatedTransactions;
@@ -308,42 +359,17 @@ class TransactionStore {
     /**
      * Optimized transaction validation
      */
-    _validateTransactionOptimized(txn) {
-        if (!txn || typeof txn !== 'object') {return null;}
-
-        // OPTIMIZED: Faster validation with early returns
-        const id = txn.id || this.generateId();
-        const propertyId = typeof txn.propertyId === 'number' ? txn.propertyId : null;
-        const category = typeof txn.category === 'string' ? txn.category.trim() : '';
-        const subcategory = txn.subcategory ? String(txn.subcategory).trim() : undefined;
-        const amount = typeof txn.amount === 'number' ? txn.amount : 0;
-        const date = txn.date || new Date().toISOString().split('T')[0];
-        const type = txn.type === 'income' ? 'income' : 'expense';
-
-        // OPTIMIZED: Early validation check
-        if (!propertyId || !category || amount === 0) {
-            return null;
-        }
-
-        return {
-            id,
-            propertyId,
-            category,
-            subcategory,
-            amount,
-            date,
-            type,
-            description: txn.description ? String(txn.description).trim() : undefined,
-        };
+    _validateTransactionOptimized(txn: unknown): Transaction | null {
+        return parseTransaction(txn, () => this.generateId());
     }
 
     /**
      * Process properties with optimized loading
      */
-    async _processPropertiesOptimized(properties) {
+    async _processPropertiesOptimized(properties: unknown) {
         if (Array.isArray(properties)) {
             properties.forEach(item => {
-                const prop = Array.isArray(item) ? item[1] : item;
+                const prop = (Array.isArray(item) ? item[1] : item) as PropertyRecord | undefined;
                 if (prop && prop.id !== null && prop.id !== undefined) {
                     this.properties.set(prop.id, {
                         id: prop.id,
@@ -353,7 +379,7 @@ class TransactionStore {
                 }
             });
         } else if (properties instanceof Map) {
-            this.properties = new Map(properties);
+            this.properties = new Map(properties as Map<PropertyRecord['id'], PropertyRecord>);
         }
     }
 
@@ -361,7 +387,7 @@ class TransactionStore {
     /**
      * Process categories with optimized loading
      */
-    async _processCategoriesOptimized(data) {
+    async _processCategoriesOptimized(data: DashboardData & { categories?: string[] }) {
         const expenseCategories = data.expenseCategories || data.categories;
         if (Array.isArray(expenseCategories)) {
             this.categories = new Set(expenseCategories);
@@ -388,47 +414,33 @@ class TransactionStore {
     /**
      * Validate transaction object
      */
-    _validateTransaction(txn) {
-        if (!txn || typeof txn !== 'object') {return null;}
-
-        const validated = {
-            id: txn.id || this.generateId(),
-            propertyId: typeof txn.propertyId === 'number' ? txn.propertyId : null,
-            category: typeof txn.category === 'string' ? txn.category.trim() : '',
-            subcategory: txn.subcategory ? txn.subcategory.toString().trim() : undefined,
-            amount: typeof txn.amount === 'number' ? txn.amount : 0,
-            date: txn.date || new Date().toISOString().split('T')[0],
-            type: txn.type === 'income' ? 'income' : 'expense',
-            description: txn.description ? txn.description.toString().trim() : undefined,
-        };
-
-        // Basic validation
-        if (!validated.propertyId || !validated.category || validated.amount === 0) {
+    _validateTransaction(txn: unknown): Transaction | null {
+        const validated = parseTransaction(txn, () => this.generateId());
+        if (!validated) {
             logger.warn('TRANSACTIONSTORE', 'Invalid transaction', txn);
             return null;
         }
-
         return validated;
     }
 
     /**
      * Add change listener
      */
-    onChange(callback) {
+    onChange(callback: ChangeListener) {
         this._changeListeners.add(callback);
     }
 
     /**
      * Remove change listener
      */
-    offChange(callback) {
+    offChange(callback: ChangeListener) {
         this._changeListeners.delete(callback);
     }
 
     /**
      * Notify listeners of changes
      */
-    _notifyChange(changeType, data) {
+    _notifyChange(changeType: string, data: unknown) {
         this._changeListeners.forEach(callback => {
             try {
                 callback(changeType, data);
@@ -522,7 +534,7 @@ class TransactionStore {
     /**
      * Add a new transaction
      */
-    addTransaction(transactionData) {
+    addTransaction(transactionData: unknown) {
         const validatedTxn = this._validateTransaction(transactionData);
         if (!validatedTxn) {
             throw new Error('Invalid transaction data');
@@ -560,7 +572,7 @@ class TransactionStore {
     /**
      * Update an existing transaction
      */
-    updateTransaction(transactionId, updates) {
+    updateTransaction(transactionId: string, updates: Record<string, unknown>) {
         const index = this.transactions.findIndex(t => t.id === transactionId);
         if (index === -1) {
             throw new Error('Transaction not found');
@@ -594,7 +606,7 @@ class TransactionStore {
     /**
      * Delete a transaction
      */
-    deleteTransaction(transactionId) {
+    deleteTransaction(transactionId: string) {
         const index = this.transactions.findIndex(t => t.id === transactionId);
         if (index === -1) {
             throw new Error('Transaction not found');
@@ -612,7 +624,7 @@ class TransactionStore {
     /**
       * Query transactions with filters - OPTIMIZED for performance
       */
-    queryTransactions(filters = {}) {
+    queryTransactions(filters: TransactionQuery = {}): Transaction[] {
         // OPTIMIZED: Skip expensive operations when no data exists
         if (this._isEmpty()) {
             logger.debug('TRANSACTIONSTORE', 'Empty store, returning empty results');
@@ -621,7 +633,7 @@ class TransactionStore {
 
         const cacheKey = JSON.stringify(filters);
         if (this._queryCache.has(cacheKey)) {
-            return this._queryCache.get(cacheKey);
+            return this._queryCache.get(cacheKey) as Transaction[];
         }
 
         const queryStart = performance.now();
@@ -693,12 +705,14 @@ class TransactionStore {
         if (filters.sortBy) {
             const { field, order = 'asc' } = filters.sortBy;
             results.sort((a, b) => {
-                let aVal = a[field];
-                let bVal = b[field];
+                const rawA = a[field as keyof Transaction];
+                const rawB = b[field as keyof Transaction];
+                let aVal: string | number | Date = rawA as string | number;
+                let bVal: string | number | Date = rawB as string | number;
 
                 if (field === 'date') {
-                    aVal = new Date(aVal);
-                    bVal = new Date(bVal);
+                    aVal = new Date(String(rawA));
+                    bVal = new Date(String(rawB));
                 }
 
                 if (aVal < bVal) {return order === 'asc' ? -1 : 1;}
@@ -707,7 +721,7 @@ class TransactionStore {
             });
         } else {
             // Default sort by date descending - only if not already sorted
-            results.sort((a, b) => new Date(b.date) - new Date(a.date));
+            results.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         }
 
         // OPTIMIZED: Apply pagination efficiently
@@ -746,7 +760,7 @@ class TransactionStore {
     /**
       * Query properties with their transaction summaries
       */
-    queryProperties(filters = {}) {
+    queryProperties(filters: TransactionQuery = {}) {
         // OPTIMIZED: Skip expensive operations when no data exists
         if (this._isEmpty()) {
             logger.debug('TRANSACTIONSTORE', 'Empty store, returning empty properties');
@@ -758,7 +772,14 @@ class TransactionStore {
             return this._queryCache.get(cacheKey);
         }
 
-        const properties = [];
+        const properties: Array<PropertyRecord & {
+            transactionCount: number;
+            totalExpenses: number;
+            totalIncome: number;
+            netAmount: number;
+            categories: unknown;
+            lastTransaction: string | null;
+        }> = [];
 
         this.properties.forEach((propMeta, propertyId) => {
             // Get transactions for this property
@@ -782,8 +803,8 @@ class TransactionStore {
         if (filters.sortBy) {
             const { field, order = 'asc' } = filters.sortBy;
             properties.sort((a, b) => {
-                const aVal = a[field];
-                const bVal = b[field];
+                const aVal = a[field as keyof typeof a] as string | number;
+                const bVal = b[field as keyof typeof b] as string | number;
 
                 if (aVal < bVal) {return order === 'asc' ? -1 : 1;}
                 if (aVal > bVal) {return order === 'asc' ? 1 : -1;}
@@ -798,7 +819,7 @@ class TransactionStore {
     /**
      * Query categories with transaction summaries
      */
-    queryCategories(filters = {}) {
+    queryCategories(filters: TransactionQuery | string = {}) {
         const normalized = typeof filters === 'string' ? { type: filters } : (filters || {});
         const { sortBy, ...txnFilters } = normalized;
         const cacheKey = `categories_${JSON.stringify(normalized)}`;
@@ -806,7 +827,15 @@ class TransactionStore {
             return this._queryCache.get(cacheKey);
         }
 
-        const categories = new Map();
+        type CategorySummary = {
+            name: string;
+            type: TransactionType;
+            transactionCount: number;
+            totalAmount: number;
+            subcategories: Map<string, { name: string; transactionCount: number; totalAmount: number }>;
+            properties: Set<PropertyRecord['id']>;
+        };
+        const categories = new Map<string, CategorySummary>();
         const txns = this.queryTransactions(txnFilters);
 
         txns.forEach(txn => {
@@ -823,6 +852,9 @@ class TransactionStore {
             }
 
             const cat = categories.get(key);
+            if (!cat) {
+                return;
+            }
             cat.transactionCount++;
             cat.totalAmount += txn.amount;
             cat.properties.add(txn.propertyId);
@@ -836,6 +868,9 @@ class TransactionStore {
                     });
                 }
                 const subcat = cat.subcategories.get(txn.subcategory);
+                if (!subcat) {
+                    return;
+                }
                 subcat.transactionCount++;
                 subcat.totalAmount += txn.amount;
             }
@@ -851,8 +886,8 @@ class TransactionStore {
         if (sortBy) {
             const { field, order = 'asc' } = sortBy;
             result.sort((a, b) => {
-                const aVal = a[field];
-                const bVal = b[field];
+                const aVal = a[field as keyof typeof a];
+                const bVal = b[field as keyof typeof b];
 
                 if (aVal < bVal) {return order === 'asc' ? -1 : 1;}
                 if (aVal > bVal) {return order === 'asc' ? 1 : -1;}
@@ -869,7 +904,7 @@ class TransactionStore {
     /**
       * Get aggregated sankey data (compatible with existing DataManager API) - OPTIMIZED
       */
-    queryAggregatedSankey(period = 'all', year = null, month = null) {
+    queryAggregatedSankey(period = 'all', year: string | number | null = null, month: string | number | null = null): AggregatedSankey {
         // OPTIMIZED: Skip expensive operations when no data exists
         if (this._isEmpty()) {
             logger.debug('TRANSACTIONSTORE', 'Empty store, returning empty sankey data');
@@ -885,7 +920,7 @@ class TransactionStore {
 
         const cacheKey = `sankey_${period}_${year}_${month}`;
         if (this._queryCache.has(cacheKey)) {
-            return this._queryCache.get(cacheKey);
+            return this._queryCache.get(cacheKey) as AggregatedSankey;
         }
 
         const sankeyStart = performance.now();
@@ -913,12 +948,18 @@ class TransactionStore {
         }
 
         // OPTIMIZED: Pre-allocate maps for better performance
-        const propData = new Map();
-        const sources = new Map();
-        const propIncomes = new Map();
-        const propExpenses = new Map();
-        const catTotals = new Map();
-        const subTotals = new Map();
+        type PropAgg = {
+            expenses: Map<string, number>;
+            totalExpenses: number;
+            incomes: Map<string, number>;
+            totalIncome: number;
+        };
+        const propData = new Map<PropertyRecord['id'], PropAgg>();
+        const sources = new Map<string, number>();
+        const propIncomes = new Map<PropertyRecord['id'], number>();
+        const propExpenses = new Map<PropertyRecord['id'], number>();
+        const catTotals = new Map<string, number>();
+        const subTotals = new Map<string, Map<string, number>>();
 
         // OPTIMIZED: Single pass aggregation
         let hasIncome = false;
@@ -934,6 +975,9 @@ class TransactionStore {
             }
 
             const prop = propData.get(txn.propertyId);
+            if (!prop) {
+                continue;
+            }
 
             if (txn.type === 'expense') {
                 const categoryKey = txn.subcategory ? `${txn.category}:${txn.subcategory}` : txn.category;
@@ -948,7 +992,9 @@ class TransactionStore {
                         subTotals.set(txn.category, new Map());
                     }
                     const subMap = subTotals.get(txn.category);
-                    subMap.set(txn.subcategory, (subMap.get(txn.subcategory) || 0) + amount);
+                    if (subMap) {
+                        subMap.set(txn.subcategory, (subMap.get(txn.subcategory) || 0) + amount);
+                    }
                     catTotals.set(txn.category, (catTotals.get(txn.category) || 0) + amount);
                 } else {
                     catTotals.set(txn.category, (catTotals.get(txn.category) || 0) + amount);
@@ -999,7 +1045,7 @@ class TransactionStore {
     /**
      * Group transactions by month/year
      */
-    groupByMonthYear(filters = {}) {
+    groupByMonthYear(filters: TransactionQuery = {}) {
         const cacheKey = `groupby_${JSON.stringify(filters)}`;
         if (this._queryCache.has(cacheKey)) {
             return this._queryCache.get(cacheKey);
@@ -1028,6 +1074,9 @@ class TransactionStore {
             }
 
             const group = grouped.get(key);
+            if (!group) {
+                return;
+            }
             group.transactions.push(txn);
 
             if (txn.type === 'expense') {
@@ -1056,7 +1105,7 @@ class TransactionStore {
     /**
      * Calculate property summary from transactions
      */
-    _calculatePropertySummary(transactions) {
+    _calculatePropertySummary(transactions: Transaction[]) {
         const summary = {
             expenses: 0,
             income: 0,
@@ -1082,15 +1131,20 @@ class TransactionStore {
     /**
      * Get date range for period
      */
-    _getDateRangeForPeriod(period, year, month = null) {
+    _getDateRangeForPeriod(
+        period: string,
+        year: string | number | null,
+        month: string | number | null = null,
+    ): { start: string; end: string } | null {
         const now = new Date();
-        let startDate, endDate;
+        let startDate: Date;
+        let endDate: Date;
 
         switch (period) {
-            case 'month':
-                const selectedYear = year ? parseInt(year) : now.getFullYear();
+            case 'month': {
+                const selectedYear = year ? parseInt(String(year), 10) : now.getFullYear();
                 let selectedMonth = (month !== null && month !== 'all')
-                    ? parseInt(month) - 1 // Convert to 0-based
+                    ? parseInt(String(month), 10) - 1 // Convert to 0-based
                     : now.getMonth();
 
                 // Clamp to valid month range (0-11), fallback to January if invalid
@@ -1101,12 +1155,13 @@ class TransactionStore {
                 startDate = new Date(selectedYear, selectedMonth, 1);
                 endDate = new Date(selectedYear, selectedMonth + 1, 0);
                 break;
-
+            }
 
             case 'year':
                 if (year) {
-                    startDate = new Date(year, 0, 1);
-                    endDate = new Date(year, 11, 31);
+                    const yearNum = parseInt(String(year), 10);
+                    startDate = new Date(yearNum, 0, 1);
+                    endDate = new Date(yearNum, 11, 31);
                 } else {
                     startDate = new Date(now.getFullYear(), 0, 1);
                     endDate = new Date(now.getFullYear(), 11, 31);
@@ -1188,7 +1243,7 @@ class TransactionStore {
     /**
      * Export data
      */
-    exportData() {
+    exportData(): DashboardData {
         return {
             transactions: this.transactions,
             properties: Array.from(this.properties.values()).map(prop => ({
@@ -1207,25 +1262,26 @@ class TransactionStore {
     /**
      * Import data
      */
-    async importData(data) {
+    async importData(data: unknown) {
+        const incoming = data as (DashboardData & { categories?: unknown }) | null;
         logger.info('TRANSACTIONSTORE', 'Starting importData with', {
-            hasData: !!data,
-            dataType: typeof data,
-            dataKeys: data ? Object.keys(data) : 'N/A',
-            hasTransactions: !!(data && data.transactions),
-            transactionsType: data && data.transactions ? typeof data.transactions : 'N/A',
-            transactionsLength: data && data.transactions ? data.transactions.length : 'N/A',
-            hasProperties: !!(data && data.properties),
-            propertiesType: data && data.properties ? typeof data.properties : 'N/A',
-            hasCategories: !!(data && data.categories),
-            categoriesType: data && data.categories ? typeof data.categories : 'N/A',
+            hasData: !!incoming,
+            dataType: typeof incoming,
+            dataKeys: incoming ? Object.keys(incoming) : 'N/A',
+            hasTransactions: !!(incoming && incoming.transactions),
+            transactionsType: incoming && incoming.transactions ? typeof incoming.transactions : 'N/A',
+            transactionsLength: incoming && incoming.transactions ? incoming.transactions.length : 'N/A',
+            hasProperties: !!(incoming && incoming.properties),
+            propertiesType: incoming && incoming.properties ? typeof incoming.properties : 'N/A',
+            hasCategories: !!(incoming && incoming.categories),
+            categoriesType: incoming && incoming.categories ? typeof incoming.categories : 'N/A',
         });
 
-        if (!data || !data.transactions) {
+        if (!incoming || !incoming.transactions) {
             logger.error('TRANSACTIONSTORE', 'Import validation failed', {
-                dataExists: !!data,
-                transactionsExists: !!(data && data.transactions),
-                dataValue: data,
+                dataExists: !!incoming,
+                transactionsExists: !!(incoming && incoming.transactions),
+                dataValue: incoming,
             });
             throw new Error('Invalid import data');
         }
@@ -1233,7 +1289,7 @@ class TransactionStore {
         logger.info('TRANSACTIONSTORE', 'Import validation passed, proceeding with import...');
 
         try {
-            await this._loadFromData(data);
+            await this._loadFromData(incoming);
             logger.info('TRANSACTIONSTORE', '_loadFromData completed successfully');
 
             this._setupReactiveProxy();
@@ -1270,6 +1326,15 @@ class TransactionStore {
 
 // Export for use in other modules
 export default TransactionStore;
+
+declare global {
+    interface Window {
+        TransactionStore: typeof TransactionStore;
+        performanceOptimizer?: {
+            recordDataManagerOperation: (name: string, ms: number) => void;
+        };
+    }
+}
 
 // Expose globally for browser environments
 if (typeof window !== 'undefined') {

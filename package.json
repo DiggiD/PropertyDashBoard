@@ -6,7 +6,8 @@
   "main": "src/index.js",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
     "build:babel": "babel src --out-dir dist-cjs",
     "watch": "vite build --watch",
     "preview": "vite preview",
@@ -37,6 +38,7 @@
     "@babel/core": "^7.28.4",
     "@babel/plugin-transform-runtime": "^7.28.3",
     "@babel/preset-env": "^7.28.3",
+    "@babel/preset-typescript": "^7.28.5",
     "@babel/runtime": "^7.28.4",
     "@eslint/js": "^9.9.0",
     "@testing-library/jest-dom": "^6.8.0",
@@ -48,6 +50,7 @@
     "jest-transform-stub": "^2.0.0",
     "jsdom": "^27.0.0",
     "prettier": "^3.3.3",
+    "typescript": "^5.9.2",
     "vite": "^5.0.0"
   },
   "keywords": [

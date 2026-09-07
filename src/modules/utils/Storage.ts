@@ -7,11 +7,125 @@
  * - Storage validation and error handling
  */
 
-import Dexie from 'dexie';
+import Dexie, { type Table } from 'dexie';
 import logger from './Logger.js';
 import { migrateToFlat } from './legacyMigrator.js';
+import type { Transaction } from '../core/transactionModel.js';
+
+function errorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
+}
+
+function errorName(error: unknown): string {
+    return error instanceof Error ? error.name : '';
+}
+
+type CachedDashboard = {
+    properties: unknown[];
+    expenseCategories: unknown[];
+    incomeCategories?: unknown[];
+    transactions?: unknown[];
+    [key: string]: unknown;
+};
+
+type PropertyRow = {
+    id?: number;
+    name: string;
+    created_date?: string;
+    user_id?: string;
+};
+
+type CategoryRow = {
+    id?: number;
+    name: string;
+    user_id?: string;
+};
+
+type ExpenseRow = {
+    id?: number;
+    property_id: number;
+    category: string;
+    subcategory?: string | null;
+    amount: number;
+    expense_date?: string;
+    month?: string;
+    year?: number;
+    user_id?: string;
+};
+
+type IncomeRow = {
+    id?: number;
+    property_id: number;
+    category: string;
+    subcategory?: string | null;
+    amount: number;
+    income_date?: string;
+    month?: string;
+    year?: number;
+    user_id?: string;
+};
+
+type SettingsRow = {
+    key: string;
+    value: unknown;
+    user_id?: string;
+};
+
+type HistoryRow = {
+    id?: number;
+    timestamp?: unknown;
+    name?: string;
+    description?: string;
+    data?: unknown;
+    totalExpenses?: unknown;
+    propertyCount?: unknown;
+    categoryCount?: unknown;
+    user_id?: string;
+};
+
+type MetadataRow = {
+    key: string;
+    value: unknown;
+};
+
+type DashboardDB = Dexie & {
+    properties: Table<PropertyRow, number>;
+    expenseCategories: Table<CategoryRow, number>;
+    incomeCategories: Table<CategoryRow, number>;
+    expenses: Table<ExpenseRow, number>;
+    incomes: Table<IncomeRow, number>;
+    users: Table<Record<string, unknown>, number>;
+    audit_log: Table<Record<string, unknown>, number>;
+    settings: Table<SettingsRow, string>;
+    history: Table<HistoryRow, number>;
+    metadata: Table<MetadataRow, string>;
+    export?: () => Promise<unknown>;
+    import?: (data: unknown) => Promise<unknown>;
+};
 
 class Storage {
+    storageKey: string;
+    historyStorageKey: string;
+    settingsStorageKey: string;
+    backupStorageKey: string;
+    db: DashboardDB | null;
+    dbVersion: number;
+    _initialized: boolean;
+    _initPromise: Promise<void> | null;
+    maxLocalStorageSize: number;
+    maxHistoryItems: number;
+    _loadingPromise: Promise<CachedDashboard | null> | null;
+    _cachedData: CachedDashboard | null;
+    _lastLoadTime: number | null;
+    _cacheTimeout: number;
+    _emptyCacheTimeout: number;
+    logger: {
+        debug: (...args: unknown[]) => void;
+        info: (...args: unknown[]) => void;
+        warn: (...args: unknown[]) => void;
+        error: (...args: unknown[]) => void;
+    };
+
     constructor() {
         this.storageKey = 'sankey-property-dashboard-data';
         this.historyStorageKey = 'sankey-property-dashboard-history';
@@ -36,7 +150,7 @@ class Storage {
         this._emptyCacheTimeout = 1000; // Shorter timeout for empty databases (1 second)
 
         // Create module-specific logger first
-        this.logger = logger.createModuleLogger('STORAGE');
+        this.logger = logger.createModuleLogger('STORAGE') as Storage['logger'];
 
         // Initialize Dexie database asynchronously
         this._initPromise = this.initDatabase();
@@ -68,7 +182,7 @@ class Storage {
             }
 
             const startTime = performance.now();
-            this.db = new Dexie('ExpenseDashboardDB');
+            this.db = new Dexie('ExpenseDashboardDB') as DashboardDB;
 
             // Enhanced schema for chronological data and multi-user support
             this.db.version(this.dbVersion).stores({
@@ -131,7 +245,7 @@ class Storage {
      * @param {string} key - Storage key (optional)
      * @returns {boolean} Success status
      */
-    saveToLocalStorage(data, key = null) {
+    saveToLocalStorage(data: unknown, key: string | null = null) {
         const storageKey = key || this.storageKey;
 
         try {
@@ -169,7 +283,7 @@ class Storage {
      * @param {string} key - Storage key (optional)
      * @returns {Object|null} Loaded data or null if failed
      */
-    loadFromLocalStorage(key = null) {
+    loadFromLocalStorage(key: string | null = null): CachedDashboard | null {
         const storageKey = key || this.storageKey;
 
         try {
@@ -179,7 +293,7 @@ class Storage {
                 return { properties: [], expenseCategories: [] };
             }
 
-            const data = JSON.parse(dataString);
+            const data = JSON.parse(dataString) as CachedDashboard;
 
             // Validate loaded data
             if (!this.validateDataForStorage(data)) {
@@ -211,8 +325,9 @@ class Storage {
      * @param {string} userId - User ID for multi-user support (optional)
      * @returns {boolean} Success status
      */
-    async saveToDatabase(data, userId = 'default') {
-        if (!this.db) {
+    async saveToDatabase(data: Record<string, unknown>, userId = 'default') {
+        const db = this.db;
+        if (!db) {
             this.logger.warn('Database not available');
             return false;
         }
@@ -221,38 +336,39 @@ class Storage {
             const timestamp = new Date().toISOString();
 
             // Start transaction with all tables
-            await this.db.transaction('rw', [
+            await db.transaction('rw', [
                 'properties', 'expenseCategories', 'incomeCategories', 'expenses', 'incomes',
                 'users', 'audit_log', 'metadata',
             ], async () => {
 
                 // Clear existing user-specific data
-                await this.db.properties.where('user_id').equals(userId).delete();
-                await this.db.expenseCategories.where('user_id').equals(userId).delete();
-                await this.db.incomeCategories.where('user_id').equals(userId).delete();
-                await this.db.expenses.where('user_id').equals(userId).delete();
-                await this.db.incomes.where('user_id').equals(userId).delete();
+                await db.properties.where('user_id').equals(userId).delete();
+                await db.expenseCategories.where('user_id').equals(userId).delete();
+                await db.incomeCategories.where('user_id').equals(userId).delete();
+                await db.expenses.where('user_id').equals(userId).delete();
+                await db.incomes.where('user_id').equals(userId).delete();
 
                 if (data.properties && Array.isArray(data.properties)) {
                     for (const property of data.properties) {
-                        await this.db.properties.add({
-                            id: property.id,
-                            name: property.name,
-                            created_date: property.created || property.created_date || timestamp,
+                        const prop = property as Record<string, unknown>;
+                        await db.properties.add({
+                            id: prop.id as number | undefined,
+                            name: String(prop.name),
+                            created_date: String(prop.created || prop.created_date || timestamp),
                             user_id: userId,
                         });
                     }
                 }
 
                 if (Array.isArray(data.transactions)) {
-                    await this._saveTransactions(data.transactions, userId);
+                    await this._saveTransactions(data.transactions as Transaction[], userId);
                 }
 
                 // Save categories with user association
                 if (data.expenseCategories && Array.isArray(data.expenseCategories)) {
                     for (const category of data.expenseCategories) {
-                        await this.db.expenseCategories.add({
-                            name: category,
+                        await db.expenseCategories.add({
+                            name: String(category),
                             user_id: userId,
                         });
                     }
@@ -261,37 +377,37 @@ class Storage {
                 // Save income categories for future feature
                 if (data.incomeCategories && Array.isArray(data.incomeCategories)) {
                     for (const category of data.incomeCategories) {
-                        await this.db.incomeCategories.add({
-                            name: category,
+                        await db.incomeCategories.add({
+                            name: String(category),
                             user_id: userId,
                         });
                     }
                 }
 
                 // Save metadata
-                await this.db.metadata.put({
+                await db.metadata.put({
                     key: 'version',
                     value: '2.0',
                 });
-                await this.db.metadata.put({
+                await db.metadata.put({
                     key: 'lastSaved',
                     value: timestamp,
                 });
-                await this.db.metadata.put({
+                await db.metadata.put({
                     key: 'currentTimePeriod',
                     value: data.currentTimePeriod || 'all',
                 });
-                await this.db.metadata.put({
+                await db.metadata.put({
                     key: 'currentView',
                     value: data.currentView || 'overview',
                 });
-                await this.db.metadata.put({
+                await db.metadata.put({
                     key: 'currentUser',
                     value: userId,
                 });
 
                 // Log audit entry
-                await this.db.audit_log.add({
+                await db.audit_log.add({
                     action: 'save',
                     entity_type: 'database',
                     entity_id: 'full_backup',
@@ -304,8 +420,9 @@ class Storage {
             return true;
         } catch (error) {
             this.logger.error('Failed to save to database:', error);
+            const message = error instanceof Error ? error.message : String(error);
             // For quota exceeded errors, mark database unavailable and throw
-            if (error.message && error.message.includes('Quota exceeded')) {
+            if (message.includes('Quota exceeded')) {
                 this.db = null;
                 throw error;
             }
@@ -313,7 +430,7 @@ class Storage {
         }
     }
 
-    _dateParts(dateStr) {
+    _dateParts(dateStr: string | undefined) {
         const parsed = dateStr ? new Date(dateStr) : new Date();
         const d = Number.isNaN(parsed.getTime()) ? new Date() : parsed;
         const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -324,7 +441,11 @@ class Storage {
         };
     }
 
-    async _saveTransactions(transactions, userId) {
+    async _saveTransactions(transactions: Transaction[], userId: string) {
+        const db = this.db;
+        if (!db) {
+            return;
+        }
         for (const txn of transactions) {
             if (!txn) {
                 continue;
@@ -339,16 +460,23 @@ class Storage {
                 year: parts.year,
                 month: parts.monthKey,
             };
-            if (txn.type === 'income') {
-                await this.db.incomes.add({
-                    ...row,
-                    income_date: parts.iso,
-                });
-            } else {
-                await this.db.expenses.add({
-                    ...row,
-                    expense_date: parts.iso,
-                });
+            switch (txn.type) {
+                case 'income':
+                    await db.incomes.add({
+                        ...row,
+                        income_date: parts.iso,
+                    });
+                    break;
+                case 'expense':
+                    await db.expenses.add({
+                        ...row,
+                        expense_date: parts.iso,
+                    });
+                    break;
+                default: {
+                    const _exhaustive: never = txn;
+                    void _exhaustive;
+                }
             }
         }
     }
@@ -393,7 +521,7 @@ class Storage {
                 created_date: p.created_date,
             }));
 
-            const data = {
+            const data: CachedDashboard = {
                 properties: propertiesData,
                 expenseCategories: categories.map(c => c.name),
                 incomeCategories: incomeCategories.map(c => c.name),
@@ -401,7 +529,7 @@ class Storage {
             };
 
             // Load metadata efficiently
-            const metadataMap = {};
+            const metadataMap: Record<string, unknown> = {};
             metadata.forEach(item => {
                 metadataMap[item.key] = item.value;
             });
@@ -417,14 +545,14 @@ class Storage {
                 expenseCategories: data.expenseCategories.length,
                 incomeCategories: data.incomeCategories?.length || 0,
                 totalExpenses: expenses.length,
-                transactions: data.transactions.length,
+                transactions: data.transactions ? data.transactions.length : 0,
             });
 
             return migrateToFlat(data);
         } catch (error) {
             this.logger.error('Failed to load from database:', error);
 
-            if (error.name === 'NotFoundError' || (error.message && error.message.includes('object stores was not found'))) {
+            if (errorName(error) === 'NotFoundError' || errorMessage(error).includes('object stores was not found')) {
                 this.logger.warn(
                     'Database schema mismatch detected. IndexedDB left intact. Falling back to localStorage.',
                 );
@@ -435,7 +563,7 @@ class Storage {
         }
     }
 
-    _monthKeyToIsoDate(month) {
+    _monthKeyToIsoDate(month: unknown) {
         if (!month || typeof month !== 'string') {
             return new Date().toISOString().split('T')[0];
         }
@@ -449,7 +577,7 @@ class Storage {
         return `${year}-${String(monthIndex + 1).padStart(2, '0')}-01`;
     }
 
-    _transactionsFromTables(expenses, incomes) {
+    _transactionsFromTables(expenses: ExpenseRow[], incomes: IncomeRow[]) {
         const fromExpenses = (expenses || []).map(expense => ({
             id: expense.id != null ? `exp_${expense.id}` : undefined,
             propertyId: expense.property_id,
@@ -478,7 +606,7 @@ class Storage {
      * @param {Object} data - Data to save
      * @returns {boolean} Success status
      */
-    async save(data) {
+    async save(data: unknown) {
         const startTime = performance.now();
 
         // Clear cache when saving to ensure fresh data on next load
@@ -490,7 +618,7 @@ class Storage {
         // Use Dexie database as primary storage method
         if (this.db) {
             try {
-                const dbSuccess = await this.saveToDatabase(data);
+                const dbSuccess = await this.saveToDatabase(data as Record<string, unknown>);
                 const saveTime = performance.now() - startTime;
 
                 if (dbSuccess) {
@@ -503,7 +631,7 @@ class Storage {
                 }
             } catch (error) {
                 const saveTime = performance.now() - startTime;
-                this.logger.warn(`Database save failed after ${saveTime.toFixed(2)}ms, falling back to localStorage:`, error.message);
+                this.logger.warn(`Database save failed after ${saveTime.toFixed(2)}ms, falling back to localStorage:`, errorMessage(error));
                 // Fallback to localStorage
                 return this.saveToLocalStorage(data);
             }
@@ -532,7 +660,7 @@ class Storage {
 
             return propertyCount === 0 && categoryCount === 0 && transactionCount === 0;
         } catch (error) {
-            this.logger.debug('Quick empty check failed:', error.message);
+            this.logger.debug('Quick empty check failed:', errorMessage(error));
             return false; // Assume not empty on error
         }
     }
@@ -614,7 +742,7 @@ class Storage {
       * Perform the actual load operation (internal method)
       * @returns {Object|null} Loaded data
       */
-    async _performLoad() {
+    async _performLoad(): Promise<CachedDashboard | null> {
         const startTime = performance.now();
         this.logger.debug('Performing optimized data load...');
 
@@ -661,7 +789,7 @@ class Storage {
                     return { properties: [], expenseCategories: [], incomeCategories: [] };
                 }
             } catch (error) {
-                this.logger.warn(`Database load failed after ${(performance.now() - startTime).toFixed(2)}ms, falling back to localStorage:`, error.message);
+                this.logger.warn(`Database load failed after ${(performance.now() - startTime).toFixed(2)}ms, falling back to localStorage:`, errorMessage(error));
                 // Fallback to localStorage
                 return this.loadFromLocalStorage();
             }
@@ -687,7 +815,7 @@ class Storage {
      * @param {Object} snapshot - History snapshot
      * @returns {boolean} Success status
      */
-    async saveHistorySnapshot(snapshot) {
+    async saveHistorySnapshot(snapshot: Record<string, unknown> | null) {
         if (!snapshot) {return false;}
 
         try {
@@ -697,7 +825,7 @@ class Storage {
                 timestamp: snapshot.timestamp,
                 dataSize: JSON.stringify(snapshot).length,
                 hasData: !!snapshot.data,
-                dataProperties: snapshot.data?.properties?.length || 0,
+                dataProperties: (snapshot.data as CachedDashboard | undefined)?.properties?.length || 0,
             });
 
             // Ensure database is initialized
@@ -708,8 +836,8 @@ class Storage {
                 this.logger.info('Saving to Dexie database...');
                 const dbId = await this.db.history.add({
                     timestamp: snapshot.timestamp,
-                    name: snapshot.name,
-                    description: snapshot.description,
+                    name: snapshot.name as string | undefined,
+                    description: snapshot.description as string | undefined,
                     data: snapshot.data,
                     totalExpenses: snapshot.totalExpenses,
                     propertyCount: snapshot.propertyCount,
@@ -725,7 +853,9 @@ class Storage {
                 if (historyCount > this.maxHistoryItems) {
                     const excessCount = historyCount - this.maxHistoryItems;
                     const oldItems = await this.db.history.orderBy('timestamp').limit(excessCount).toArray();
-                    await this.db.history.bulkDelete(oldItems.map(item => item.id));
+                    await this.db.history.bulkDelete(
+                        oldItems.map(item => item.id).filter((id): id is number => typeof id === 'number'),
+                    );
                     this.logger.info(`Cleaned up ${excessCount} old history items`);
                 }
 
@@ -746,11 +876,11 @@ class Storage {
      * @param {Object} updates - Fields to update
      * @returns {boolean} Success status
      */
-    async updateHistorySnapshot(snapshotId, updates) {
+    async updateHistorySnapshot(snapshotId: unknown, updates: Record<string, unknown> | null) {
         if (!this.db || !snapshotId || !updates) {return false;}
 
         try {
-            const numericId = parseInt(snapshotId);
+            const numericId = parseInt(String(snapshotId), 10);
             if (isNaN(numericId)) {return false;}
 
             await this.db.history.update(numericId, updates);
@@ -814,7 +944,7 @@ class Storage {
      * @param {Object} settings - Settings object
      * @returns {boolean} Success status
      */
-    async saveSettings(settings) {
+    async saveSettings(settings: Record<string, unknown> | null) {
         if (!settings || typeof settings !== 'object' || Object.keys(settings).length === 0) {
             return false;
         }
@@ -861,7 +991,7 @@ class Storage {
             // Use database as the only storage method
             if (this.db) {
                 const settingsRecords = await this.db.settings.where('user_id').equals('default').toArray();
-                const settings = {};
+                const settings: Record<string, unknown> = {};
 
                 settingsRecords.forEach(record => {
                     settings[record.key] = record.value;
@@ -884,7 +1014,7 @@ class Storage {
      * @param {Object} data - Data to backup
      * @returns {boolean} Success status
      */
-    createBackup(data) {
+    createBackup(data: unknown) {
         try {
             const backup = {
                 data,
@@ -981,7 +1111,7 @@ class Storage {
      * @returns {Object} Export data
      */
     async exportAllData() {
-        const exportData = {
+        const exportData: Record<string, unknown> = {
             currentData: await this.load(),
             history: await this.loadHistoryFromStorage(),
             settings: await this.loadSettings(),
@@ -992,7 +1122,7 @@ class Storage {
         // Add database data if available
         if (this.db) {
             try {
-                const dbData = await this.db.export();
+                const dbData = this.db.export ? await this.db.export() : null;
                 exportData.database = dbData;
             } catch (error) {
                 this.logger.warn('Failed to export database data:', error);
@@ -1007,25 +1137,26 @@ class Storage {
      * @param {Object} importData - Data to import
      * @returns {boolean} Success status
      */
-    async importData(importData) {
-        if (!importData) {return false;}
+    async importData(importData: unknown) {
+        if (!importData || typeof importData !== 'object') {return false;}
+        const incoming = importData as Record<string, unknown>;
 
-        this.logger.info('Importing data with structure:', Object.keys(importData));
+        this.logger.info('Importing data with structure:', Object.keys(incoming));
 
         try {
             // Handle different data formats
-            let dataToSave = null;
+            let dataToSave: Record<string, unknown> | null = null;
 
             // Check if it's export format (with currentData, history, settings)
-            if (importData.currentData) {
+            if (incoming.currentData) {
                 this.logger.info('Detected export format');
-                dataToSave = importData.currentData;
+                dataToSave = incoming.currentData as Record<string, unknown>;
 
                 // Import history if present
-                if (importData.history && Array.isArray(importData.history)) {
+                if (incoming.history && Array.isArray(incoming.history)) {
                     // Save history to database
                     if (this.db) {
-                        for (const historyItem of importData.history) {
+                        for (const historyItem of incoming.history as HistoryRow[]) {
                             await this.db.history.add({
                                 timestamp: historyItem.timestamp,
                                 name: historyItem.name,
@@ -1037,21 +1168,21 @@ class Storage {
                         this.logger.info('Imported history data to database');
                     } else {
                         // Fallback to localStorage
-                        localStorage.setItem(this.historyStorageKey, JSON.stringify(importData.history));
+                        localStorage.setItem(this.historyStorageKey, JSON.stringify(incoming.history));
                         this.logger.info('Imported history data to localStorage');
                     }
                 }
 
                 // Import settings if present
-                if (importData.settings) {
-                    await this.saveSettings(importData.settings);
+                if (incoming.settings) {
+                    await this.saveSettings(incoming.settings as Record<string, unknown>);
                     this.logger.info('Imported settings data');
                 }
             }
             // Check if it's direct data format (properties, expenseCategories)
-            else if (importData.properties || importData.expenseCategories) {
+            else if (incoming.properties || incoming.expenseCategories) {
                 this.logger.info('Detected direct data format');
-                dataToSave = importData;
+                dataToSave = incoming;
             }
             else {
                 this.logger.error('Unknown data format');
@@ -1061,8 +1192,8 @@ class Storage {
             // Save the main data
             if (dataToSave) {
                 this.logger.info('Saving data:', {
-                    properties: dataToSave.properties?.length || 0,
-                    categories: dataToSave.expenseCategories?.length || 0,
+                    properties: Array.isArray(dataToSave.properties) ? dataToSave.properties.length : 0,
+                    categories: Array.isArray(dataToSave.expenseCategories) ? dataToSave.expenseCategories.length : 0,
                 });
                 const saveResult = await this.save(dataToSave);
                 this.logger.info('Save result:', saveResult);
@@ -1074,8 +1205,8 @@ class Storage {
             }
 
             // Import database data if available
-            if (importData.database && this.db) {
-                await this.db.import(importData.database);
+            if (incoming.database && this.db?.import) {
+                await this.db.import(incoming.database);
                 this.logger.info('Imported database data');
             }
 
@@ -1092,23 +1223,29 @@ class Storage {
      * @param {Object} data - Data to validate
      * @returns {boolean} Validation status
      */
-    validateDataForStorage(data) {
+    validateDataForStorage(data: unknown): boolean {
         if (!data || typeof data !== 'object') {
             return false;
         }
+        const bag = data as Record<string, unknown>;
 
         // Check required properties
-        if (!Array.isArray(data.properties)) {
+        if (!Array.isArray(bag.properties)) {
             return false;
         }
 
-        if (!Array.isArray(data.expenseCategories)) {
+        if (!Array.isArray(bag.expenseCategories)) {
             return false;
         }
 
         // Validate properties structure
-        for (const property of data.properties) {
-            if (typeof property !== 'object' || property === null || !property.id || !property.name) {
+        for (const property of bag.properties) {
+            if (typeof property !== 'object' || property === null) {
+                this.logger.error('Invalid property format:', property);
+                return false;
+            }
+            const prop = property as Record<string, unknown>;
+            if (!prop.id || !prop.name) {
                 this.logger.error('Invalid property format:', property);
                 return false;
             }
@@ -1150,9 +1287,9 @@ class Storage {
      * @param {string} str - String to measure
      * @returns {number} Size in bytes
      */
-    getStringSize(str) {
+    getStringSize(str: unknown) {
         if (str == null) {return 0;}
-        return new Blob([str]).size;
+        return new Blob([String(str)]).size;
     }
 
     /**
@@ -1213,7 +1350,7 @@ class Storage {
      * @param {string} userId - User ID
      * @returns {Array} Chronological expenses
      */
-    async getChronologicalExpenses(propertyId, startDate, endDate, userId = 'default') {
+    async getChronologicalExpenses(propertyId: unknown, startDate: unknown, endDate: unknown, userId = 'default') {
         if (!this.db) {
             this.logger.warn('Database not available for chronological queries');
             return [];
@@ -1241,22 +1378,27 @@ class Storage {
      * @param {string} userId - User ID
      * @returns {Object} Monthly summary
      */
-    async getMonthlyExpenseSummary(year, month, userId = 'default') {
+    async getMonthlyExpenseSummary(year: unknown, month: unknown, userId = 'default') {
         if (!this.db) {
             this.logger.warn('Database not available for monthly summary');
             return {};
         }
 
         try {
-            const startDate = `${year}-${month.toString().padStart(2, '0')}-01`;
-            const endDate = new Date(year, month, 0).toISOString().split('T')[0]; // Last day of month
+            const yearNum = Number(year);
+            const monthNum = Number(month);
+            const startDate = `${yearNum}-${String(monthNum).padStart(2, '0')}-01`;
+            const endDate = new Date(yearNum, monthNum, 0).toISOString().split('T')[0]; // Last day of month
 
             const expenses = await this.db.expenses
                 .where('user_id').equals(userId)
-                .and(expense => expense.expense_date >= startDate && expense.expense_date <= endDate)
+                .and(expense => {
+                    const date = expense.expense_date || '';
+                    return date >= startDate && date <= endDate;
+                })
                 .toArray();
 
-            const summary = {};
+            const summary: Record<string, number> = {};
             expenses.forEach(expense => {
                 const category = expense.category;
                 if (!summary[category]) {
@@ -1278,7 +1420,7 @@ class Storage {
      * @param {Object} userData - User data
      * @returns {boolean} Success status
      */
-    async saveUser(userData) {
+    async saveUser(userData: Record<string, unknown>) {
         if (!this.db) {
             this.logger.warn('Database not available for user operations');
             return false;
@@ -1306,14 +1448,14 @@ class Storage {
      * @param {string} userId - User ID
      * @returns {Object|null} User data
      */
-    async getUser(userId) {
+    async getUser(userId: unknown) {
         if (!this.db) {
             this.logger.warn('Database not available for user queries');
             return null;
         }
 
         try {
-            const user = await this.db.users.get(userId);
+            const user = await this.db.users.get(Number(userId));
             return user || null;
         } catch (error) {
             this.logger.error('Failed to get user:', error);
@@ -1329,7 +1471,7 @@ class Storage {
      * @param {string} userId - User ID
      * @returns {boolean} Success status
      */
-    async logAuditEvent(action, entityType, entityId, userId = 'default') {
+    async logAuditEvent(action: unknown, entityType: unknown, entityId: unknown, userId = 'default') {
         if (!this.db) {
             this.logger.warn('Database not available for audit logging');
             return false;
@@ -1359,7 +1501,7 @@ class Storage {
      * @param {string} userId - User ID
      * @returns {Array} Audit trail
      */
-    async getAuditTrail(entityType, entityId, userId = 'default') {
+    async getAuditTrail(entityType: unknown, entityId: unknown, userId = 'default') {
         if (!this.db) {
             this.logger.warn('Database not available for audit queries');
             return [];
@@ -1446,10 +1588,11 @@ class Storage {
                 };
             }
 
-            const transactionsCount = data.transactions ? data.transactions.length : 0;
-            const propertiesCount = data.properties ? data.properties.length : 0;
-            const expenseCategoriesCount = data.expenseCategories ? data.expenseCategories.length : 0;
-            const incomeCategoriesCount = data.incomeCategories ? data.incomeCategories.length : 0;
+            const bag = data as CachedDashboard;
+            const transactionsCount = Array.isArray(bag.transactions) ? bag.transactions.length : 0;
+            const propertiesCount = Array.isArray(bag.properties) ? bag.properties.length : 0;
+            const expenseCategoriesCount = Array.isArray(bag.expenseCategories) ? bag.expenseCategories.length : 0;
+            const incomeCategoriesCount = Array.isArray(bag.incomeCategories) ? bag.incomeCategories.length : 0;
             const categoriesCount = expenseCategoriesCount + incomeCategoriesCount;
 
             return {
@@ -1498,5 +1641,6 @@ class Storage {
 // Export for use in other modules
 export default Storage;
 
-// Expose globally for Babel standalone transpilation
-window.Storage = Storage;
+// Expose globally for Babel standalone transpilation.
+// Window.Storage is the DOM Storage constructor, so this assignment is a name collision on purpose.
+(window as unknown as { Storage: typeof Storage }).Storage = Storage;

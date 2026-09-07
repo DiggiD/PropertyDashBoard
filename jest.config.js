@@ -11,7 +11,7 @@ export default {
   moduleFileExtensions: ['js', 'jsx', 'ts', 'tsx', 'mjs'],
   testMatch: ['<rootDir>/src/__tests__/**/*.test.{js,jsx,ts,tsx}', '<rootDir>/src/**/__tests__/**/*.test.{js,jsx,ts,tsx}'],
   testPathIgnorePatterns: ['/node_modules/', '/\\._'],
-  collectCoverageFrom: ['src/modules/**/*.js', 'src/index.js', '!**/node_modules/**', '!**/__tests__/**'],
+  collectCoverageFrom: ['src/modules/**/*.{js,ts}', 'src/index.js', '!**/node_modules/**', '!**/__tests__/**'],
   reporters: ['default'],
   coverageReporters: ['lcov', 'text', 'html'],
   coverageProvider: 'v8',
@@ -31,6 +31,12 @@ export default {
   detectOpenHandles: false, // Disable for better performance
   cache: false, // Disable Jest cache for reliability and speed
   moduleNameMapper: {
+    '^src/modules/core/TransactionStore\\.js$': '<rootDir>/src/modules/core/TransactionStore.ts',
+    '^src/modules/utils/Storage\\.js$': '<rootDir>/src/modules/utils/Storage.ts',
+    'transactionModel\\.js$': '<rootDir>/src/modules/core/transactionModel.ts',
+    'modules/core/TransactionStore\\.js$': '<rootDir>/src/modules/core/TransactionStore.ts',
+    'modules/utils/Storage\\.js$': '<rootDir>/src/modules/utils/Storage.ts',
+    '^\\./TransactionStore\\.js$': '<rootDir>/src/modules/core/TransactionStore.ts',
     '^src/(.*)$': '<rootDir>/src/$1',
     '@modules/(.*)': '<rootDir>/src/modules/$1'
   }

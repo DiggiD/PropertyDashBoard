@@ -10,6 +10,7 @@ export default [
             'src/__mocks__/',
             'src/__tests__/',
             '**/._*',
+            '**/*.ts',
         ],
     },
     js.configs.recommended,
