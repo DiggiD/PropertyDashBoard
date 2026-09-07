@@ -42,10 +42,6 @@ export default [
                 RegExp: 'readonly',
                 Map: 'readonly',
                 Set: 'readonly',
-                // D3.js library
-                d3: 'readonly',
-                // Dexie library
-                Dexie: 'readonly',
                 // Browser APIs
                 confirm: 'readonly',
                 prompt: 'readonly',

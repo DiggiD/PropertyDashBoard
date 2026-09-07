@@ -22,3 +22,5 @@ ts	phase	decision	why	evidence	result
 2026-09-07T21:10:00Z	leftover	HistoryManager totals from transactions not property.expenses	snapshots are exportData transaction arrays	HistoryManager.calculateTotalExpensesFromData	deleted
 2026-09-07T21:15:00Z	verify	full npm test 17 suites 1734 tests	sample-boot years 2021-2025	npm test --ci --runInBand --coverage=false --silent	tests green
 2026-09-07T21:40:00Z	leftover	drop PropertiesManager eventHandler constructor slot	EventHandler.js already deleted in 099d940	index.js PropertiesManager.js integration.test.js setupTests.js	deleted
+2026-09-07T22:05:00Z	leftover	drop eslint d3 and Dexie globals	CDN scripts already gone from index.html in 099d940	eslint.config.js vite build + vite serve	deleted
+2026-09-07T22:06:00Z	verify	vite serve HTML has only /src/index.js and /@vite/client	ChartRenderer imports /node_modules/.vite/deps/d3.js	curl 127.0.0.1:3000	verified
