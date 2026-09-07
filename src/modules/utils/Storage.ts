@@ -108,6 +108,7 @@ class Storage {
     historyStorageKey: string;
     settingsStorageKey: string;
     backupStorageKey: string;
+    idbBackupKey: string;
     db: DashboardDB | null;
     dbVersion: number;
     _initialized: boolean;
@@ -131,10 +132,11 @@ class Storage {
         this.historyStorageKey = 'sankey-property-dashboard-history';
         this.settingsStorageKey = 'sankey-property-dashboard-settings';
         this.backupStorageKey = 'sankey-property-dashboard-backup';
+        this.idbBackupKey = 'sankey-property-dashboard-idb-backup';
 
         // Dexie database instance
         this.db = null;
-        this.dbVersion = 3; // Updated for history schema with calculated fields
+        this.dbVersion = 4;
         this._initialized = false;  // Prevent multiple initializations
         this._initPromise = null;  // Track initialization promise
 
@@ -214,6 +216,11 @@ class Storage {
             this.logger.info(`Database initialized successfully in ${initTime.toFixed(2)}ms`);
         } catch (error) {
             this.logger.error('Failed to initialize database:', error);
+            await this._backupIdbEnvelope({
+                phase: 'init',
+                error: errorMessage(error),
+                local: this.loadFromLocalStorage(),
+            });
             this.db = null;
         }
     }
@@ -552,15 +559,117 @@ class Storage {
         } catch (error) {
             this.logger.error('Failed to load from database:', error);
 
-            if (errorName(error) === 'NotFoundError' || errorMessage(error).includes('object stores was not found')) {
-                this.logger.warn(
-                    'Database schema mismatch detected. IndexedDB left intact. Falling back to localStorage.',
-                );
-                this.db = null;
+            if (this._isSchemaMismatch(error)) {
+                return this._recoverSchemaMismatch(error);
             }
 
             return null;
         }
+    }
+
+    _isSchemaMismatch(error: unknown): boolean {
+        const name = errorName(error);
+        const message = errorMessage(error);
+        return name === 'NotFoundError'
+            || name === 'UpgradeError'
+            || name === 'VersionError'
+            || message.includes('object stores was not found');
+    }
+
+    _backupIdbEnvelope(envelope: Record<string, unknown>): boolean {
+        try {
+            const packed = JSON.stringify({
+                savedAt: new Date().toISOString(),
+                ...envelope,
+            });
+            localStorage.setItem(this.idbBackupKey, packed);
+            this.logger.warn('IndexedDB backup written to localStorage key', this.idbBackupKey);
+            return true;
+        } catch (error) {
+            this.logger.error('Failed to write IndexedDB backup', error);
+            return false;
+        }
+    }
+
+    async _readKnownTables(): Promise<Record<string, unknown[]>> {
+        const dump: Record<string, unknown[]> = {};
+        const names = [
+            'properties',
+            'expenseCategories',
+            'incomeCategories',
+            'expenses',
+            'incomes',
+            'history',
+            'metadata',
+            'settings',
+        ] as const;
+        if (!this.db) {
+            return dump;
+        }
+        for (const name of names) {
+            try {
+                const table = this.db[name];
+                dump[name] = table && typeof table.toArray === 'function'
+                    ? await table.toArray()
+                    : [];
+            } catch {
+                dump[name] = [];
+            }
+        }
+        return dump;
+    }
+
+    _dashboardFromIdbDump(dump: Record<string, unknown[]>): CachedDashboard {
+        const properties = (dump.properties || []).map(row => {
+            const p = row as PropertyRow;
+            return {
+                id: p.id,
+                name: p.name,
+                created: p.created_date,
+                created_date: p.created_date,
+            };
+        });
+        const expenseCategories = (dump.expenseCategories || []).map(row => String((row as CategoryRow).name || ''));
+        const incomeCategories = (dump.incomeCategories || []).map(row => String((row as CategoryRow).name || ''));
+        return {
+            properties,
+            expenseCategories: expenseCategories.filter(Boolean),
+            incomeCategories: incomeCategories.filter(Boolean),
+            transactions: this._transactionsFromTables(
+                (dump.expenses || []) as ExpenseRow[],
+                (dump.incomes || []) as IncomeRow[],
+            ),
+        };
+    }
+
+    async _recoverSchemaMismatch(error: unknown): Promise<CachedDashboard | null> {
+        this.logger.warn(
+            'Database schema mismatch. Backing up IndexedDB, then migrating in place. IndexedDB is not deleted.',
+        );
+        const dump = await this._readKnownTables();
+        const fromTables = this._dashboardFromIdbDump(dump);
+        const fromLocal = this.loadFromLocalStorage();
+        const hasTableData = (fromTables.transactions && fromTables.transactions.length > 0)
+            || (fromTables.properties && fromTables.properties.length > 0)
+            || (fromTables.expenseCategories && fromTables.expenseCategories.length > 0);
+        const recovered = hasTableData ? fromTables : fromLocal;
+        this._backupIdbEnvelope({
+            phase: 'load',
+            error: errorMessage(error),
+            dump,
+            dashboard: recovered,
+        });
+        if (recovered && this.db) {
+            try {
+                await this.saveToDatabase(recovered as Record<string, unknown>);
+            } catch (writeError) {
+                this.logger.warn('Could not write recovered dashboard back to IndexedDB', writeError);
+            }
+        }
+        if (!recovered) {
+            return null;
+        }
+        return migrateToFlat(recovered);
     }
 
     _monthKeyToIsoDate(month: unknown) {

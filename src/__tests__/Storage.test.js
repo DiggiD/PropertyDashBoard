@@ -995,14 +995,47 @@ describe('Storage', () => {
         });
 
         test('should handle schema mismatch errors', async () => {
+            const recovered = {
+                properties: [{ id: 1, name: 'Office' }],
+                expenseCategories: ['Rent'],
+                incomeCategories: [],
+                transactions: [{
+                    id: 't1',
+                    propertyId: 1,
+                    category: 'Rent',
+                    amount: -1500,
+                    date: '2024-01-01',
+                    type: 'expense',
+                }],
+            };
+            localStorage.getItem.mockImplementation(key => {
+                if (key === storage.storageKey) {
+                    return JSON.stringify(recovered);
+                }
+                return null;
+            });
+            const missingStore = {
+                where: jest.fn().mockReturnThis(),
+                equals: jest.fn().mockReturnThis(),
+                toArray: jest.fn().mockRejectedValue(new Error('object stores was not found')),
+            };
             storage.db = {
-                properties: {
-                    toArray: jest.fn().mockRejectedValue(new Error('object stores was not found')),
-                },
+                properties: missingStore,
+                expenseCategories: missingStore,
+                incomeCategories: missingStore,
+                expenses: missingStore,
+                incomes: missingStore,
+                metadata: missingStore,
             };
 
             const result = await storage.loadFromDatabase();
-            expect(result).toBe(null);
+            expect(result).not.toBe(null);
+            expect(result.transactions.some(t => t.category === 'Rent' && t.amount === -1500)).toBe(true);
+            expect(localStorage.setItem).toHaveBeenCalledWith(
+                storage.idbBackupKey,
+                expect.stringContaining('object stores was not found'),
+            );
+            expect(storage.db).not.toBeNull();
         });
 
         test('should handle invalid import data', async () => {
