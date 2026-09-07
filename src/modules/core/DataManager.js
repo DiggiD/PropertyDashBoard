@@ -690,24 +690,21 @@ class DataManager {
      */
     getAvailableYears() {
         const years = new Set();
+        const txns = this.store?.transactions;
+        if (!Array.isArray(txns)) {
+            return [];
+        }
 
-        // Scan through all properties to find years in monthly data
-        (this.data?.properties || []).forEach(property => {
-            if (property.monthlyData) {
-                Object.keys(property.monthlyData).forEach(monthKey => {
-                    // Extract year from month key (format: "MMM YYYY")
-                    const parts = monthKey.split(' ');
-                    if (parts.length === 2) {
-                        const year = parts[1];
-                        if (!isNaN(year) && year.length === 4) {
-                            years.add(year);
-                        }
-                    }
-                });
+        txns.forEach(txn => {
+            if (!txn || !txn.date) {
+                return;
+            }
+            const year = new Date(txn.date).getFullYear();
+            if (!Number.isNaN(year)) {
+                years.add(String(year));
             }
         });
 
-        // Return sorted years
         return Array.from(years).sort();
     }
 

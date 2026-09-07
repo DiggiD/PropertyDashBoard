@@ -468,7 +468,11 @@ class TransactionStore {
         try {
             const dataToSave = {
                 transactions: this.transactions,
-                properties: Array.from(this.properties.entries()),
+                properties: Array.from(this.properties.values()).map(prop => ({
+                    id: prop.id,
+                    name: prop.name,
+                    created: prop.created,
+                })),
                 expenseCategories: Array.from(this.categories),
                 incomeCategories: Array.from(this.incomeCategories),
                 version: '1.0',

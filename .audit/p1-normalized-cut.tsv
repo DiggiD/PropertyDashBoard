@@ -17,3 +17,7 @@ ts	phase	decision	why	evidence	result
 2026-09-07T20:10:00Z	leftover	drop CDN d3 and in-page testMode harness	Vite bundles npm d3	index.html vite.config.js	deleted
 2026-09-07T20:15:00Z	verify	full npm test 17 suites 1740 tests	leftover pin after DataManager.test.js extra closer removed	npm test --ci --runInBand --coverage=false --silent	tests green
 2026-09-07T20:16:00Z	verify	vite build 474.81 kB gzip 125.18 kB	npm d3, no CDN, no rollup d3 global	npx vite build 1.83s	verified
+2026-09-07T21:10:00Z	leftover	getAvailableYears and month lookups from transactions	monthlyData was empty after sample import	DataManager.js PropertiesManager.js sample-boot.test.js	deleted
+2026-09-07T21:10:00Z	leftover	saveToDatabase writes data.transactions, drop savePropertyMonthly*	load already mapped Dexie rows to transactions	Storage.js TransactionStore._saveToStorage	deleted
+2026-09-07T21:10:00Z	leftover	HistoryManager totals from transactions not property.expenses	snapshots are exportData transaction arrays	HistoryManager.calculateTotalExpensesFromData	deleted
+2026-09-07T21:15:00Z	verify	full npm test 17 suites 1734 tests	sample-boot years 2021-2025	npm test --ci --runInBand --coverage=false --silent	tests green

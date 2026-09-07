@@ -806,10 +806,12 @@ describe('HistoryManager - Full Implementation Tests', () => {
     describe('Utility Methods', () => {
         test('calculateTotalExpensesFromData() should calculate totals correctly', () => {
             const data = {
-                properties: [
-                    { expenses: { rent: 1000, maintenance: 200 } },
-                    { expenses: { utilities: 300 } }
-                ]
+                transactions: [
+                    { type: 'expense', amount: -1000 },
+                    { type: 'expense', amount: -200 },
+                    { type: 'income', amount: 300 },
+                    { type: 'expense', amount: -300 },
+                ],
             };
 
             const total = manager.calculateTotalExpensesFromData(data);

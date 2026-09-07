@@ -2887,153 +2887,62 @@ class PropertiesManager {
         return monthNames[monthNumber] || monthNumber;
     }
 
-    /**
-     * Check if there's data for a specific month and year
-     * @param {string} year - Year to check
-     * @param {string} month - Month to check (MM format)
-     * @returns {boolean} True if data exists for the month/year
-     */
+    _storeTransactions() {
+        const txns = this.dataManager?.store?.transactions;
+        return Array.isArray(txns) ? txns : [];
+    }
+
+    _periodFromTxn(txn) {
+        if (!txn || !txn.date) {
+            return null;
+        }
+        const d = new Date(txn.date);
+        if (Number.isNaN(d.getTime())) {
+            return null;
+        }
+        return {
+            year: String(d.getFullYear()),
+            month: String(d.getMonth() + 1).padStart(2, '0'),
+        };
+    }
+
     hasDataForMonthYear(year, month) {
-        const properties = this.dataManager.getProperties();
-
-        // Check if any property has expenses data
-        for (const property of properties) {
-            if (property.expenses && Object.keys(property.expenses).length > 0) {
-                return true;
-            }
-        }
-
-        return false;
+        const yearStr = String(year);
+        const monthStr = String(month).padStart(2, '0');
+        return this._storeTransactions().some(txn => {
+            const period = this._periodFromTxn(txn);
+            return period && period.year === yearStr && period.month === monthStr;
+        });
     }
 
-    /**
-     * Get the last available month and year with data
-     * @returns {Object|null} Object with year and month properties, or null if no data
-     */
     getLastAvailableMonthYear() {
-        const properties = this.dataManager.getProperties();
-        let latestMonthKey = null;
-
-        // Find the most recent month key across all properties
-        for (const property of properties) {
-            if (property.monthlyData) {
-                const monthKeys = Object.keys(property.monthlyData);
-                if (monthKeys.length > 0) {
-                    // Sort month keys to find the latest
-                    const sortedKeys = monthKeys.sort((a, b) => {
-                        // Parse month keys like "Jan 2025" to compare dates
-                        const dateA = this.parseMonthKey(a);
-                        const dateB = this.parseMonthKey(b);
-                        return dateB - dateA;
-                    });
-
-                    const latestKey = sortedKeys[0];
-                    if (!latestMonthKey || this.parseMonthKey(latestKey) > this.parseMonthKey(latestMonthKey)) {
-                        latestMonthKey = latestKey;
-                    }
-                }
+        let latest = null;
+        for (const txn of this._storeTransactions()) {
+            const period = this._periodFromTxn(txn);
+            if (!period) {
+                continue;
+            }
+            const stamp = `${period.year}${period.month}`;
+            if (!latest || stamp > `${latest.year}${latest.month}`) {
+                latest = period;
             }
         }
-
-        if (!latestMonthKey) {
-            return null;
-        }
-
-        // Parse the month key to extract year and month
-        const parts = latestMonthKey.split(' ');
-        if (parts.length === 2) {
-            const monthName = parts[0];
-            const year = parts[1];
-
-            // Convert month name to MM format
-            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-            const monthIndex = monthNames.indexOf(monthName);
-            if (monthIndex !== -1) {
-                const month = String(monthIndex + 1).padStart(2, '0');
-                return { year, month };
-            }
-        }
-
-        return null;
+        return latest;
     }
 
-    /**
-     * Parse month key (e.g., "Jan 2025") to Date object for comparison
-     * @param {string} monthKey - Month key in format "MMM YYYY"
-     * @returns {Date} Date object for comparison
-     */
-    parseMonthKey(monthKey) {
-        const parts = monthKey.split(' ');
-        if (parts.length === 2) {
-            const monthName = parts[0];
-            const year = parseInt(parts[1]);
-
-            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-            const monthIndex = monthNames.indexOf(monthName);
-
-            if (monthIndex !== -1 && !isNaN(year)) {
-                return new Date(year, monthIndex, 1);
-            }
-        }
-
-        // Return a very old date if parsing fails
-        return new Date(1900, 0, 1);
-    }
-
-    /**
-     * Get the last available month for a specific year with data
-     * @param {string} year - Year to check
-     * @returns {string|null} Month in MM format, or null if no data
-     */
     getLastAvailableMonthForYear(year) {
-        const properties = this.dataManager.getProperties();
+        const yearStr = String(year);
         let latestMonth = null;
-
-        // Find the most recent month for the given year across all properties
-        for (const property of properties) {
-            if (property.monthlyData) {
-                const monthKeys = Object.keys(property.monthlyData);
-                if (monthKeys.length > 0) {
-                    // Filter keys for the given year and find the latest month
-                    const yearMonthKeys = monthKeys.filter(key => key.endsWith(` ${year}`));
-                    if (yearMonthKeys.length > 0) {
-                        // Sort by month to find the latest
-                        const sortedKeys = yearMonthKeys.sort((a, b) => {
-                            const monthA = this.parseMonthKey(a);
-                            const monthB = this.parseMonthKey(b);
-                            return monthB - monthA;
-                        });
-
-                        const latestKey = sortedKeys[0];
-                        if (!latestMonth || this.parseMonthKey(latestKey) > this.parseMonthKey(latestMonth)) {
-                            latestMonth = latestKey;
-                        }
-                    }
-                }
+        for (const txn of this._storeTransactions()) {
+            const period = this._periodFromTxn(txn);
+            if (!period || period.year !== yearStr) {
+                continue;
+            }
+            if (!latestMonth || period.month > latestMonth) {
+                latestMonth = period.month;
             }
         }
-
-        if (!latestMonth) {
-            return null;
-        }
-
-        // Parse the month key to extract month
-        const parts = latestMonth.split(' ');
-        if (parts.length === 2) {
-            const monthName = parts[0];
-
-            // Convert month name to MM format
-            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-            const monthIndex = monthNames.indexOf(monthName);
-            if (monthIndex !== -1) {
-                return String(monthIndex + 1).padStart(2, '0');
-            }
-        }
-
-        return null;
+        return latestMonth;
     }
 
     /**

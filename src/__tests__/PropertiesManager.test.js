@@ -116,6 +116,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
         // Mock the store property on dataManager
         dataManager.store = {
+            transactions: [],
             queryAggregatedSankey: jest.fn().mockReturnValue({
                 propExpenses: new Map(),
                 propIncomes: new Map(),
@@ -440,7 +441,6 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
                 id: 1,
                 name: 'Test Property',
                 expenses: { 'Rent': -1000 },
-                quarterlyData: { 'Q1 2025': { expenses: {}, total: 0 } },
             };
             dataManager.getPropertyById.mockReturnValue(mockProperty);
             dataManager.getCurrentPeriodData.mockReturnValue({
@@ -814,8 +814,6 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
         });
 
         test('should handle monthly data parsing and validation', () => {
-            expect(propertiesManager.parseMonthKey('Jan 2025')).toBeInstanceOf(Date);
-            expect(propertiesManager.parseMonthKey('Invalid')).toBeInstanceOf(Date);
             expect(propertiesManager.getMonthName('01')).toBe('January');
             expect(propertiesManager.getMonthName('13')).toBe('13');
         });
@@ -1941,17 +1939,17 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
         });
 
         test('should cover hasDataForMonthYear validation branching', () => {
-            // No properties
-            dataManager.getProperties.mockReturnValue([]);
+            dataManager.store.transactions = [];
             expect(propertiesManager.hasDataForMonthYear('2025', '01')).toBe(false);
 
-            // Properties with no expenses data
-            const prop = { id: 1, expenses: {} };
-            dataManager.getProperties.mockReturnValue([prop]);
+            dataManager.store.transactions = [
+                { date: '2024-12-01', type: 'expense', amount: -1000 },
+            ];
             expect(propertiesManager.hasDataForMonthYear('2025', '01')).toBe(false);
 
-            // Properties with expenses data
-            prop.expenses = { 'Rent': -1000 };
+            dataManager.store.transactions = [
+                { date: '2025-01-15', type: 'expense', amount: -1000 },
+            ];
             expect(propertiesManager.hasDataForMonthYear('2025', '01')).toBe(true);
         });
     });
@@ -2270,59 +2268,39 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
 
     describe('Data Checking Methods', () => {
         test('should check if data exists for month and year', () => {
-            const mockProperty = {
-                expenses: { 'Rent': -1000 },
-            };
-            dataManager.getProperties.mockReturnValue([mockProperty]);
+            dataManager.store.transactions = [
+                { date: '2025-01-15', type: 'expense', amount: -1000 },
+            ];
 
             const result = propertiesManager.hasDataForMonthYear('2025', '01');
             expect(result).toBe(true);
         });
 
         test('should return false when no data for month and year', () => {
-            dataManager.getProperties.mockReturnValue([]);
+            dataManager.store.transactions = [];
 
             const result = propertiesManager.hasDataForMonthYear('2025', '01');
             expect(result).toBe(false);
         });
 
         test('should get last available month and year', () => {
-            const mockProperty = {
-                monthlyData: {
-                    'Mar 2025': { expenses: { 'Rent': -1000 } },
-                    'Jan 2025': { expenses: { 'Rent': -500 } },
-                },
-            };
-            dataManager.getProperties.mockReturnValue([mockProperty]);
+            dataManager.store.transactions = [
+                { date: '2025-03-01', type: 'expense', amount: -1000 },
+                { date: '2025-01-01', type: 'expense', amount: -500 },
+            ];
 
             const result = propertiesManager.getLastAvailableMonthYear();
             expect(result).toEqual({ year: '2025', month: '03' });
         });
 
         test('should get last available month for specific year', () => {
-            const mockProperty = {
-                monthlyData: {
-                    'Mar 2025': { expenses: { 'Rent': -1000 } },
-                    'Jan 2025': { expenses: { 'Rent': -500 } },
-                },
-            };
-            dataManager.getProperties.mockReturnValue([mockProperty]);
+            dataManager.store.transactions = [
+                { date: '2025-03-01', type: 'expense', amount: -1000 },
+                { date: '2025-01-01', type: 'expense', amount: -500 },
+            ];
 
             const result = propertiesManager.getLastAvailableMonthForYear('2025');
             expect(result).toBe('03');
-        });
-
-        test('should parse month key correctly', () => {
-            const result = propertiesManager.parseMonthKey('Jan 2025');
-            expect(result).toBeInstanceOf(Date);
-            expect(result.getFullYear()).toBe(2025);
-            expect(result.getMonth()).toBe(0); // January is 0
-        });
-
-        test('should handle invalid month key parsing', () => {
-            const result = propertiesManager.parseMonthKey('Invalid');
-            expect(result).toBeInstanceOf(Date);
-            expect(result.getFullYear()).toBe(1900);
         });
     });
 
@@ -3700,38 +3678,25 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
         });
 
         test('should cover hasDataForMonthYear with properties that have expenses', () => {
-            const mockProperty = {
-                expenses: { 'Rent': -1000 },
-            };
-            dataManager.getProperties.mockReturnValue([mockProperty]);
+            dataManager.store.transactions = [
+                { date: '2025-01-15', type: 'expense', amount: -1000 },
+            ];
 
             const result = propertiesManager.hasDataForMonthYear('2025', '01');
             expect(result).toBe(true);
         });
 
         test('should cover getLastAvailableMonthYear with no monthly data', () => {
-            const mockProperty = {
-                expenses: { 'Rent': -1000 }, // No monthlyData
-            };
-            dataManager.getProperties.mockReturnValue([mockProperty]);
+            dataManager.store.transactions = [];
 
             const result = propertiesManager.getLastAvailableMonthYear();
             expect(result).toBeNull();
         });
 
-        test('should cover parseMonthKey with invalid format', () => {
-            const result = propertiesManager.parseMonthKey('Invalid Format');
-            expect(result.getFullYear()).toBe(1900);
-            expect(result.getMonth()).toBe(0);
-        });
-
         test('should cover getLastAvailableMonthForYear with no matching data', () => {
-            const mockProperty = {
-                monthlyData: {
-                    'Jan 2024': { expenses: {} },
-                },
-            };
-            dataManager.getProperties.mockReturnValue([mockProperty]);
+            dataManager.store.transactions = [
+                { date: '2024-01-01', type: 'expense', amount: -100 },
+            ];
 
             const result = propertiesManager.getLastAvailableMonthForYear('2025');
             expect(result).toBeNull();
@@ -4609,49 +4574,31 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
         });
 
         test('should cover hasDataForMonthYear with empty properties', () => {
-            dataManager.getProperties.mockReturnValue([]);
+            dataManager.store.transactions = [];
             const result = propertiesManager.hasDataForMonthYear('2025', '01');
             expect(result).toBe(false);
         });
 
         test('should cover hasDataForMonthYear with properties but no expenses', () => {
-            const prop = { expenses: {} };
-            dataManager.getProperties.mockReturnValue([prop]);
+            dataManager.store.transactions = [];
             const result = propertiesManager.hasDataForMonthYear('2025', '01');
             expect(result).toBe(false);
         });
 
         test('should cover getLastAvailableMonthYear with monthly data', () => {
-            const prop = {
-                monthlyData: {
-                    'Mar 2025': { expenses: { 'Rent': -1000 } },
-                    'Jan 2025': { expenses: { 'Rent': -500 } },
-                },
-            };
-            dataManager.getProperties.mockReturnValue([prop]);
+            dataManager.store.transactions = [
+                { date: '2025-03-01', type: 'expense', amount: -1000 },
+                { date: '2025-01-01', type: 'expense', amount: -500 },
+            ];
             const result = propertiesManager.getLastAvailableMonthYear();
             expect(result).toEqual({ year: '2025', month: '03' });
         });
 
-        test('should cover parseMonthKey with valid format', () => {
-            const result = propertiesManager.parseMonthKey('Jan 2025');
-            expect(result.getFullYear()).toBe(2025);
-            expect(result.getMonth()).toBe(0);
-        });
-
-        test('should cover parseMonthKey with invalid format', () => {
-            const result = propertiesManager.parseMonthKey('Invalid');
-            expect(result.getFullYear()).toBe(1900);
-        });
-
         test('should cover getLastAvailableMonthForYear with matching data', () => {
-            const prop = {
-                monthlyData: {
-                    'Mar 2025': { expenses: { 'Rent': -1000 } },
-                    'Jan 2025': { expenses: { 'Rent': -500 } },
-                },
-            };
-            dataManager.getProperties.mockReturnValue([prop]);
+            dataManager.store.transactions = [
+                { date: '2025-03-01', type: 'expense', amount: -1000 },
+                { date: '2025-01-01', type: 'expense', amount: -500 },
+            ];
             const result = propertiesManager.getLastAvailableMonthForYear('2025');
             expect(result).toBe('03');
         });
@@ -5329,38 +5276,25 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
         });
 
         test('should cover hasDataForMonthYear with properties that have expenses', () => {
-            const mockProperty = {
-                expenses: { 'Rent': -1000 },
-            };
-            dataManager.getProperties.mockReturnValue([mockProperty]);
+            dataManager.store.transactions = [
+                { date: '2025-01-15', type: 'expense', amount: -1000 },
+            ];
 
             const result = propertiesManager.hasDataForMonthYear('2025', '01');
             expect(result).toBe(true);
         });
 
         test('should cover getLastAvailableMonthYear with no monthly data', () => {
-            const mockProperty = {
-                expenses: {}, // No monthlyData
-            };
-            dataManager.getProperties.mockReturnValue([mockProperty]);
+            dataManager.store.transactions = [];
 
             const result = propertiesManager.getLastAvailableMonthYear();
             expect(result).toBeNull();
         });
 
-        test('should cover parseMonthKey with invalid format', () => {
-            const result = propertiesManager.parseMonthKey('Invalid Format');
-            expect(result.getFullYear()).toBe(1900);
-            expect(result.getMonth()).toBe(0);
-        });
-
         test('should cover getLastAvailableMonthForYear with no matching data', () => {
-            const mockProperty = {
-                monthlyData: {
-                    'Jan 2024': { expenses: {} },
-                },
-            };
-            dataManager.getProperties.mockReturnValue([mockProperty]);
+            dataManager.store.transactions = [
+                { date: '2024-01-01', type: 'expense', amount: -100 },
+            ];
 
             const result = propertiesManager.getLastAvailableMonthForYear('2025');
             expect(result).toBeNull();

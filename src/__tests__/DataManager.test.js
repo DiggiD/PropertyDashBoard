@@ -2315,15 +2315,10 @@ describe('DataManager with Isolated Mocks (80%+ Coverage)', () => {
             });
 
             test('should cover getAvailableYears with monthly data', async () => {
-                // Add property with monthly data to trigger the forEach
-                const propResult = await dataManager.addProperty('Year Test');
-                // Manually add monthly data
-                const property = dataManager.getPropertyById(propResult.property.id);
-                property.monthlyData = {
-                    'Jan 2024': { expenses: {} },
-                    'Feb 2024': { expenses: {} },
-                };
-                dataManager.data.properties = [property];
+                dataManager.store.transactions = [
+                    { id: 1, type: 'expense', category: 'Rent', amount: -1000, date: '2024-01-01' },
+                    { id: 2, type: 'expense', category: 'Rent', amount: -1000, date: '2024-02-01' },
+                ];
 
                 const years = dataManager.getAvailableYears();
                 expect(years).toContain('2024');
@@ -2996,13 +2991,10 @@ describe('DataManager with Isolated Mocks (80%+ Coverage)', () => {
             });
 
             test('should cover getAvailableYears with monthly data', async () => {
-                const propResult = await dataManager.addProperty('Year Test');
-                const property = dataManager.getPropertyById(propResult.property.id);
-                property.monthlyData = {
-                    'Jan 2024': { expenses: {} },
-                    'Feb 2024': { expenses: {} },
-                };
-                dataManager.data.properties = [property];
+                dataManager.store.transactions = [
+                    { id: 1, type: 'expense', category: 'Rent', amount: -1000, date: '2024-01-01' },
+                    { id: 2, type: 'expense', category: 'Rent', amount: -1000, date: '2024-02-01' },
+                ];
                 const years = dataManager.getAvailableYears();
                 expect(years).toContain('2024');
             });

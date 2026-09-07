@@ -977,17 +977,15 @@ class HistoryManager {
      * @returns {number} Total expenses
      */
     calculateTotalExpensesFromData(data) {
-        if (!data || !data.properties || !Array.isArray(data.properties)) {return 0;}
+        if (!data || !Array.isArray(data.transactions)) {
+            return 0;
+        }
 
-        return data.properties.reduce((total, property) => {
-            if (!property || !property.expenses) {return total;}
-
-            // Calculate total expenses for this property
-            const propertyTotal = Object.values(property.expenses).reduce((sum, expense) => {
-                return sum + (typeof expense === 'number' ? expense : 0);
-            }, 0);
-
-            return total + propertyTotal;
+        return data.transactions.reduce((total, txn) => {
+            if (!txn || txn.type !== 'expense') {
+                return total;
+            }
+            return total + Math.abs(txn.amount || 0);
         }, 0);
     }
 

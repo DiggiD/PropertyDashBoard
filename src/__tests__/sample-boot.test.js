@@ -48,6 +48,7 @@ describe('sample JSON boot', () => {
         expect(Array.isArray(exported.properties[0])).toBe(false);
         expect(exported.expenseCategories).toEqual(expect.arrayContaining(['Utilities', 'Rent']));
         expect(exported.expenseCategories.every(name => typeof name === 'string')).toBe(true);
+        expect(dataManager.getAvailableYears()).toEqual(['2021', '2022', '2023', '2024', '2025']);
     });
 
     test('renders SVG from sample JSON', async () => {

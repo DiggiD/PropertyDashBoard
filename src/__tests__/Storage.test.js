@@ -389,16 +389,29 @@ describe('Storage', () => {
                     {
                         id: 1,
                         name: 'Test Property',
-                        monthlyData: {
-                            'Jan 2023': {
-                                expenses: { Rent: 1000 },
-                                incomes: { 'Rental Income': 2000 },
-                            },
-                        },
+                        created: '2023-01-01',
                     },
                 ],
                 expenseCategories: ['Rent', 'Utilities'],
                 incomeCategories: ['Rental Income'],
+                transactions: [
+                    {
+                        id: 't1',
+                        propertyId: 1,
+                        category: 'Rent',
+                        amount: -1000,
+                        date: '2023-01-01',
+                        type: 'expense',
+                    },
+                    {
+                        id: 't2',
+                        propertyId: 1,
+                        category: 'Rental Income',
+                        amount: 2000,
+                        date: '2023-01-01',
+                        type: 'income',
+                    },
+                ],
             };
 
             // Ensure database is available for this test
@@ -448,6 +461,19 @@ describe('Storage', () => {
             const result = await storage.saveToDatabase(testData);
 
             expect(result).toBe(true);
+            expect(storage.db.expenses.add).toHaveBeenCalledWith(expect.objectContaining({
+                property_id: 1,
+                category: 'Rent',
+                amount: -1000,
+            }));
+            expect(storage.db.incomes.add).toHaveBeenCalledWith(expect.objectContaining({
+                property_id: 1,
+                category: 'Rental Income',
+                amount: 2000,
+            }));
+            expect(storage.db.properties.add).toHaveBeenCalledWith(expect.not.objectContaining({
+                monthlyData: expect.anything(),
+            }));
         });
 
         test('should load data from database as flat transactions', async () => {

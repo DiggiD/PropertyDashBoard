@@ -26,89 +26,29 @@ export default class MockStorage {
 
         this.mockData = {
             properties: [
-                {
-                    id: 1,
-                    name: 'Downtown Office Complex',
-                    monthlyData: {
-                        'Jan 2024': {
-                            expenses: {
-                                'Utilities': { 'Electricity': 933, 'Water': 400, 'Gas': 267 },
-                                'Maintenance': { 'Cleaning': 800, 'Repairs': 1333, 'Landscaping': 300 },
-                                'Insurance': 833,
-                                'Taxes': 1167,
-                                'Security': 600,
-                                'Parking': 833,
-                                'Management': 667,
-                                'Legal': 500,
-                            },
-                            incomes: { 'Rent': 5000 },
-                            total: 5000 - (933 + 400 + 267 + 800 + 1333 + 300 + 833 + 1167 + 600 + 833 + 667 + 500),
-                        },
-                        'Feb 2024': {
-                            expenses: {
-                                'Utilities': { 'Electricity': 933, 'Water': 400, 'Gas': 267 },
-                                'Maintenance': { 'Cleaning': 800, 'Repairs': 1333, 'Landscaping': 300 },
-                                'Insurance': 833,
-                                'Taxes': 1167,
-                                'Security': 600,
-                                'Parking': 833,
-                                'Management': 667,
-                                'Legal': 500,
-                            },
-                            incomes: { 'Rent': 5000 },
-                            total: 5000 - (933 + 400 + 267 + 800 + 1333 + 300 + 833 + 1167 + 600 + 833 + 667 + 500),
-                        },
-                    },
-                    created_date: '2024-01-01T00:00:00Z',
-                    expenses: {
-                        'Utilities': { 'Electricity': 933, 'Water': 400, 'Gas': 267 },
-                        'Maintenance': { 'Cleaning': 800, 'Repairs': 1333, 'Landscaping': 300 },
-                        'Insurance': 833,
-                        'Taxes': 1167,
-                        'Security': 600,
-                        'Parking': 833,
-                        'Management': 667,
-                        'Legal': 500,
-                    },
-                    incomes: { 'Rent': 5000 },
-                },
-                {
-                    id: 2,
-                    name: 'Suburban Retail Center',
-                    monthlyData: {
-                        'Jan 2024': {
-                            expenses: {
-                                'Rent': 4000,
-                                'Utilities': { 'Electricity': 800, 'Water': 300, 'Gas': 200 },
-                                'Maintenance': { 'Cleaning': 600, 'Repairs': 1000, 'Landscaping': 250 },
-                                'Insurance': 700,
-                                'Taxes': 1000,
-                                'Security': 500,
-                                'Parking': 700,
-                                'Management': 550,
-                                'Legal': 400,
-                            },
-                            incomes: { 'Rent': 6000 },
-                            total: 6000 - (4000 + 800 + 300 + 200 + 600 + 1000 + 250 + 700 + 1000 + 500 + 700 + 550 + 400),
-                        },
-                    },
-                    created_date: '2024-01-01T00:00:00Z',
-                    expenses: {
-                        'Rent': 4000,
-                        'Utilities': { 'Electricity': 800, 'Water': 300, 'Gas': 200 },
-                        'Maintenance': { 'Cleaning': 600, 'Repairs': 1000, 'Landscaping': 250 },
-                        'Insurance': 700,
-                        'Taxes': 1000,
-                        'Security': 500,
-                        'Parking': 700,
-                        'Management': 550,
-                        'Legal': 400,
-                    },
-                    incomes: { 'Rent': 6000 },
-                },
+                { id: 1, name: 'Downtown Office Complex', created: '2024-01-01T00:00:00Z' },
+                { id: 2, name: 'Suburban Retail Center', created: '2024-01-01T00:00:00Z' },
             ],
             expenseCategories: ['Rent', 'Utilities', 'Maintenance', 'Insurance', 'Taxes', 'Security', 'Parking', 'Management', 'Legal'],
             incomeCategories: ['Rent'],
+            transactions: [
+                {
+                    id: 't1',
+                    propertyId: 1,
+                    category: 'Insurance',
+                    amount: -833,
+                    date: '2024-01-01',
+                    type: 'expense',
+                },
+                {
+                    id: 't2',
+                    propertyId: 1,
+                    category: 'Rent',
+                    amount: 5000,
+                    date: '2024-01-01',
+                    type: 'income',
+                },
+            ],
             lastBackup: null,
         };
     }
@@ -211,20 +151,17 @@ export default class MockStorage {
     }
 
     async loadFromDatabase(userId = 'default') {
-        // Reconstruct data in the format expected by the refactored implementation
         const properties = this.mockData.properties.map(p => ({
             id: p.id,
             name: p.name,
-            created_date: p.created_date,
-            monthlyData: p.monthlyData || {},
-            expenses: p.expenses || {},
-            incomes: p.incomes || {},
+            created: p.created || p.created_date,
         }));
 
         return {
             properties,
             expenseCategories: this.mockData.expenseCategories,
             incomeCategories: this.mockData.incomeCategories,
+            transactions: this.mockData.transactions || [],
             currentTimePeriod: 'all',
             currentView: 'overview',
             _lastSaved: new Date().toISOString(),
@@ -233,7 +170,6 @@ export default class MockStorage {
     }
 
     async saveToDatabase(data, userId = 'default') {
-        // Update mock data with new data
         if (data.properties) {
             this.mockData.properties = data.properties;
         }
@@ -243,32 +179,14 @@ export default class MockStorage {
         if (data.incomeCategories) {
             this.mockData.incomeCategories = data.incomeCategories;
         }
-        return Promise.resolve(true);
-    }
-
-    getPropertyData(propertyId, period) {
-        const property = this.mockData.properties.find(p => p.id === propertyId);
-        if (!property || !property.monthlyData[period]) {
-            throw new Error(`Invalid property or period: ${propertyId}, ${period}`);
+        if (data.transactions) {
+            this.mockData.transactions = data.transactions;
         }
-        return {
-            incomes: property.monthlyData[period].incomes || {},
-            expenses: property.monthlyData[period].expenses || {},
-        };
+        return Promise.resolve(true);
     }
 
     seedSampleData() {
         return this.mockData;
-    }
-
-    hasDataForMonthYear(month, year) {
-        const period = `${month} ${year}`;
-        return this.mockData.properties.some(p => p.monthlyData[period]);
-    }
-
-    getLastAvailableMonthForYear(year) {
-        // Mock always has up to Dec
-        return 12;
     }
 
     // Other methods as no-ops
