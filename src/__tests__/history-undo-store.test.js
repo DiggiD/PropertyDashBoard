@@ -4,6 +4,15 @@ import PropertiesManager from '../modules/PropertiesManager.js';
 import Formatter from '../modules/utils/Formatter.js';
 import Validator from '../modules/utils/Validator.js';
 
+function storeAggSnapshot(agg) {
+    return {
+        hasIncome: agg.hasIncome,
+        propExpenses: Object.fromEntries(agg.propExpenses),
+        propIncomes: Object.fromEntries(agg.propIncomes),
+        catTotals: Object.fromEntries(agg.catTotals),
+    };
+}
+
 describe('Undo restores TransactionStore after Properties save', () => {
     let dataManager;
     let historyManager;
@@ -87,5 +96,28 @@ describe('Undo restores TransactionStore after Properties save', () => {
         })).toHaveLength(1);
         expect(dataManager.getAggregatedSankeyData('all', 'all').propExpenses.get(1)).toBe(1500);
         expect(dataManager.store.queryAggregatedSankey('all', 'all').propExpenses.get(1)).toBe(1500);
+    });
+
+    test('edit amount then undo matches store agg from before and redo restores after', async () => {
+        await propertiesManager.saveExpenseValue('Rent', null, 1500);
+        const before = storeAggSnapshot(dataManager.store.queryAggregatedSankey('all', 'all'));
+        expect(before.propExpenses[1]).toBe(1500);
+        expect(before.catTotals.Rent).toBe(1500);
+
+        await propertiesManager.saveExpenseValue('Rent', null, 2000);
+        const after = storeAggSnapshot(dataManager.store.queryAggregatedSankey('all', 'all'));
+        expect(after.propExpenses[1]).toBe(2000);
+        expect(after.catTotals.Rent).toBe(2000);
+        expect(after).not.toEqual(before);
+
+        const undone = await historyManager.undo();
+        expect(undone.success).toBe(true);
+        expect(storeAggSnapshot(dataManager.store.queryAggregatedSankey('all', 'all'))).toEqual(before);
+        expect(storeAggSnapshot(dataManager.getAggregatedSankeyData('all', 'all'))).toEqual(before);
+
+        const redone = await historyManager.redo();
+        expect(redone.success).toBe(true);
+        expect(storeAggSnapshot(dataManager.store.queryAggregatedSankey('all', 'all'))).toEqual(after);
+        expect(storeAggSnapshot(dataManager.getAggregatedSankeyData('all', 'all'))).toEqual(after);
     });
 });
