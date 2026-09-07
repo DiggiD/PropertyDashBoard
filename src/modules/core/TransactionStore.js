@@ -506,17 +506,8 @@ class TransactionStore {
         if (this._cacheInvalidationTimer) {
             clearTimeout(this._cacheInvalidationTimer);
         }
-
-        // OPTIMIZED: Only invalidate if we have cached data and it's been a while
-        if (this._queryCache.size > 0) {
-            const now = Date.now();
-            // Only invalidate if it's been more than 100ms since last invalidation
-            if (!this._lastCacheInvalidation || now - this._lastCacheInvalidation > 100) {
-                this._queryCache.clear();
-                this._lastCacheInvalidation = now;
-                logger.info('TRANSACTIONSTORE', 'Query cache invalidated');
-            }
-        }
+        this._queryCache.clear();
+        this._lastCacheInvalidation = Date.now();
     }
 
     /**

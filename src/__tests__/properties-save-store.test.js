@@ -39,7 +39,11 @@ describe('Properties save writes TransactionStore', () => {
     test('saveExpenseValue adds a store transaction and Sankey expenses', async () => {
         await propertiesManager.saveExpenseValue('Rent', null, 1500);
 
-        const txns = dataManager.store.transactions.filter(t => t.propertyId === 1 && t.category === 'Rent');
+        const txns = dataManager.store.queryTransactions({
+            propertyId: 1,
+            category: 'Rent',
+            type: 'expense',
+        });
         expect(txns).toHaveLength(1);
         expect(txns[0].amount).toBe(-1500);
         expect(txns[0].type).toBe('expense');
@@ -140,5 +144,47 @@ describe('Properties save writes TransactionStore', () => {
         expect(dataManager.getAggregatedSankeyData('all', 'all').propExpenses.get(1)).toBe(1500);
         const container = document.getElementById('overviewChartContent');
         expect(container.querySelector('svg')).not.toBeNull();
+    });
+
+    test('expense edit changes store.queryTransactions and aggregated Sankey data', async () => {
+        const beforeTxns = dataManager.store.queryTransactions({
+            propertyId: 1,
+            category: 'Rent',
+            type: 'expense',
+        });
+        const beforeAgg = dataManager.getAggregatedSankeyData('all', 'all');
+        expect(beforeTxns).toHaveLength(0);
+        expect(beforeAgg.propExpenses.get(1) || 0).toBe(0);
+        expect(beforeAgg.catTotals.get('Rent') || 0).toBe(0);
+
+        await propertiesManager.saveExpenseValue('Rent', null, 1500);
+
+        const afterInsert = dataManager.store.queryTransactions({
+            propertyId: 1,
+            category: 'Rent',
+            type: 'expense',
+        });
+        const afterInsertAgg = dataManager.getAggregatedSankeyData('all', 'all');
+        const storeAgg = dataManager.store.queryAggregatedSankey('all', 'all');
+        expect(afterInsert).toHaveLength(1);
+        expect(afterInsert[0].amount).toBe(-1500);
+        expect(afterInsertAgg.propExpenses.get(1)).toBe(1500);
+        expect(afterInsertAgg.catTotals.get('Rent')).toBe(1500);
+        expect(storeAgg.propExpenses.get(1)).toBe(afterInsertAgg.propExpenses.get(1));
+
+        await propertiesManager.saveExpenseValue('Rent', null, 2000);
+
+        const afterEdit = dataManager.store.queryTransactions({
+            propertyId: 1,
+            category: 'Rent',
+            type: 'expense',
+        });
+        const afterEditAgg = dataManager.getAggregatedSankeyData('all', 'all');
+        expect(afterEdit).toHaveLength(1);
+        expect(afterEdit[0].id).toBe(afterInsert[0].id);
+        expect(afterEdit[0].amount).toBe(-2000);
+        expect(afterEditAgg.propExpenses.get(1)).toBe(2000);
+        expect(afterEditAgg.catTotals.get('Rent')).toBe(2000);
+        expect(afterEditAgg.propExpenses.get(1)).not.toBe(afterInsertAgg.propExpenses.get(1));
     });
 });
