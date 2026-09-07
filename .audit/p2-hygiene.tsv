@@ -11,3 +11,4 @@ ts	phase	decision	why	evidence	result
 2026-09-07T22:50:00Z	P2.4	drop exact-duplicate DataManager test titles, add afterAll useRealTimers	coverage block pasted twice	src/__tests__/DataManager.test.js 3043 lines	tests green
 2026-09-07T22:51:00Z	P2.5	coverage threshold 90 to 50	90% global encouraged mock theater	jest.config.js	changed
 2026-09-07T22:55:00Z	verify	6 suites 945 tests on touched files	Logger DataManager index UIManager PropertiesManager sample-boot	npm test --ci --runInBand --coverage=false --silent	tests green
+2026-09-07T23:20:00Z	bugfix	Properties saveExpenseValue upserts TransactionStore rows	tree edits never hit store.properties summaries	DataManager.upsertPropertyLine properties-save-store.test.js	tests green

@@ -1063,8 +1063,15 @@ class PropertiesManager {
      * Get property categories
      */
     getPropertyCategories(property) {
-        if (!property || !property.expenses) {return [];}
-        return Object.keys(property.expenses);
+        if (!property) {return [];}
+        const period = this.dataManager.getCurrentPeriodData(property, null, true);
+        if (period && period.expenses && Object.keys(period.expenses).length > 0) {
+            return Object.keys(period.expenses);
+        }
+        if (property.expenses) {
+            return Object.keys(property.expenses);
+        }
+        return [];
     }
 
     /**
@@ -1445,31 +1452,39 @@ class PropertiesManager {
             processedValue = 0;
         }
 
-        // Preserve user input: positive for income, negative for expenses
         let finalValue = processedValue;
 
         if (isExpenseCategory && processedValue > 0) {
-            // Convert positive input to negative for expense categories
             finalValue = -processedValue;
         } else if (isIncomeCategory && processedValue < 0) {
-            // Convert negative input to positive for income categories
             finalValue = Math.abs(processedValue);
         }
-        // For other cases, preserve the processed value
 
-        // Update expenses object
-        if (subcategory) {
-            // Update subcategory value
-            if (typeof property.expenses[category] !== 'object' || property.expenses[category] === null) {
-                property.expenses[category] = {};
+        if (typeof this.dataManager.upsertPropertyLine === 'function') {
+            const result = this.dataManager.upsertPropertyLine({
+                propertyId: this.currentPropertyId,
+                category,
+                subcategory: subcategory || null,
+                amount: finalValue,
+                type: isIncomeCategory ? 'income' : 'expense',
+            });
+            if (!result.success) {
+                this.uiManager.showToast(result.message, 'error');
+                return;
             }
-            property.expenses[category][subcategory] = finalValue;
-        } else {
-            // Update category value
-            property.expenses[category] = finalValue;
         }
 
-        // Save to storage
+        if (property.expenses) {
+            if (subcategory) {
+                if (typeof property.expenses[category] !== 'object' || property.expenses[category] === null) {
+                    property.expenses[category] = {};
+                }
+                property.expenses[category][subcategory] = finalValue;
+            } else {
+                property.expenses[category] = finalValue;
+            }
+        }
+
         this.dataManager.save();
 
         // Re-render properties dashboard
@@ -2249,8 +2264,7 @@ class PropertiesManager {
         const property = this.dataManager.getPropertyById(this.currentPropertyId);
         if (!property) {return;}
 
-        // Check if category already exists
-        if (property.expenses.hasOwnProperty(name)) {
+        if (property.expenses && property.expenses.hasOwnProperty(name)) {
             this.uiManager.showToast('Category already exists', 'error');
             return;
         }
@@ -2258,10 +2272,13 @@ class PropertiesManager {
         // Create snapshot
         this.historyManager.createSnapshot(`Added category "${name}" to ${property.name}`, '', false);
 
-        // Add category
-        property.expenses[name] = isHierarchical ? {} : 0;
+        if (property.expenses) {
+            property.expenses[name] = isHierarchical ? {} : 0;
+        }
+        if (typeof this.dataManager.addExpenseCategory === 'function') {
+            this.dataManager.addExpenseCategory(name);
+        }
 
-        // Save and refresh
         this.dataManager.save();
         this.renderPropertiesDashboard();
         this.uiManager.showToast(`Category "${name}" added successfully`, 'success');
@@ -2275,26 +2292,34 @@ class PropertiesManager {
         if (!property || !this.currentCategoryPath) {return;}
 
         const category = this.currentCategoryPath.category;
-        if (!property.expenses.hasOwnProperty(category)) {return;}
+        if (property.expenses && !property.expenses.hasOwnProperty(category)) {return;}
 
-        // Ensure the category is hierarchical
-        if (typeof property.expenses[category] !== 'object' || property.expenses[category] === null) {
-            property.expenses[category] = {};
-        }
-
-        // Check if subcategory already exists
-        if (property.expenses[category].hasOwnProperty(name)) {
-            this.uiManager.showToast('Subcategory already exists', 'error');
-            return;
+        if (property.expenses) {
+            if (typeof property.expenses[category] !== 'object' || property.expenses[category] === null) {
+                property.expenses[category] = {};
+            }
+            if (property.expenses[category].hasOwnProperty(name)) {
+                this.uiManager.showToast('Subcategory already exists', 'error');
+                return;
+            }
         }
 
         // Create snapshot
         this.historyManager.createSnapshot(`Added subcategory "${name}" to ${category}`, '', false);
 
-        // Add subcategory
-        property.expenses[category][name] = value;
+        if (property.expenses) {
+            property.expenses[category][name] = value;
+        }
+        if (typeof this.dataManager.upsertPropertyLine === 'function' && value) {
+            this.dataManager.upsertPropertyLine({
+                propertyId: this.currentPropertyId,
+                category,
+                subcategory: name,
+                amount: value,
+                type: this.isIncomeCategory(category) ? 'income' : 'expense',
+            });
+        }
 
-        // Save and refresh
         this.dataManager.save();
         this.renderPropertiesDashboard();
         this.uiManager.showToast(`Subcategory "${name}" added successfully`, 'success');
@@ -2315,15 +2340,22 @@ class PropertiesManager {
      */
     deleteCategory(category) {
         const property = this.dataManager.getPropertyById(this.currentPropertyId);
-        if (!property || !property.expenses.hasOwnProperty(category)) {return;}
+        if (!property) {return;}
+        if (property.expenses && !property.expenses.hasOwnProperty(category)) {return;}
 
         // Create snapshot
         this.historyManager.createSnapshot(`Deleted category "${category}" from ${property.name}`, '', false);
 
-        // Remove category from property expenses
-        delete property.expenses[category];
+        if (property.expenses) {
+            delete property.expenses[category];
+        }
+        if (typeof this.dataManager.deletePropertyLines === 'function') {
+            this.dataManager.deletePropertyLines({
+                propertyId: this.currentPropertyId,
+                category,
+            });
+        }
 
-        // Save and refresh
         this.dataManager.save();
         this.renderPropertiesDashboard();
         this.uiManager.showToast(`Category "${category}" deleted successfully`, 'success');
@@ -2356,17 +2388,20 @@ class PropertiesManager {
         // Create snapshot
         this.historyManager.createSnapshot(`Deleted subcategory "${subcategory}" from ${category}`, '', false);
 
-        // Remove from expenses object
-        if (property.expenses[category] && typeof property.expenses[category] === 'object') {
+        if (property.expenses && property.expenses[category] && typeof property.expenses[category] === 'object') {
             delete property.expenses[category][subcategory];
-
-            // If category becomes empty, convert it to flat category
             if (Object.keys(property.expenses[category]).length === 0) {
                 property.expenses[category] = 0;
             }
         }
+        if (typeof this.dataManager.deletePropertyLines === 'function') {
+            this.dataManager.deletePropertyLines({
+                propertyId: this.currentPropertyId,
+                category,
+                subcategory,
+            });
+        }
 
-        // Save and refresh
         this.dataManager.save();
         this.renderPropertiesDashboard();
         this.uiManager.showToast(`Subcategory "${subcategory}" deleted successfully`, 'success');

@@ -75,6 +75,9 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
             getExpenseCategories: jest.fn().mockReturnValue(['Rent', 'Utilities']),
             getIncomeCategories: jest.fn().mockReturnValue([]),
             getCurrentView: jest.fn().mockReturnValue(null),
+            upsertPropertyLine: jest.fn().mockReturnValue({ success: true }),
+            deletePropertyLines: jest.fn().mockReturnValue({ success: true }),
+            addExpenseCategory: jest.fn().mockReturnValue({ success: true }),
             data: {
                 currentTimePeriod: 'all',
                 properties: mockProperties,

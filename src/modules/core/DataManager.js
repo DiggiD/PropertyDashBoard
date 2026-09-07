@@ -590,7 +590,9 @@ class DataManager {
       */
     getExpenseCategories() {
         this._ensureStoreAvailable();
-        return this.store.queryCategories({ type: 'expense' }).map(cat => cat.name);
+        const fromTxns = this.store.queryCategories({ type: 'expense' }).map(cat => cat.name);
+        const fromMeta = this.store.categories ? Array.from(this.store.categories) : [];
+        return [...new Set([...fromMeta, ...fromTxns])];
     }
 
     /**
@@ -598,7 +600,9 @@ class DataManager {
      * @returns {Array} Income categories array
      */
     getIncomeCategories() {
-        return [...(this.data?.incomeCategories || [])];
+        const fromData = this.data?.incomeCategories || [];
+        const fromStore = this.store?.incomeCategories ? Array.from(this.store.incomeCategories) : [];
+        return [...new Set([...fromData, ...fromStore])];
     }
 
     /**
@@ -1128,8 +1132,37 @@ class DataManager {
      * @param {number} amount - Expense amount
      * @returns {Object} Result with success status
      */
-    updatePropertyExpense(propertyId, category, amount) {
-        // Handle null/undefined category
+    _resolvePropertyMeta(propertyId) {
+        return this.store.properties.get(propertyId)
+            || this.store.properties.get(Number(propertyId))
+            || null;
+    }
+
+    _dateForSelection() {
+        const year = this.data?.selectedYear;
+        const month = this.data?.selectedMonth;
+        if (year && year !== 'all' && month && month !== 'all') {
+            return `${year}-${String(month).padStart(2, '0')}-01`;
+        }
+        if (year && year !== 'all') {
+            return `${year}-01-01`;
+        }
+        return new Date().toISOString().split('T')[0];
+    }
+
+    _dateRangeForSelection() {
+        const year = this.data?.selectedYear;
+        const month = this.data?.selectedMonth;
+        if (year && year !== 'all' && month && month !== 'all') {
+            return this._getDateRangeForPeriod('month', year);
+        }
+        if (year && year !== 'all') {
+            return this._getDateRangeForPeriod('year', year);
+        }
+        return null;
+    }
+
+    upsertPropertyLine({ propertyId, category, subcategory = null, amount, type = 'expense' }) {
         if (!category) {
             return {
                 success: false,
@@ -1137,8 +1170,8 @@ class DataManager {
             };
         }
 
-        // Validate amount
-        const validation = this._validator.validateAmount(amount);
+        const absAmount = Math.abs(parseFloat(amount));
+        const validation = this._validator.validateAmount(Number.isNaN(absAmount) ? amount : absAmount);
         if (!validation.isValid) {
             return {
                 success: false,
@@ -1146,7 +1179,106 @@ class DataManager {
             };
         }
 
-        // Parse hierarchical category (e.g., "Utilities.Electricity" -> category: "Utilities", subcategory: "Electricity")
+        const propertyMeta = this._resolvePropertyMeta(propertyId);
+        if (!propertyMeta) {
+            return {
+                success: false,
+                message: 'Property not found',
+            };
+        }
+
+        const numAmount = parseFloat(amount);
+        const resolvedId = propertyMeta.id;
+        if (type === 'income') {
+            this.store.incomeCategories.add(category);
+        } else {
+            this.store.categories.add(category);
+        }
+
+        const dateRange = this._dateRangeForSelection();
+        const filters = { propertyId: resolvedId, category, type };
+        if (dateRange) {
+            filters.dateRange = dateRange;
+        }
+        let matches = this.store.queryTransactions(filters);
+        if (subcategory) {
+            matches = matches.filter(txn => txn.subcategory === subcategory);
+        } else {
+            matches = matches.filter(txn => !txn.subcategory);
+        }
+
+        if (numAmount === 0) {
+            matches.forEach(txn => this.store.deleteTransaction(txn.id));
+            this.clearSankeyCache();
+            this.emit('dataChange');
+            return {
+                success: true,
+                message: `Expense cleared for ${propertyMeta.name} - ${category}`,
+                oldAmount: matches[0] ? matches[0].amount : 0,
+                newAmount: 0,
+            };
+        }
+
+        if (matches[0]) {
+            const oldAmount = matches[0].amount;
+            this.store.updateTransaction(matches[0].id, { amount: numAmount });
+            this.clearSankeyCache();
+            this.emit('dataChange');
+            return {
+                success: true,
+                message: `Expense updated for ${propertyMeta.name} - ${category}`,
+                oldAmount,
+                newAmount: numAmount,
+            };
+        }
+
+        this.store.addTransaction({
+            propertyId: resolvedId,
+            category,
+            subcategory: subcategory || undefined,
+            amount: numAmount,
+            date: this._dateForSelection(),
+            type,
+        });
+        this.clearSankeyCache();
+        this.emit('dataChange');
+        return {
+            success: true,
+            message: `Expense added for ${propertyMeta.name} - ${category}`,
+            oldAmount: 0,
+            newAmount: numAmount,
+        };
+    }
+
+    deletePropertyLines({ propertyId, category, subcategory = null }) {
+        const propertyMeta = this._resolvePropertyMeta(propertyId);
+        if (!propertyMeta || !category) {
+            return {
+                success: false,
+                message: 'Property or category not found',
+            };
+        }
+        let matches = this.store.queryTransactions({
+            propertyId: propertyMeta.id,
+            category,
+        });
+        if (subcategory) {
+            matches = matches.filter(txn => txn.subcategory === subcategory);
+        }
+        matches.forEach(txn => this.store.deleteTransaction(txn.id));
+        this.clearSankeyCache();
+        this.emit('dataChange');
+        return { success: true };
+    }
+
+    updatePropertyExpense(propertyId, category, amount) {
+        if (!category) {
+            return {
+                success: false,
+                message: 'Category cannot be null or undefined',
+            };
+        }
+
         let mainCategory = category;
         let subcategory = null;
 
@@ -1156,7 +1288,6 @@ class DataManager {
             [mainCategory, subcategory] = category.split(':', 2);
         }
 
-        // Check if category exists in store
         if (!this.store.categories.has(mainCategory)) {
             return {
                 success: false,
@@ -1164,61 +1295,20 @@ class DataManager {
             };
         }
 
-        // Check if property exists
-        const propertyMeta = this.store.properties.get(propertyId);
-        if (!propertyMeta) {
+        if (!this._resolvePropertyMeta(propertyId)) {
             return {
                 success: false,
                 message: 'Property not found',
             };
         }
 
-        const numAmount = parseFloat(amount);
-
-        // Find existing transaction for this property/category/subcategory
-        const existingTxn = this.store.queryTransactions({
+        return this.upsertPropertyLine({
             propertyId,
             category: mainCategory,
             subcategory,
+            amount,
             type: 'expense',
-        }).find(txn => !txn.date || txn.date === new Date().toISOString().split('T')[0]); // Prefer current date or undated
-
-        if (existingTxn) {
-            // Update existing transaction
-            const oldAmount = existingTxn.amount;
-            this.store.updateTransaction(existingTxn.id, { amount: numAmount });
-
-            logger.info('DATAMANAGER', 'Expense updated', propertyMeta.name, category, oldAmount, '->', numAmount);
-
-            return {
-                success: true,
-                message: `Expense updated for ${propertyMeta.name} - ${category}`,
-                oldAmount,
-                newAmount: numAmount,
-            };
-        } else {
-            // Create new transaction
-            const currentDate = new Date().toISOString().split('T')[0];
-            const newTxn = {
-                propertyId,
-                category: mainCategory,
-                subcategory,
-                amount: numAmount,
-                date: currentDate,
-                type: 'expense',
-            };
-
-            this.store.addTransaction(newTxn);
-
-            logger.info('DATAMANAGER', 'Expense added', propertyMeta.name, category, numAmount);
-
-            return {
-                success: true,
-                message: `Expense added for ${propertyMeta.name} - ${category}`,
-                oldAmount: 0,
-                newAmount: numAmount,
-            };
-        }
+        });
     }
 
     /**

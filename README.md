@@ -41,9 +41,9 @@ Old profiles that still have `monthlyData` or `property.expenses` trees and no `
 
 Storage uses Dexie (`ExpenseDashboardDB`) from npm, then localStorage if IndexedDB is missing or the schema does not match. A schema mismatch does not call `db.delete()`. The existing IndexedDB database is left in place.
 
-## Known bug
+## Properties edits
 
-The Properties view still writes `property.expenses` trees and then calls `dataManager.save()`. Save persists `TransactionStore` transactions, not those trees. Edits in Properties do not become Sankey rows until that path writes transactions.
+The Properties view writes amounts through `DataManager.upsertPropertyLine` into `TransactionStore`. Overview Sankey reads those transactions. Tree fields on `property.expenses` are only a display fallback.
 
 ## Tests
 
