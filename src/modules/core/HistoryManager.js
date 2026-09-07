@@ -1,4 +1,5 @@
 import logger from '../utils/Logger.js';
+import { migrateToFlat } from '../utils/legacyMigrator.js';
 /**
  * HistoryManager Module
  * Handles undo/redo functionality and data snapshots
@@ -403,6 +404,10 @@ class HistoryManager {
                 // Find the newly created snapshot in the fresh history
                 const newSnapshot = this.history.find(s => s.name === snapshot.name && s.timestamp === snapshot.timestamp);
                 if (newSnapshot) {
+                    if (!Array.isArray(newSnapshot.data?.transactions)
+                        && Array.isArray(snapshot.data?.transactions)) {
+                        newSnapshot.data = snapshot.data;
+                    }
                     this.historyIndex = this.history.findIndex(s => s.id === newSnapshot.id);
                     logger.debug('HISTORY', 'Set history index to newly created snapshot:', this.historyIndex);
                 }
@@ -466,7 +471,7 @@ class HistoryManager {
      * @param {string} snapshotId - Snapshot ID to load
      * @returns {Object} Result with success status
      */
-    async loadSnapshot(snapshotId) {
+    async loadSnapshot(snapshotId, options = {}) {
         try {
             logger.debug('HISTORY', 'Loading snapshot:', snapshotId);
 
@@ -475,7 +480,7 @@ class HistoryManager {
             await this.loadHistoryFromStorage();
             logger.debug('HISTORY', 'Fresh history loaded, length:', this.history.length);
 
-            let snapshot = this.history.find(s => s.id === snapshotId);
+            let snapshot = this.history.find(s => String(s.id) === String(snapshotId));
 
             if (!snapshot) {
                 logger.error('HISTORY', 'Snapshot not found', snapshotId);
@@ -491,16 +496,17 @@ class HistoryManager {
                 };
             }
 
-            // Show inline confirmation instead of browser popup
-            const confirmed = await this.showInlineConfirmation(
-                `Load Snapshot "${snapshot.name}"`,
-                `This will replace your current data with the snapshot.\n\nCreated: ${new Date(snapshot.timestamp).toLocaleString()}\nTotal Expenses: ₹${snapshot.totalExpenses.toLocaleString()}`,
-                'Load',
-                'Cancel'
-            );
-
-            if (!confirmed) {
-                return { success: false, message: 'Snapshot load cancelled' };
+            const requireConfirm = options.confirm !== false;
+            if (requireConfirm) {
+                const confirmed = await this.showInlineConfirmation(
+                    `Load Snapshot "${snapshot.name}"`,
+                    `This will replace your current data with the snapshot.\n\nCreated: ${new Date(snapshot.timestamp).toLocaleString()}\nTotal Expenses: ₹${snapshot.totalExpenses.toLocaleString()}`,
+                    'Load',
+                    'Cancel',
+                );
+                if (!confirmed) {
+                    return { success: false, message: 'Snapshot load cancelled' };
+                }
             }
 
             // Save current state before loading snapshot
@@ -508,8 +514,7 @@ class HistoryManager {
                 snapshotTotal: snapshot.totalExpenses
             });
 
-            // Load snapshot data
-            const snapshotData = JSON.parse(JSON.stringify(snapshot.data));
+            const snapshotData = this._normalizeSnapshotData(snapshot.data);
             logger.debug('HISTORY', 'Loading snapshot data:', {
                 properties: snapshotData.properties?.length || 0,
                 categories: snapshotData.expenseCategories?.length || 0,
@@ -981,6 +986,11 @@ class HistoryManager {
             this.historyIndex = -1;
             return false;
         }
+    }
+
+    _normalizeSnapshotData(data) {
+        const copy = JSON.parse(JSON.stringify(data || {}));
+        return migrateToFlat(copy);
     }
 
     _captureFlatData() {

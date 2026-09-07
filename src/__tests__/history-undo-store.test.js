@@ -121,3 +121,97 @@ describe('Undo restores TransactionStore after Properties save', () => {
         expect(storeAggSnapshot(dataManager.getAggregatedSankeyData('all', 'all'))).toEqual(after);
     });
 });
+
+describe('Named History snapshots restore TransactionStore', () => {
+    let dataManager;
+    let historyManager;
+    let propertiesManager;
+    let namedSnapshots;
+
+    beforeEach(async () => {
+        namedSnapshots = [];
+        const storage = {
+            load: jest.fn().mockResolvedValue(null),
+            save: jest.fn().mockResolvedValue(true),
+            initialize: jest.fn().mockResolvedValue(),
+            loadHistoryFromStorage: jest.fn(async () => namedSnapshots.map(s => JSON.parse(JSON.stringify(s)))),
+            saveHistorySnapshot: jest.fn(async snapshot => {
+                const stored = JSON.parse(JSON.stringify(snapshot));
+                stored.id = stored.id || `snap_${namedSnapshots.length + 1}`;
+                snapshot.id = stored.id;
+                namedSnapshots.push(stored);
+                return true;
+            }),
+            updateHistorySnapshot: jest.fn().mockResolvedValue(true),
+        };
+        dataManager = new DataManager(storage, new Validator(), new Formatter());
+        await dataManager.initialize({
+            transactions: [],
+            properties: [{ id: 1, name: 'Office', created: '2024-01-01T00:00:00.000Z' }],
+            expenseCategories: ['Rent', 'Utilities'],
+            incomeCategories: ['Salary'],
+        });
+        historyManager = new HistoryManager(storage, dataManager);
+        await historyManager.initialize();
+        propertiesManager = new PropertiesManager(
+            dataManager,
+            {
+                showToast: jest.fn(),
+                getElement: jest.fn(() => document.createElement('div')),
+                updateDataDisplay: jest.fn(),
+                formatter: new Formatter(),
+            },
+            historyManager,
+        );
+        propertiesManager.currentPropertyId = 1;
+        document.body.innerHTML = '<div id="propertiesDashboard"></div>';
+    });
+
+    test('loading a named snapshot restores store totals and Sankey agg', async () => {
+        await propertiesManager.saveExpenseValue('Rent', null, 1500);
+        const before = storeAggSnapshot(dataManager.store.queryAggregatedSankey('all', 'all'));
+        expect(before.propExpenses[1]).toBe(1500);
+
+        const created = await historyManager.createSnapshot('Named rent', 'flat export', true);
+        expect(created.success).toBe(true);
+        expect(Array.isArray(created.snapshot.data.transactions)).toBe(true);
+        expect(created.snapshot.data.transactions.some(t => t.category === 'Rent' && t.amount === -1500)).toBe(true);
+        expect(created.snapshot.data.properties[0].expenses).toBeUndefined();
+
+        await propertiesManager.saveExpenseValue('Rent', null, 2000);
+        expect(dataManager.store.queryAggregatedSankey('all', 'all').propExpenses.get(1)).toBe(2000);
+
+        const loaded = await historyManager.loadSnapshot(created.snapshot.id, { confirm: false });
+        expect(loaded.success).toBe(true);
+        expect(storeAggSnapshot(dataManager.store.queryAggregatedSankey('all', 'all'))).toEqual(before);
+        expect(storeAggSnapshot(dataManager.getAggregatedSankeyData('all', 'all'))).toEqual(before);
+    });
+
+    test('loading a tree-only named snapshot flattens into store transactions', async () => {
+        namedSnapshots.push({
+            id: 'legacy-tree',
+            name: 'Legacy',
+            timestamp: '2024-01-01T00:00:00.000Z',
+            totalExpenses: 1500,
+            data: {
+                properties: [{
+                    id: 1,
+                    name: 'Office',
+                    expenses: { Rent: -1500 },
+                }],
+                expenseCategories: ['Rent'],
+            },
+        });
+
+        const loaded = await historyManager.loadSnapshot('legacy-tree', { confirm: false });
+        expect(loaded.success).toBe(true);
+        const txns = dataManager.store.queryTransactions({
+            propertyId: 1,
+            category: 'Rent',
+            type: 'expense',
+        });
+        expect(txns).toHaveLength(1);
+        expect(txns[0].amount).toBe(-1500);
+        expect(dataManager.store.queryAggregatedSankey('all', 'all').propExpenses.get(1)).toBe(1500);
+    });
+});
