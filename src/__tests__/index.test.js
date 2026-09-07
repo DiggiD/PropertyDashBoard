@@ -405,28 +405,6 @@ describe('index.js', () => {
             }
         });
 
-        test('should handle analytics view change', async () => {
-            // Use empty data to ensure setupEventListeners is called
-            mockDataManager.getProperties = jest.fn().mockReturnValue([]);
-
-            await initializeApplication();
-
-            // Get the view change handler that was registered
-            const viewChangeCall = global.document.addEventListener.mock.calls.find(
-                call => call[0] === 'viewChange'
-            );
-
-            if (viewChangeCall) {
-                const viewChangeHandler = viewChangeCall[1];
-                const mockEvent = { detail: { view: 'analytics' } };
-                viewChangeHandler(mockEvent);
-                expect(mockUIManager.setCurrentView).toHaveBeenCalledWith('analytics');
-            } else {
-                console.log('ViewChange listener not found for analytics test');
-                expect(true).toBe(true);
-            }
-        });
-
         test('should setup history click event listener', async () => {
             // Use empty data to ensure setupEventListeners is called
             mockDataManager.getProperties = jest.fn().mockReturnValue([]);

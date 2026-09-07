@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Interactive Property Expense Dashboard with Sankey Charts",
   "type": "module",
-  "main": "app.js",
+  "main": "src/index.js",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -11,7 +11,6 @@
     "watch": "vite build --watch",
     "preview": "vite preview",
     "test": "NODE_ENV=test jest",
-    "prepare": "husky install",
     "clear_jest": "jest --clearCache",
     "test:unit": "jest --no-coverage --reporters=default",
     "test:coverage": "jest --coverage --no-cache --runInBand",
@@ -31,8 +30,7 @@
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
     "format": "prettier --write src index.html style.css",
-    "format:check": "prettier --check src index.html style.css",
-    "lint:staged": "eslint --fix"
+    "format:check": "prettier --check src index.html style.css"
   },
   "devDependencies": {
     "@babel/cli": "^7.24.0",
@@ -45,23 +43,12 @@
     "babel-jest": "^29.7.0",
     "eslint": "^9.9.0",
     "globals": "^15.9.0",
-    "husky": "^9.1.4",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
     "jest-transform-stub": "^2.0.0",
     "jsdom": "^27.0.0",
-    "lint-staged": "^15.2.9",
     "prettier": "^3.3.3",
     "vite": "^5.0.0"
-  },
-  "lint-staged": {
-    "*.js": [
-      "eslint --fix",
-      "prettier --write"
-    ],
-    "*.{html,css}": [
-      "prettier --write"
-    ]
   },
   "keywords": [
     "dashboard",

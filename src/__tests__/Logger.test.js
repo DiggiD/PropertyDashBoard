@@ -43,7 +43,7 @@ describe('Logger', () => {
                 INFO: 2,
                 DEBUG: 3
             });
-            expect(logger.currentLevel).toBe(2); // INFO level
+            expect(logger.currentLevel).toBe(1);
             expect(logger.debugMode).toBe(false);
             expect(logger.logCache).toBeInstanceOf(Map);
             expect(logger.cacheTimeout).toBe(5000);
@@ -58,6 +58,17 @@ describe('Logger', () => {
         test('should create log cache as Map instance', () => {
             expect(logger.logCache).toBeInstanceOf(Map);
             expect(logger.logCache.size).toBe(0);
+        });
+
+        test('raises to INFO when debug=1 is in the query string', () => {
+            const url = new URL(window.location.href);
+            url.searchParams.set('debug', '1');
+            window.history.pushState({}, '', url);
+            const debugLogger = new Logger();
+            expect(debugLogger.currentLevel).toBe(2);
+            expect(debugLogger.debugMode).toBe(true);
+            url.searchParams.delete('debug');
+            window.history.pushState({}, '', url);
         });
     });
 
@@ -92,7 +103,7 @@ describe('Logger', () => {
             logger.setDebugMode(true); // First enable
             logger.setDebugMode(false); // Then disable
             expect(logger.debugMode).toBe(false);
-            expect(logger.currentLevel).toBe(2); // INFO level
+            expect(logger.currentLevel).toBe(1);
         });
 
         test('shouldLog() should return true for levels at or below current level', () => {
@@ -344,6 +355,7 @@ describe('Logger', () => {
 
         test('logDataOperation() should log operation summary in non-debug mode', () => {
             logger.setDebugMode(false);
+            logger.setLevel('INFO');
 
             const stats = { records: 10, duration: 50 };
             logger.logDataOperation('TEST', 'Data load', stats);
@@ -389,6 +401,10 @@ describe('Logger', () => {
     });
 
     describe('Module Logger Creation', () => {
+        beforeEach(() => {
+            logger.setLevel('DEBUG');
+        });
+
         test('createModuleLogger() should create logger with bound methods', () => {
             const moduleLogger = logger.createModuleLogger('TESTMODULE');
 

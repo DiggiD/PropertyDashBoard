@@ -1,0 +1,13 @@
+ts	phase	decision	why	evidence	result
+2026-09-07T22:30:00Z	frame	P2.1-P2.9 on WIP, no NormalizedDataManager, no push, no main	triage P2 plus leftover constraints	/workspace/research/sankey-property-dashboard-triage.md	open
+2026-09-07T22:35:00Z	P2.3	delete Analytics nav and Coming Soon dashboard	dead UI, testMode already gone	index.html UIManager.js src/index.js	deleted
+2026-09-07T22:40:00Z	P2.6	Logger default WARN, ?debug=1 raises INFO	triage noisy console	src/modules/utils/Logger.js	tests green
+2026-09-07T22:42:00Z	P2.8	remove husky prepare and husky dependency	empty hooks, deprecated husky install	package.json	deleted
+2026-09-07T22:43:00Z	P2.7	main is src/index.js, drop .eslintignore, lint already src/	eslint 9 uses config ignores	package.json eslint.config.js	deleted
+2026-09-07T22:44:00Z	P2.2	add .github/workflows/test.yml npm ci lint test	._* already ignored by Jest	.github/workflows/test.yml	added
+2026-09-07T22:45:00Z	P2.9	document income in README, keep Sankey income nodes	57 sample income txns, no income dashboard	README.md sample JSON	documented
+2026-09-07T22:45:00Z	P2.expenses	document Properties expenses tree as known bug	wiring store writes is a Feature not a quick leftover	README.md	documented
+2026-09-07T22:46:00Z	P2.1	README what it is, npm run dev, Transaction shape, IndexedDB fallback	onboarding was git archaeology	README.md	added
+2026-09-07T22:50:00Z	P2.4	drop exact-duplicate DataManager test titles, add afterAll useRealTimers	coverage block pasted twice	src/__tests__/DataManager.test.js 3043 lines	tests green
+2026-09-07T22:51:00Z	P2.5	coverage threshold 90 to 50	90% global encouraged mock theater	jest.config.js	changed
+2026-09-07T22:55:00Z	verify	6 suites 945 tests on touched files	Logger DataManager index UIManager PropertiesManager sample-boot	npm test --ci --runInBand --coverage=false --silent	tests green

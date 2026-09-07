@@ -1511,7 +1511,6 @@ class UIManager {
         // Use direct DOM queries to ensure we find elements
         const overviewBtn = document.getElementById('overviewBtn');
         const propertiesBtn = document.getElementById('propertiesBtn');
-        const analyticsBtn = document.getElementById('analyticsBtn');
         const darkModeToggle = document.getElementById('darkModeToggle');
         const historyBtn = document.getElementById('historyBtn');
         const undoBtn = document.getElementById('undoBtn');
@@ -1521,7 +1520,6 @@ class UIManager {
         this.logger.debug('Direct element queries:', {
             overviewBtn: !!overviewBtn,
             propertiesBtn: !!propertiesBtn,
-            analyticsBtn: !!analyticsBtn,
             darkModeToggle: !!darkModeToggle,
             historyBtn: !!historyBtn,
             undoBtn: !!undoBtn,
@@ -1554,19 +1552,6 @@ class UIManager {
             this.logger.debug('Properties button listener attached');
         } else {
             this.logger.warn('Properties button not found');
-        }
-
-        if (analyticsBtn) {
-            analyticsBtn.addEventListener('click', (e) => {
-                this.logger.debug('Analytics button clicked');
-                e.preventDefault();
-                e.stopPropagation();
-                this.setCurrentView('analytics');
-                this.emit('viewChange', { view: 'analytics' });
-            });
-            this.logger.debug('Analytics button listener attached');
-        } else {
-            this.logger.warn('Analytics button not found');
         }
 
         // Header actions

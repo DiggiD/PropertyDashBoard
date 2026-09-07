@@ -205,9 +205,6 @@ function setupEventListeners(
                     propertiesManager.renderPropertiesDashboard();
                 }
                 break;
-            case 'analytics':
-                logger.debug('INDEX', 'Switching to analytics view');
-                break;
             default:
                 logger.debug('INDEX', `Unhandled view: ${view}`);
                 break;

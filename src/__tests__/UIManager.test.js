@@ -85,6 +85,7 @@ document.dispatchEvent = jest.fn();
 import UIManager from '../modules/core/UIManager.js';
 import Formatter from '../modules/utils/Formatter.js';
 import ThemeManager from '../modules/core/ThemeManager.js';
+import logger from '../modules/utils/Logger.js';
 
 describe('UIManager', () => {
     let uiManager;
@@ -196,6 +197,7 @@ describe('UIManager', () => {
         });
 
         test('should skip setup event listeners if already set up', () => {
+            logger.setLevel('INFO');
             const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
             uiManager.setupEventListeners(); // Should skip
             expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[INFO] [UI] Event listeners already set up, skipping'));
@@ -203,6 +205,7 @@ describe('UIManager', () => {
         });
 
         test('should handle multiple initializations gracefully', async () => {
+            logger.setLevel('INFO');
             const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
 
             await uiManager.initialize();
@@ -666,6 +669,7 @@ describe('UIManager', () => {
 
     describe('Debug and Utilities', () => {
         test('should provide debug information', () => {
+            logger.setLevel('INFO');
             const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
             uiManager.debug();
 

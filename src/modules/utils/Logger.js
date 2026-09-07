@@ -11,11 +11,9 @@ class Logger {
             DEBUG: 3
         };
 
-        // Current log level - can be configured
-        this.currentLevel = this.levels.INFO;
-
-        // Debug mode flag - can be enabled/disabled
+        this.currentLevel = this.levels.WARN;
         this.debugMode = false;
+        this._applyDebugQuery();
 
         // Cache for consolidated logs
         this.logCache = new Map();
@@ -49,6 +47,18 @@ class Logger {
         if (enabled) {
             this.currentLevel = this.levels.DEBUG;
         } else {
+            this.currentLevel = this.levels.WARN;
+            this._applyDebugQuery();
+        }
+    }
+
+    _applyDebugQuery() {
+        if (typeof window === 'undefined' || !window.location || !window.location.search) {
+            return;
+        }
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('debug') === '1') {
+            this.debugMode = true;
             this.currentLevel = this.levels.INFO;
         }
     }

@@ -9,6 +9,7 @@ import DataManager from '../modules/core/DataManager.js';
 import UIManager from '../modules/core/UIManager.js';
 
 import HistoryManager from '../modules/core/HistoryManager.js';
+import logger from '../modules/utils/Logger.js';
 
 jest.mock('../modules/utils/Storage', () => require('../__mocks__/Storage'));
 jest.mock('../modules/core/ThemeManager', () => require('../__mocks__/ThemeManager'));
@@ -179,6 +180,7 @@ describe('PropertiesManager - 80%+ Coverage Target', () => {
         });
 
         test('should initialize successfully with all dependencies', async () => {
+            logger.setLevel('INFO');
             await expect(propertiesManager.initialize()).resolves.not.toThrow();
             // Check that console.log was called (without specific timestamp check)
             expect(console.log).toHaveBeenCalledWith(expect.stringContaining('[INFO] [PROPERTIES] PropertiesManager initialized successfully'));
