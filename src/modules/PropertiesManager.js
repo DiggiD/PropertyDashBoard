@@ -1488,18 +1488,25 @@ class PropertiesManager {
         await this.dataManager.save();
 
         this.renderPropertiesDashboard();
+        await this.refreshOverviewFromStore();
 
-        // Force UI refresh to update totals
         if (this.uiManager && typeof this.uiManager.updateDataDisplay === 'function') {
             const stats = this.dataManager.getDataStatistics();
             this.uiManager.updateDataDisplay(stats);
         }
 
-        // Show success message
         const categoryTypeLabel = isIncomeCategory ? 'Income' : 'Expense';
         this.uiManager.showToast(`${categoryTypeLabel} updated successfully`, 'success');
     }
 
+    refreshOverviewFromStore() {
+        const chart = this.chartRenderer
+            || (typeof window !== 'undefined' ? window.chartRenderer : null);
+        if (chart && typeof chart.renderOverviewSankey === 'function') {
+            return chart.renderOverviewSankey();
+        }
+        return Promise.resolve();
+    }
 
     /**
      * Cancel expense edit
@@ -2196,6 +2203,7 @@ class PropertiesManager {
 
         this.dataManager.save();
         this.renderPropertiesDashboard();
+        this.refreshOverviewFromStore();
         this.uiManager.showToast(`Category renamed to "${newCategory}"`, 'success');
     }
 
@@ -2239,6 +2247,7 @@ class PropertiesManager {
 
         this.dataManager.save();
         this.renderPropertiesDashboard();
+        this.refreshOverviewFromStore();
         this.uiManager.showToast(`Subcategory renamed to "${newSubcategory}"`, 'success');
     }
 
@@ -2380,6 +2389,7 @@ class PropertiesManager {
 
         this.dataManager.save();
         this.renderPropertiesDashboard();
+        this.refreshOverviewFromStore();
         this.uiManager.showToast(`Category "${category}" deleted successfully`, 'success');
     }
 
@@ -2426,6 +2436,7 @@ class PropertiesManager {
 
         this.dataManager.save();
         this.renderPropertiesDashboard();
+        this.refreshOverviewFromStore();
         this.uiManager.showToast(`Subcategory "${subcategory}" deleted successfully`, 'success');
     }
 

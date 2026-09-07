@@ -1,5 +1,7 @@
 import DataManager from '../modules/core/DataManager.js';
 import PropertiesManager from '../modules/PropertiesManager.js';
+import ChartRenderer from '../modules/core/ChartRenderer.js';
+import ThemeManager from '../modules/core/ThemeManager.js';
 import Formatter from '../modules/utils/Formatter.js';
 import Validator from '../modules/utils/Validator.js';
 
@@ -31,7 +33,7 @@ describe('Properties save writes TransactionStore', () => {
         const historyManager = { createSnapshot: jest.fn() };
         propertiesManager = new PropertiesManager(dataManager, uiManager, historyManager);
         propertiesManager.currentPropertyId = 1;
-        document.body.innerHTML = '<div id="propertiesDashboard"></div>';
+        document.body.innerHTML = '<div id="propertiesDashboard"></div><div id="overviewChartContent"></div>';
     });
 
     test('saveExpenseValue adds a store transaction and Sankey expenses', async () => {
@@ -93,5 +95,50 @@ describe('Properties save writes TransactionStore', () => {
         await dataManager.save();
         const payload = storage.save.mock.calls[storage.save.mock.calls.length - 1][0];
         expect(payload.transactions.some(t => t.category === 'Rent')).toBe(false);
+    });
+
+    test('after save, Overview Sankey render uses store aggregations', async () => {
+        const renderOverviewSankey = jest.fn().mockImplementation(async () => {
+            const aggregated = dataManager.getAggregatedSankeyData('all', 'all');
+            expect(aggregated.propExpenses.get(1)).toBe(1500);
+        });
+        propertiesManager.chartRenderer = { renderOverviewSankey };
+
+        await propertiesManager.saveExpenseValue('Rent', null, 1500);
+
+        expect(renderOverviewSankey).toHaveBeenCalled();
+        expect(dataManager.getAggregatedSankeyData('all', 'all').propExpenses.get(1)).toBe(1500);
+    });
+
+    test('after save, ChartRenderer Overview SVG is built from store data', async () => {
+        global.ResizeObserver = jest.fn().mockImplementation(function ResizeObserverStub() {
+            this.observe = jest.fn();
+            this.disconnect = jest.fn();
+            this.unobserve = jest.fn();
+        });
+        const uiManager = {
+            showToast: jest.fn(),
+            getElement: key => document.getElementById(key),
+            updateDataDisplay: jest.fn(),
+            showLoadingState: jest.fn(),
+            hideLoadingState: jest.fn(),
+            showError: jest.fn(),
+            formatter: new Formatter(),
+        };
+        const chart = new ChartRenderer(dataManager, uiManager, new Formatter(), new ThemeManager());
+        await chart.initialize();
+        propertiesManager = new PropertiesManager(
+            dataManager,
+            uiManager,
+            { createSnapshot: jest.fn() },
+            chart,
+        );
+        propertiesManager.currentPropertyId = 1;
+
+        await propertiesManager.saveExpenseValue('Rent', null, 1500);
+
+        expect(dataManager.getAggregatedSankeyData('all', 'all').propExpenses.get(1)).toBe(1500);
+        const container = document.getElementById('overviewChartContent');
+        expect(container.querySelector('svg')).not.toBeNull();
     });
 });
