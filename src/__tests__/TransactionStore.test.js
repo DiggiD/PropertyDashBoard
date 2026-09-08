@@ -1232,6 +1232,19 @@ describe('TransactionStore', () => {
             expect(result).toBeNull();
         });
 
+        test('edge case 6b: _validateTransaction rejects NaN and non-finite amounts', () => {
+            const base = {
+                propertyId: 1,
+                category: 'Rent',
+                date: '2025-01-15',
+                type: 'expense',
+            };
+            expect(store._validateTransaction({ ...base, amount: NaN })).toBeNull();
+            expect(store._validateTransaction({ ...base, amount: Infinity })).toBeNull();
+            expect(store._validateTransaction({ ...base, amount: -Infinity })).toBeNull();
+            expect(store._validateTransaction({ ...base, amount: 0 })).toBeNull();
+        });
+
         test('edge case 7: _getDateRangeForPeriod with invalid period', () => {
             const result = store._getDateRangeForPeriod('invalid');
             expect(result).toBeNull();
