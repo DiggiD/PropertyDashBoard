@@ -73,7 +73,7 @@ export function parseNonZeroAmount(value: unknown): NonZeroAmount | null {
     if (typeof value !== 'number') {
         return null;
     }
-    if (value === 0) {
+    if (!Number.isFinite(value) || value === 0) {
         return null;
     }
     return value as NonZeroAmount;
