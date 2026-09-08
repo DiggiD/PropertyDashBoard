@@ -402,7 +402,9 @@ class HistoryManager {
                 logger.debug('HISTORY', 'History reloaded from database, new length:', this.history.length);
 
                 // Find the newly created snapshot in the fresh history
-                const newSnapshot = this.history.find(s => s.name === snapshot.name && s.timestamp === snapshot.timestamp);
+                const newSnapshot = this.history.find(
+                    s => s.name === snapshot.name && s.timestamp === snapshot.timestamp,
+                );
                 if (newSnapshot) {
                     if (!Array.isArray(newSnapshot.data?.transactions)
                         && Array.isArray(snapshot.data?.transactions)) {
@@ -419,7 +421,7 @@ class HistoryManager {
                     await this.saveState(`Create snapshot: ${snapshot.name}`, {
                         action: 'create_snapshot',
                         snapshotId: snapshot.id,
-                        snapshotTotal: snapshotTotal // Pass the correct total
+                        snapshotTotal, // Pass the correct total
                     });
                 }
 
@@ -480,7 +482,7 @@ class HistoryManager {
             await this.loadHistoryFromStorage();
             logger.debug('HISTORY', 'Fresh history loaded, length:', this.history.length);
 
-            let snapshot = this.history.find(s => String(s.id) === String(snapshotId));
+            const snapshot = this.history.find(s => String(s.id) === String(snapshotId));
 
             if (!snapshot) {
                 logger.error('HISTORY', 'Snapshot not found', snapshotId);
@@ -511,7 +513,7 @@ class HistoryManager {
 
             // Save current state before loading snapshot
             await this.saveState(`Load snapshot: ${snapshot.name}`, {
-                snapshotTotal: snapshot.totalExpenses
+                snapshotTotal: snapshot.totalExpenses,
             });
 
             const snapshotData = this._normalizeSnapshotData(snapshot.data);
@@ -525,7 +527,8 @@ class HistoryManager {
             // Calculate summary from snapshot data for accurate display
             const propertiesCount = snapshotData.properties?.length || 0;
             const categoriesCount = snapshotData.expenseCategories?.length || 0;
-            const totalExpenses = snapshot.totalExpenses || this.dataManager.calculateTotalExpensesFromData(snapshotData);
+            const totalExpenses = snapshot.totalExpenses
+                || this.dataManager.calculateTotalExpensesFromData(snapshotData);
 
             logger.debug('HISTORY', 'Snapshot summary calculated:', {
                 propertiesCount,
@@ -613,7 +616,7 @@ class HistoryManager {
                 'Enter a new name for this snapshot:',
                 currentName,
                 'Rename',
-                'Cancel'
+                'Cancel',
             );
 
             if (!newName || newName.trim() === '') {
@@ -629,7 +632,7 @@ class HistoryManager {
 
             // Update in database
             await this.storage.updateHistorySnapshot(snapshotId, {
-                name: newName.trim()
+                name: newName.trim(),
             });
 
             // Save updated history to localStorage for consistency
@@ -693,7 +696,7 @@ class HistoryManager {
                 `Delete Snapshot "${snapshot.name}"`,
                 `This will permanently delete the snapshot "${snapshot.name}".\n\nThis action cannot be undone.`,
                 'Delete',
-                'Cancel'
+                'Cancel',
             );
 
             if (!confirmed) {
@@ -703,8 +706,8 @@ class HistoryManager {
             // Save current state before deletion for undo capability
             await this.saveState(`Delete snapshot: ${snapshot.name}`, {
                 action: 'delete_snapshot',
-                snapshotId: snapshotId,
-                snapshotData: JSON.parse(JSON.stringify(snapshot))
+                snapshotId,
+                snapshotData: JSON.parse(JSON.stringify(snapshot)),
             });
 
             // Remove from history
@@ -780,7 +783,7 @@ class HistoryManager {
             name: s.name || s.description || 'Unnamed',
             timestamp: s.timestamp,
             totalExpenses: s.totalExpenses || 0,
-            propertyCount: s.propertyCount || 0
+            propertyCount: s.propertyCount || 0,
         })));
 
         return snapshots;
@@ -1685,7 +1688,7 @@ class HistoryManager {
             content += '<div class="empty-state">No history entries available</div>';
         } else {
             content += '<div class="history-list">';
-            recentEntries.forEach((entry, index) => {
+            recentEntries.forEach((entry, _index) => {
                 // Find the original index in the full history array for current position detection
                 const originalIndex = this.history.findIndex(h => h.id === entry.id);
                 const isCurrent = originalIndex === this.historyIndex;
@@ -1935,7 +1938,7 @@ class HistoryManager {
                 'Confirm Import',
                 'Are you sure you want to import this data?\n\nThis will replace your current data and cannot be undone.',
                 'Import',
-                'Cancel'
+                'Cancel',
             );
 
             if (!confirmed) {
@@ -1984,7 +1987,7 @@ class HistoryManager {
                     propertiesCount,
                     categoriesCount,
                     totalExpenses,
-                    fileName
+                    fileName,
                 };
 
                 logger.debug('HISTORY', 'About to call dataManager.importData with dataToImport:', {
@@ -1994,7 +1997,7 @@ class HistoryManager {
                     hasTransactions: !!(dataToImport && dataToImport.transactions),
                     transactionsLength: dataToImport && dataToImport.transactions ? dataToImport.transactions.length : 'N/A',
                     hasProperties: !!(dataToImport && dataToImport.properties),
-                    propertiesLength: dataToImport && dataToImport.properties ? dataToImport.properties.length : 'N/A'
+                    propertiesLength: dataToImport && dataToImport.properties ? dataToImport.properties.length : 'N/A',
                 });
 
                 logger.debug('HISTORY', 'Current dataManager state before import:', {
@@ -2019,7 +2022,7 @@ class HistoryManager {
             // Import history if present
             if (importData.history && Array.isArray(importData.history)) {
                 logger.debug('HISTORY', 'Importing history data...', {
-                    historyLength: importData.history.length
+                    historyLength: importData.history.length,
                 });
 
                 historyImportSuccess = this.importHistoryData(importData);
@@ -2127,7 +2130,7 @@ class HistoryManager {
                 if (window.uiManager && typeof window.uiManager.forceUIRefresh === 'function') {
                     window.uiManager.forceUIRefresh();
                 }
-    
+
                 // Update data display with current statistics
                 if (window.dataManager && typeof window.dataManager.getDataStatistics === 'function') {
                     const stats = window.dataManager.getDataStatistics();
@@ -2136,7 +2139,7 @@ class HistoryManager {
                         window.uiManager.updateDataDisplay(stats);
                     }
                 }
-    
+
                 // Also refresh PropertiesManager if available
                 if (window.propertiesManager && typeof window.propertiesManager.renderPropertiesDashboard === 'function') {
                     logger.info('HISTORY', 'Refreshing PropertiesManager after snapshot load...');
@@ -2183,7 +2186,7 @@ class HistoryManager {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = (e) => resolve(e.target.result);
-            reader.onerror = (e) => reject(new Error('Failed to read file'));
+            reader.onerror = (_e) => reject(new Error('Failed to read file'));
             reader.readAsText(file);
         });
     }
@@ -2256,7 +2259,7 @@ class HistoryManager {
             const modal = document.getElementById('historyManagerModal') ||
                          document.querySelector('.modal:has(.history-modal)') ||
                          document.querySelector('.modal .history-modal')?.closest('.modal');
-            if (!modal) return;
+            if (!modal) {return;}
 
             // Clear any existing event listeners by cloning and replacing buttons
             const buttons = modal.querySelectorAll('button[onclick]');
@@ -2561,154 +2564,154 @@ class HistoryManager {
             }
         }
     }
-/**
- * Delete all data (irreversible operation)
- * @returns {Object} Result with success status
- */
-async deleteAllData() {
-    try {
-        logger.debug('HISTORY', 'Delete All Data button clicked');
-
-        // Show inline confirmation instead of browser popup
-        const confirmed = await this.showInlineConfirmation(
-            '⚠️ Delete All Data',
-            'This will delete ALL data including:\n' +
-            '• All properties and their expenses\n' +
-            '• All expense categories\n' +
-            '• All history and snapshots\n' +
-            '• All stored data in browser\n' +
-            '• All cached data\n\n' +
-            'This action CANNOT be undone!',
-            'Delete Everything',
-            'Cancel'
-        );
-
-        if (!confirmed) {
-            logger.debug('HISTORY', 'Delete operation cancelled by user');
-            return { success: false, message: 'Delete operation cancelled' };
-        }
-
-        logger.debug('HISTORY', 'Starting comprehensive data deletion...');
-
-        // Clear all data from storage using the Storage module
-        if (window.storage && typeof window.storage.clearAllData === 'function') {
-            logger.debug('HISTORY', 'Clearing all data via Storage module...');
-            const clearResult = await window.storage.clearAllData(true);
-            logger.debug('HISTORY', 'Storage clear result:', clearResult);
-
-            if (!clearResult) {
-                logger.warn('HISTORY', 'Storage clear returned false, attempting manual clear...');
-                // Fallback: clear localStorage manually
-                localStorage.clear();
-                logger.debug('HISTORY', 'localStorage cleared manually as fallback');
-            }
-        } else {
-            logger.warn('HISTORY', 'Storage module not available, clearing manually...');
-            // Fallback manual clearing
-            localStorage.clear();
-            logger.debug('HISTORY', 'localStorage cleared manually');
-
-            // Try to clear IndexedDB manually
-            if (window.indexedDB) {
-                try {
-                    const deleteRequest = window.indexedDB.deleteDatabase('ExpenseDashboardDB');
-                    await new Promise((resolve, reject) => {
-                        deleteRequest.onsuccess = () => resolve();
-                        deleteRequest.onerror = () => reject(deleteRequest.error);
-                        deleteRequest.onblocked = () => reject(new Error('Database deletion blocked'));
-                    });
-                    logger.debug('HISTORY', 'IndexedDB cleared manually');
-                } catch (dbError) {
-                    console.error('[DELETE] Error clearing IndexedDB manually:', dbError);
-                }
-            }
-        }
-
-        // Clear any remaining data that might be cached in memory
-        if (window.dataManager) {
-            window.dataManager.data = {
-                properties: [],
-                expenseCategories: [],
-                incomeCategories: [],
-                currentTimePeriod: 'all',
-                currentView: 'overview',
-            };
-            logger.debug('HISTORY', 'DataManager memory cleared');
-        }
-
-        if (window.historyManager && window.historyManager.history) {
-            window.historyManager.history = [];
-            window.historyManager.historyIndex = -1;
-            logger.debug('HISTORY', 'HistoryManager memory cleared');
-        }
-
-        // Clear any cached data in other modules
-        if (window.transactionStore) {
-            // Clear any cached transactions
-            if (window.transactionStore.transactions) {
-                window.transactionStore.transactions = [];
-            }
-            logger.debug('HISTORY', 'TransactionStore cache cleared');
-        }
-
-        // Clear browser cache and storage
+    /**
+     * Delete all data (irreversible operation)
+     * @returns {Object} Result with success status
+     */
+    async deleteAllData() {
         try {
-            // Clear session storage
-            sessionStorage.clear();
-            logger.debug('HISTORY', 'Session storage cleared');
+            logger.debug('HISTORY', 'Delete All Data button clicked');
 
-            // Clear any service worker caches
-            if ('caches' in window) {
-                const cacheNames = await caches.keys();
-                await Promise.all(
-                    cacheNames.map(cacheName => caches.delete(cacheName))
-                );
-                logger.debug('HISTORY', 'Browser caches cleared');
+            // Show inline confirmation instead of browser popup
+            const confirmed = await this.showInlineConfirmation(
+                '⚠️ Delete All Data',
+                'This will delete ALL data including:\n' +
+                '• All properties and their expenses\n' +
+                '• All expense categories\n' +
+                '• All history and snapshots\n' +
+                '• All stored data in browser\n' +
+                '• All cached data\n\n' +
+                'This action CANNOT be undone!',
+                'Delete Everything',
+                'Cancel',
+            );
+
+            if (!confirmed) {
+                logger.debug('HISTORY', 'Delete operation cancelled by user');
+                return { success: false, message: 'Delete operation cancelled' };
             }
-        } catch (cacheError) {
-            logger.warn('HISTORY', 'Error clearing browser cache:', cacheError);
-        }
 
-        logger.debug('HISTORY', 'All data deletion completed successfully');
+            logger.debug('HISTORY', 'Starting comprehensive data deletion...');
 
-        // Show toast notification
-        if (window.uiManager && typeof window.uiManager.showToast === 'function') {
-            window.uiManager.showToast('All data deleted successfully', 'success', 3000);
-        }
+            // Clear all data from storage using the Storage module
+            if (window.storage && typeof window.storage.clearAllData === 'function') {
+                logger.debug('HISTORY', 'Clearing all data via Storage module...');
+                const clearResult = await window.storage.clearAllData(true);
+                logger.debug('HISTORY', 'Storage clear result:', clearResult);
 
-        // Add a small delay to ensure all async operations complete
-        setTimeout(() => {
-            // Show inline success message instead of browser popup
-            this.showInlineConfirmation(
-                '✅ Data Deleted Successfully',
-                'All data has been deleted successfully!\n\n' +
-                '• Database cleared\n' +
-                '• Local storage cleared\n' +
-                '• Session storage cleared\n' +
-                '• Browser cache cleared\n\n' +
-                'The page will now reload to ensure a clean state.',
-                'Reload Page',
-                'Cancel'
-            ).then((confirmed) => {
-                if (confirmed) {
-                    // Force a hard reload to clear all cached resources
-                    window.location.href = window.location.href;
+                if (!clearResult) {
+                    logger.warn('HISTORY', 'Storage clear returned false, attempting manual clear...');
+                    // Fallback: clear localStorage manually
+                    localStorage.clear();
+                    logger.debug('HISTORY', 'localStorage cleared manually as fallback');
                 }
-            });
-        }, 1000);
+            } else {
+                logger.warn('HISTORY', 'Storage module not available, clearing manually...');
+                // Fallback manual clearing
+                localStorage.clear();
+                logger.debug('HISTORY', 'localStorage cleared manually');
 
-        return { success: true, message: 'All data deleted successfully' };
-    } catch (error) {
-        logger.error('HISTORY', 'Error during data deletion:', error);
+                // Try to clear IndexedDB manually
+                if (window.indexedDB) {
+                    try {
+                        const deleteRequest = window.indexedDB.deleteDatabase('ExpenseDashboardDB');
+                        await new Promise((resolve, reject) => {
+                            deleteRequest.onsuccess = () => resolve();
+                            deleteRequest.onerror = () => reject(deleteRequest.error);
+                            deleteRequest.onblocked = () => reject(new Error('Database deletion blocked'));
+                        });
+                        logger.debug('HISTORY', 'IndexedDB cleared manually');
+                    } catch (dbError) {
+                        console.error('[DELETE] Error clearing IndexedDB manually:', dbError);
+                    }
+                }
+            }
 
-        // Show toast notification
-        if (window.uiManager && typeof window.uiManager.showToast === 'function') {
-            window.uiManager.showToast('Failed to delete data', 'error', 3000);
+            // Clear any remaining data that might be cached in memory
+            if (window.dataManager) {
+                window.dataManager.data = {
+                    properties: [],
+                    expenseCategories: [],
+                    incomeCategories: [],
+                    currentTimePeriod: 'all',
+                    currentView: 'overview',
+                };
+                logger.debug('HISTORY', 'DataManager memory cleared');
+            }
+
+            if (window.historyManager && window.historyManager.history) {
+                window.historyManager.history = [];
+                window.historyManager.historyIndex = -1;
+                logger.debug('HISTORY', 'HistoryManager memory cleared');
+            }
+
+            // Clear any cached data in other modules
+            if (window.transactionStore) {
+                // Clear any cached transactions
+                if (window.transactionStore.transactions) {
+                    window.transactionStore.transactions = [];
+                }
+                logger.debug('HISTORY', 'TransactionStore cache cleared');
+            }
+
+            // Clear browser cache and storage
+            try {
+                // Clear session storage
+                sessionStorage.clear();
+                logger.debug('HISTORY', 'Session storage cleared');
+
+                // Clear any service worker caches
+                if ('caches' in window) {
+                    const cacheNames = await caches.keys();
+                    await Promise.all(
+                        cacheNames.map(cacheName => caches.delete(cacheName)),
+                    );
+                    logger.debug('HISTORY', 'Browser caches cleared');
+                }
+            } catch (cacheError) {
+                logger.warn('HISTORY', 'Error clearing browser cache:', cacheError);
+            }
+
+            logger.debug('HISTORY', 'All data deletion completed successfully');
+
+            // Show toast notification
+            if (window.uiManager && typeof window.uiManager.showToast === 'function') {
+                window.uiManager.showToast('All data deleted successfully', 'success', 3000);
+            }
+
+            // Add a small delay to ensure all async operations complete
+            setTimeout(() => {
+                // Show inline success message instead of browser popup
+                this.showInlineConfirmation(
+                    '✅ Data Deleted Successfully',
+                    'All data has been deleted successfully!\n\n' +
+                    '• Database cleared\n' +
+                    '• Local storage cleared\n' +
+                    '• Session storage cleared\n' +
+                    '• Browser cache cleared\n\n' +
+                    'The page will now reload to ensure a clean state.',
+                    'Reload Page',
+                    'Cancel',
+                ).then((confirmed) => {
+                    if (confirmed) {
+                        // Force a hard reload to clear all cached resources
+                        window.location.reload();
+                    }
+                });
+            }, 1000);
+
+            return { success: true, message: 'All data deleted successfully' };
+        } catch (error) {
+            logger.error('HISTORY', 'Error during data deletion:', error);
+
+            // Show toast notification
+            if (window.uiManager && typeof window.uiManager.showToast === 'function') {
+                window.uiManager.showToast('Failed to delete data', 'error', 3000);
+            }
+
+            return { success: false, message: 'Delete operation failed' };
         }
-
-        return { success: false, message: 'Delete operation failed' };
     }
-}
     /**
      * Show import status in the history manager UI
      * @param {string} message - Status message to display
@@ -2993,7 +2996,7 @@ async deleteAllData() {
 
             // Focus the cancel button for accessibility
             setTimeout(() => {
-                if (cancelBtn) cancelBtn.focus();
+                if (cancelBtn) {cancelBtn.focus();}
             }, 100);
         });
     }

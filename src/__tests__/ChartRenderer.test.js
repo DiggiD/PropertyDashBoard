@@ -67,6 +67,7 @@ global.d3.select = jest.fn(() => createSelection());
 global.d3.selectAll = jest.fn(() => createSelection());
 
 import ChartRenderer from 'src/modules/core/ChartRenderer.js';
+import logger from '../modules/utils/Logger.js';
 
 describe('ChartRenderer with High Coverage', () => {
     let chartRenderer;
@@ -199,10 +200,10 @@ describe('ChartRenderer with High Coverage', () => {
 
         test('should prevent double initialization', async () => {
             chartRenderer.isInitialized = true;
-            const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+            const loggerSpy = jest.spyOn(logger, 'info');
             await chartRenderer.initialize();
-            expect(consoleSpy).toHaveBeenCalledWith(expect.stringMatching(/\[.*\] \[INFO\] \[CHART\] Already initialized, skipping/));
-            consoleSpy.mockRestore();
+            expect(loggerSpy).toHaveBeenCalledWith('CHART', 'Already initialized, skipping');
+            loggerSpy.mockRestore();
         });
 
         test('should create tooltip element', () => {

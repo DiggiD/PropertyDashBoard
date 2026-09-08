@@ -135,6 +135,7 @@ async function initializeApplication() {
         logger.info('INDEX', 'Event listeners setup complete');
 
         window.DataManager = DataManager;
+        window.storage = storage;
         window.dataManager = dataManager;
         window.chartRenderer = chartRenderer;
         window.uiManager = uiManager;

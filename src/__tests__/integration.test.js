@@ -140,7 +140,7 @@ describe('Module Integration - Normalized Data Architecture', () => {
 
         expect(result).toBeDefined();
         expect(result.success).toBe(true);
-        expect(result.message).toContain('Expense added');
+        expect(result.message).toContain('Expense updated');
 
         // Verify transaction was added to store
         const transactions = dataManager.store.queryTransactions({ propertyId: 1, category: 'Rent', type: 'expense' });
@@ -284,7 +284,7 @@ describe('Module Integration - Normalized Data Architecture', () => {
             const transactions = dataManager.store.queryTransactions();
             // The updatePropertyExpense method should have succeeded
             expect(result.success).toBe(true);
-            expect(result.message).toContain('Expense added');
+            expect(result.message).toContain('Expense updated');
         });
 
         test('14. TransactionStore query → DataManager aggregation → ChartRenderer visualization', async () => {

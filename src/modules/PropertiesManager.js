@@ -36,7 +36,7 @@ class PropertiesManager {
     /**
      * Show tooltip for add button
      */
-    showAddButtonTooltip(button, event) {
+    showAddButtonTooltip(button, _event) {
         // Remove any existing tooltip
         this.hideAddButtonTooltip();
 
@@ -114,7 +114,7 @@ class PropertiesManager {
     /**
      * Show tooltip for delete button
      */
-    showDeleteButtonTooltip(button, event) {
+    showDeleteButtonTooltip(button, _event) {
         if (!button) {return;}
         // Remove any existing tooltip
         this.hideAddButtonTooltip();
@@ -169,7 +169,9 @@ class PropertiesManager {
         let left = buttonRect.left + (buttonRect.width / 2) - (tooltipRect.width / 2);
 
         // Use container bounds if available, otherwise fallback to viewport
-        const maxLeft = containerRect ? containerRect.right - tooltipRect.width - 10 : window.innerWidth - tooltipRect.width - 10;
+        const maxLeft = containerRect
+            ? containerRect.right - tooltipRect.width - 10
+            : window.innerWidth - tooltipRect.width - 10;
         const minLeft = containerRect ? containerRect.left + 10 : 10;
 
         // Ensure tooltip stays within bounds
@@ -302,7 +304,9 @@ class PropertiesManager {
                 // Cancel any pending selection for this item
                 const itemElement = editableElement.closest('.property-item');
                 if (itemElement) {
-                    const itemId = itemElement.dataset.propertyId || itemElement.dataset.category || itemElement.dataset.subcategory;
+                    const itemId = itemElement.dataset.propertyId
+                        || itemElement.dataset.category
+                        || itemElement.dataset.subcategory;
                     if (this.pendingSelections.has(itemId)) {
                         clearTimeout(this.pendingSelections.get(itemId));
                         this.pendingSelections.delete(itemId);
@@ -357,7 +361,9 @@ class PropertiesManager {
                     // For editable names, delay selection to allow double-click to cancel it
                     const itemElement = editableElement.closest('.property-item');
                     if (itemElement && !this.currentVisibleDeleteItem) {
-                        const itemId = itemElement.dataset.propertyId || itemElement.dataset.category || itemElement.dataset.subcategory;
+                        const itemId = itemElement.dataset.propertyId
+                        || itemElement.dataset.category
+                        || itemElement.dataset.subcategory;
                         if (this.pendingSelections.has(itemId)) {
                             clearTimeout(this.pendingSelections.get(itemId));
                         }
@@ -449,7 +455,7 @@ class PropertiesManager {
                 }
             });
 
-            this.uiManager.addEventListener(container, 'mouseup', (e) => {
+            this.uiManager.addEventListener(container, 'mouseup', (_e) => {
                 this.cancelLongPressDetection();
             });
 
@@ -461,11 +467,11 @@ class PropertiesManager {
                 }
             });
 
-            this.uiManager.addEventListener(container, 'touchend', (e) => {
+            this.uiManager.addEventListener(container, 'touchend', (_e) => {
                 this.cancelLongPressDetection();
             });
 
-            this.uiManager.addEventListener(container, 'touchmove', (e) => {
+            this.uiManager.addEventListener(container, 'touchmove', (_e) => {
                 if (this.longPressTimers.size > 0) {
                     // Cancel long press if touch moves significantly
                     this.cancelLongPressDetection();
@@ -518,7 +524,9 @@ class PropertiesManager {
      * Render multi-panel layout
      */
     renderMultiPanelLayout(properties) {
-        const selectedProperty = this.currentPropertyId ? this.dataManager.getPropertyById(this.currentPropertyId) : null;
+        const selectedProperty = this.currentPropertyId
+            ? this.dataManager.getPropertyById(this.currentPropertyId)
+            : null;
         const categories = selectedProperty ? this.getPropertyCategories(selectedProperty) : [];
         const selectedCategory = this.currentCategoryPath ? this.currentCategoryPath.category : null;
         const selectedSubcategory = this.currentCategoryPath ? this.currentCategoryPath.subcategory : null;
@@ -610,9 +618,10 @@ class PropertiesManager {
                 ${sortedProperties.map(property => {
         const isSelected = property.id === this.currentPropertyId;
         const currentData = this.dataManager.getCurrentPeriodData(property);
-        const categoryCount = Object.keys(property.expenses || {}).length;
         const totalValue = currentData && currentData.total !== undefined ? currentData.total : 0;
-        const formattedTotal = this.uiManager.formatter ? this.uiManager.formatter.formatCurrency(totalValue) : totalValue;
+        const formattedTotal = this.uiManager.formatter
+            ? this.uiManager.formatter.formatCurrency(totalValue)
+            : totalValue;
 
         return `
                         <div class="property-item ${isSelected ? 'selected' : ''}" data-property-id="${property.id || ''}">
@@ -843,7 +852,9 @@ class PropertiesManager {
             const currentData = this.dataManager.getCurrentPeriodData(property);
             const categoryCount = Object.keys(property.expenses || {}).length;
             const totalValue = currentData && currentData.total !== undefined ? currentData.total : 0;
-            const formattedTotal = this.uiManager.formatter ? this.uiManager.formatter.formatCurrency(totalValue) : totalValue;
+            const formattedTotal = this.uiManager.formatter
+                ? this.uiManager.formatter.formatCurrency(totalValue)
+                : totalValue;
 
             return `
                 <div class="property-item" data-property-id="${property.id || ''}">
@@ -998,50 +1009,6 @@ class PropertiesManager {
     }
 
     /**
-     * Show add property modal
-     */
-    showAddPropertyModal() {
-        const timestamp = Date.now();
-        const modalHtml = `
-            <div class="modal-header">
-                <h3>Add New Property</h3>
-                <button class="modal-close" id="closePropertyModal-${timestamp}">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label class="form-label" for="new-property-name-${timestamp}">Property Name</label>
-                    <input type="text" id="new-property-name-${timestamp}" class="form-control" placeholder="Enter property name" maxlength="100">
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn--outline" id="cancelProperty-${timestamp}">Cancel</button>
-                <button class="btn btn--primary" id="confirm-add-property-${timestamp}">Add Property</button>
-            </div>
-        `;
-
-        this.showModal('addPropertyModal', modalHtml);
-
-        // Setup confirm button
-        const confirmBtn = document.getElementById(`confirm-add-property-${timestamp}`);
-        const input = document.getElementById(`new-property-name-${timestamp}`);
-
-        const handleConfirm = () => {
-            const name = input.value.trim();
-            if (name) {
-                this.addProperty(name);
-                this.closeModal('addPropertyModal');
-            }
-        };
-
-        confirmBtn.addEventListener('click', handleConfirm);
-        input.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {handleConfirm();}
-        });
-
-        input.focus();
-    }
-
-    /**
      * Render subcategories for hierarchical category
      */
     renderSubcategories(category, subcategories) {
@@ -1082,12 +1049,14 @@ class PropertiesManager {
 
         // Use getCurrentPeriodData to respect time period filtering
         const currentData = this.dataManager.getCurrentPeriodData(property, null, true);
-        if (currentData && currentData.expenses && currentData.expenses.hasOwnProperty(category)) {
+        if (currentData
+            && currentData.expenses
+            && Object.prototype.hasOwnProperty.call(currentData.expenses, category)) {
             return currentData.expenses[category];
         }
 
         // Fallback: Check expenses object directly if no current period data
-        if (property.expenses && property.expenses.hasOwnProperty(category)) {
+        if (property.expenses && Object.prototype.hasOwnProperty.call(property.expenses, category)) {
             return property.expenses[category];
         }
 
@@ -1222,6 +1191,8 @@ class PropertiesManager {
             case 'delete':
                 this.confirmDeleteProperty(propertyId);
                 break;
+            default:
+                break;
         }
     }
 
@@ -1259,6 +1230,8 @@ class PropertiesManager {
                 } else {
                     this.confirmDeleteCategory(category);
                 }
+                break;
+            default:
                 break;
         }
     }
@@ -2194,7 +2167,9 @@ class PropertiesManager {
         const property = this.dataManager.getPropertyById(this.currentPropertyId);
         if (!property) {return;}
 
-        if (property.expenses && property.expenses.hasOwnProperty(newCategory) && newCategory !== oldCategory) {
+        if (property.expenses
+            && Object.prototype.hasOwnProperty.call(property.expenses, newCategory)
+            && newCategory !== oldCategory) {
             this.uiManager.showToast('Category name already exists', 'error');
             return;
         }
@@ -2213,7 +2188,7 @@ class PropertiesManager {
             }
         }
 
-        if (property.expenses && property.expenses.hasOwnProperty(oldCategory)) {
+        if (property.expenses && Object.prototype.hasOwnProperty.call(property.expenses, oldCategory)) {
             const categoryValue = property.expenses[oldCategory];
             delete property.expenses[oldCategory];
             property.expenses[newCategory] = categoryValue;
@@ -2235,7 +2210,7 @@ class PropertiesManager {
 
         if (property.expenses && property.expenses[category]
             && typeof property.expenses[category] === 'object'
-            && property.expenses[category].hasOwnProperty(newSubcategory)
+            && Object.prototype.hasOwnProperty.call(property.expenses[category], newSubcategory)
             && newSubcategory !== oldSubcategory) {
             this.uiManager.showToast('Subcategory name already exists', 'error');
             return;
@@ -2258,7 +2233,7 @@ class PropertiesManager {
 
         if (property.expenses && property.expenses[category]
             && typeof property.expenses[category] === 'object'
-            && property.expenses[category].hasOwnProperty(oldSubcategory)) {
+            && Object.prototype.hasOwnProperty.call(property.expenses[category], oldSubcategory)) {
             const subcategoryValue = property.expenses[category][oldSubcategory];
             delete property.expenses[category][oldSubcategory];
             property.expenses[category][newSubcategory] = subcategoryValue;
@@ -2318,7 +2293,7 @@ class PropertiesManager {
         const property = this.dataManager.getPropertyById(this.currentPropertyId);
         if (!property) {return;}
 
-        if (property.expenses && property.expenses.hasOwnProperty(name)) {
+        if (property.expenses && Object.prototype.hasOwnProperty.call(property.expenses, name)) {
             this.uiManager.showToast('Category already exists', 'error');
             return;
         }
@@ -2346,13 +2321,13 @@ class PropertiesManager {
         if (!property || !this.currentCategoryPath) {return;}
 
         const category = this.currentCategoryPath.category;
-        if (property.expenses && !property.expenses.hasOwnProperty(category)) {return;}
+        if (property.expenses && !Object.prototype.hasOwnProperty.call(property.expenses, category)) {return;}
 
         if (property.expenses) {
             if (typeof property.expenses[category] !== 'object' || property.expenses[category] === null) {
                 property.expenses[category] = {};
             }
-            if (property.expenses[category].hasOwnProperty(name)) {
+            if (Object.prototype.hasOwnProperty.call(property.expenses[category], name)) {
                 this.uiManager.showToast('Subcategory already exists', 'error');
                 return;
             }
@@ -2396,7 +2371,7 @@ class PropertiesManager {
     deleteCategory(category) {
         const property = this.dataManager.getPropertyById(this.currentPropertyId);
         if (!property) {return;}
-        if (property.expenses && !property.expenses.hasOwnProperty(category)) {return;}
+        if (property.expenses && !Object.prototype.hasOwnProperty.call(property.expenses, category)) {return;}
 
         this._ensureUndoBaseline();
 
@@ -2439,7 +2414,7 @@ class PropertiesManager {
 
         if (typeof categoryValue !== 'object' || categoryValue === null) {return;}
 
-        if (!categoryValue.hasOwnProperty(subcategory)) {return;}
+        if (!Object.prototype.hasOwnProperty.call(categoryValue, subcategory)) {return;}
 
         this._ensureUndoBaseline();
 
@@ -2575,7 +2550,6 @@ class PropertiesManager {
         const buttonRect = deleteButton.getBoundingClientRect();
         const popupRect = popup.getBoundingClientRect();
         const viewportWidth = window.innerWidth;
-        const viewportHeight = window.innerHeight;
 
         // Calculate preferred position (above the button, centered)
         let top = buttonRect.top - popupRect.height - 8; // 8px gap
@@ -2616,7 +2590,7 @@ class PropertiesManager {
     /**
      * Start long press detection
      */
-    startLongPressDetection(propertyItem, event) {
+    startLongPressDetection(propertyItem, _event) {
         // Clear any existing timers
         this.cancelLongPressDetection();
 
@@ -2655,7 +2629,7 @@ class PropertiesManager {
      */
     cancelLongPressDetection() {
         // Clear all pending timers
-        for (const [itemId, timerId] of this.longPressTimers) {
+        for (const [, timerId] of this.longPressTimers) {
             clearTimeout(timerId);
         }
         this.longPressTimers.clear();
@@ -2686,7 +2660,11 @@ class PropertiesManager {
         this.renderPropertiesDashboard();
 
         // After re-render, find the current element again using consistent approach
-        const currentItem = this.findItemElement(propertyItem.dataset.propertyId, propertyItem.dataset.category, propertyItem.dataset.subcategory);
+        const currentItem = this.findItemElement(
+            propertyItem.dataset.propertyId,
+            propertyItem.dataset.category,
+            propertyItem.dataset.subcategory,
+        );
 
         if (currentItem) {
             // Find the delete button within this item
@@ -2730,7 +2708,7 @@ class PropertiesManager {
      */
     hideDeleteButtons() {
         // Add hidden class back to all visible delete buttons
-        for (const [item, itemData] of this.visibleDeleteButtons) {
+        for (const [item] of this.visibleDeleteButtons) {
             const deleteButton = item.querySelector('.property-action[data-action="delete"], .category-action[data-action="delete"]');
             if (deleteButton) {
                 deleteButton.classList.add('delete-hidden');
