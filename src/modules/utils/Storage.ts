@@ -869,11 +869,11 @@ class DashboardStorage {
         if (this.db) {
             try {
                 const emptyCheckStart = performance.now();
-                // Quick check if database has any data
-                const hasData = await this._quickEmptyCheck();
+                // _quickEmptyCheck returns true when the database has no rows.
+                const isEmpty = await this._quickEmptyCheck();
                 const emptyCheckTime = performance.now() - emptyCheckStart;
 
-                if (!hasData) {
+                if (isEmpty) {
                     this.logger.debug(`Empty database detected in ${emptyCheckTime.toFixed(2)}ms, using fast path`);
                     return this._getEmptyDataStructure();
                 } else {
