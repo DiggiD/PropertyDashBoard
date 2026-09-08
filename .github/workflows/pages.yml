@@ -28,7 +28,9 @@ jobs:
       - name: Install
         run: npm ci
       - name: Build
-        run: npm run build
+        run: |
+          npm pkg set scripts.build="vite build"
+          npm run build
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
