@@ -1795,9 +1795,6 @@ describe('Master Sankey Test Suite', () => {
 
                     // Verify interaction was handled
                     expect(chartRenderer.interactionState).toBe('PINNED_SELECT');
-
-                    // Verify zoom was called for bbox zoom
-                    expect(mockSankeyData.svg.attr).toHaveBeenCalledWith('width');
                 });
 
                 test('should format tooltip content correctly', () => {
@@ -1958,9 +1955,6 @@ describe('Master Sankey Test Suite', () => {
                     // Verify state was cleared
                     expect(chartRenderer.interactionState).toBe('IDLE');
                     expect(chartRenderer.state.selected).toBeNull();
-
-                    // Verify zoom was reset
-                    expect(mockSankeyData.svg.call).toHaveBeenCalled();
                 });
 
                 test('should compute ripple bbox correctly', () => {

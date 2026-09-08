@@ -697,6 +697,174 @@ describe('ChartRenderer with High Coverage', () => {
             chartRenderer.handleInteraction(event, item, 'node', false);
         });
 
+        function overviewPathGraph() {
+            const income = { id: 'income-Rent', name: 'RENT', type: 'income-source' };
+            const earnings = { id: 'earnings', name: 'EARNINGS', type: 'earnings' };
+            const prop1 = { id: 'prop-1', name: 'DOWNTOWN', type: 'property' };
+            const prop2 = { id: 'prop-2', name: 'RETAIL', type: 'property' };
+            const expenses = { id: 'expenses', name: 'EXPENSES', type: 'expenses' };
+            const profit = { id: 'profit', name: 'PROFIT', type: 'profit' };
+            const legal = { id: 'Legal', name: 'LEGAL', type: 'category' };
+            const utilities = { id: 'Utilities', name: 'UTILITIES', type: 'category' };
+            const water = { id: 'Water', name: 'WATER', type: 'subcategory', parentId: 'Utilities' };
+            const electric = { id: 'Electricity', name: 'ELECTRICITY', type: 'subcategory', parentId: 'Utilities' };
+            const rentExp = { id: 'Rent', name: 'RENT', type: 'category' };
+            const nodes = [income, earnings, prop1, prop2, expenses, profit, legal, utilities, water, electric, rentExp];
+            const link = (source, target, extra = {}) => ({ source, target, ...extra });
+            const links = [
+                link(income, earnings, { type: 'income-to-earnings' }),
+                link(earnings, prop1, { type: 'earnings-to-prop', property: 'Downtown' }),
+                link(earnings, prop2, { type: 'earnings-to-prop', property: 'Retail' }),
+                link(prop1, expenses, { type: 'prop-to-expenses', property: 'Downtown' }),
+                link(prop2, expenses, { type: 'prop-to-expenses', property: 'Retail' }),
+                link(prop1, profit, { type: 'prop-to-profit', property: 'Downtown' }),
+                link(expenses, legal, { type: 'expenses-to-cat' }),
+                link(expenses, utilities, { type: 'expenses-to-cat' }),
+                link(expenses, rentExp, { type: 'expenses-to-cat' }),
+                link(utilities, water, { type: 'cat-to-sub', category: 'Utilities' }),
+                link(utilities, electric, { type: 'cat-to-sub', category: 'Utilities' }),
+            ];
+            const funderIndex = new Map([
+                ['Legal', new Set(['prop-1', 'prop-2'])],
+                ['Utilities', new Set(['prop-1', 'prop-2'])],
+                ['Water', new Set(['prop-1', 'prop-2'])],
+                ['Electricity', new Set(['prop-1', 'prop-2'])],
+                ['Rent', new Set(['prop-2'])],
+            ]);
+            return { nodes, links, funderIndex, income, earnings, prop1, prop2, expenses, profit, legal, utilities, water, electric, rentExp };
+        }
+
+        function idsOf(set) {
+            return [...set].sort();
+        }
+
+        test('hovering a leaf subcategory keeps only that path, not sibling categories', () => {
+            const graph = overviewPathGraph();
+            chartRenderer.sankeyData = {
+                ...graph,
+                svg: d3.select(mockContainer),
+                relationIndex: new Map([['WATER', new Set(graph.nodes.map(n => n.id))]]),
+            };
+
+            const related = chartRenderer.collectPathRelatedIds(graph.water, 'node');
+            expect(related.has('Water')).toBe(true);
+            expect(related.has('Utilities')).toBe(true);
+            expect(related.has('expenses')).toBe(true);
+            expect(related.has('prop-1')).toBe(true);
+            expect(related.has('prop-2')).toBe(true);
+            expect(related.has('earnings')).toBe(true);
+            expect(related.has('Legal')).toBe(false);
+            expect(related.has('Rent')).toBe(false);
+            expect(related.has('Electricity')).toBe(false);
+            expect(related.has('profit')).toBe(false);
+        });
+
+        test('shared names like RENT do not union income and expense graphs', () => {
+            const graph = overviewPathGraph();
+            chartRenderer.sankeyData = {
+                ...graph,
+                svg: d3.select(mockContainer),
+                relationIndex: new Map([['RENT', new Set(graph.nodes.map(n => n.id))]]),
+            };
+
+            const related = chartRenderer.collectPathRelatedIds(graph.income, 'node');
+            expect(related.has('income-Rent')).toBe(true);
+            expect(related.has('earnings')).toBe(true);
+            expect(related.has('prop-1')).toBe(true);
+            expect(related.has('prop-2')).toBe(true);
+            expect(related.has('Rent')).toBe(false);
+            expect(related.has('Legal')).toBe(false);
+            expect(related.has('Water')).toBe(false);
+            expect(related.has('expenses')).toBe(false);
+        });
+
+        test('hovering a property keeps only that property expense path', () => {
+            const graph = overviewPathGraph();
+            chartRenderer.sankeyData = { ...graph, svg: d3.select(mockContainer) };
+
+            const related = chartRenderer.collectPathRelatedIds(graph.prop1, 'node');
+            expect(related.has('prop-1')).toBe(true);
+            expect(related.has('prop-2')).toBe(false);
+            expect(related.has('Legal')).toBe(true);
+            expect(related.has('Utilities')).toBe(true);
+            expect(related.has('Water')).toBe(true);
+            expect(related.has('Rent')).toBe(false);
+            expect(related.has('profit')).toBe(true);
+            expect(related.has('income-Rent')).toBe(true);
+        });
+
+        test('a category funded by one property does not keep unrelated properties', () => {
+            const graph = overviewPathGraph();
+            chartRenderer.sankeyData = { ...graph, svg: d3.select(mockContainer) };
+
+            const related = chartRenderer.collectPathRelatedIds(graph.rentExp, 'node');
+            expect(related.has('Rent')).toBe(true);
+            expect(related.has('expenses')).toBe(true);
+            expect(related.has('prop-2')).toBe(true);
+            expect(related.has('prop-1')).toBe(false);
+            expect(related.has('Legal')).toBe(false);
+            expect(related.has('Water')).toBe(false);
+        });
+
+        test('LEGAL hover does not light properties through the shared expenses hub', () => {
+            const graph = overviewPathGraph();
+            graph.funderIndex.set('Legal', new Set(['prop-1', 'prop-2']));
+            const expensesToLegal = graph.links.find((l) => l.target === graph.legal);
+            const prop1ToExpenses = graph.links.find((l) => l.source === graph.prop1 && l.target === graph.expenses);
+            const prop2ToExpenses = graph.links.find((l) => l.source === graph.prop2 && l.target === graph.expenses);
+            expensesToLegal.y0 = 100;
+            expensesToLegal.y1 = 100;
+            expensesToLegal.width = 20;
+            prop1ToExpenses.y0 = 100;
+            prop1ToExpenses.y1 = 100;
+            prop1ToExpenses.width = 40;
+            prop2ToExpenses.y0 = 300;
+            prop2ToExpenses.y1 = 300;
+            prop2ToExpenses.width = 40;
+            chartRenderer.sankeyData = { ...graph, svg: d3.select(mockContainer) };
+
+            const related = chartRenderer.collectPathRelatedIds(graph.legal, 'node');
+            expect(related.has('Legal')).toBe(true);
+            expect(related.has('expenses')).toBe(true);
+            expect(related.has('prop-1')).toBe(true);
+            expect(related.has('prop-2')).toBe(false);
+            expect(related.has('Utilities')).toBe(false);
+            expect(related.has('Rent')).toBe(false);
+        });
+
+        test('link highlight requires both endpoints on the path', () => {
+            const relatedIds = new Set(['expenses', 'Legal']);
+            expect(chartRenderer.linkTouchesRelated(
+                { source: { id: 'expenses' }, target: { id: 'Legal' } },
+                relatedIds,
+            )).toBe(true);
+            expect(chartRenderer.linkTouchesRelated(
+                { source: { id: 'expenses' }, target: { id: 'Utilities' } },
+                relatedIds,
+            )).toBe(false);
+            expect(chartRenderer.linkTouchesRelated(
+                { source: { id: 'prop-2' }, target: { id: 'expenses' } },
+                relatedIds,
+            )).toBe(false);
+        });
+
+        test('handleInteraction uses the connected path, not relationIndex name unions', () => {
+            const graph = overviewPathGraph();
+            chartRenderer.sankeyData = {
+                ...graph,
+                svg: d3.select(mockContainer),
+                relationIndex: new Map([['WATER', new Set(graph.nodes.map(n => n.id))]]),
+            };
+            chartRenderer.rippleForces = new Map([['node', d3.forceManyBody()], ['link', d3.forceManyBody()]]);
+
+            chartRenderer.handleInteraction({ clientX: 1, clientY: 1 }, graph.water, 'node', false);
+
+            const related = chartRenderer.state.highlighted.relatedIds;
+            expect(related.has('Water')).toBe(true);
+            expect(related.has('Legal')).toBe(false);
+            expect(idsOf(related)).not.toEqual(idsOf(new Set(graph.nodes.map(n => n.id))));
+        });
+
         test('should clear hoverTimeout on hover', () => {
             chartRenderer.hoverTimeout = setTimeout(() => {}, 100);
             const event = { clientX: 100, clientY: 200 };
@@ -863,10 +1031,10 @@ describe('ChartRenderer with High Coverage', () => {
 
             chartRenderer.updateRippleVisuals(nodes, links, relatedIds, true, false);
 
-            expect(mockTransition.duration).toHaveBeenCalledWith(500); // isFinal = true
+            expect(mockTransition.duration).toHaveBeenCalledWith(150);
         });
 
-        test('should handle sankeyLinkHorizontal call on click', () => {
+        test('does not rewrite link paths or node coordinates on click', () => {
             const nodes = [
                 { id: 'node1', x0: 0, y0: 0, x1: 50, y1: 100 },
             ];
@@ -875,16 +1043,6 @@ describe('ChartRenderer with High Coverage', () => {
             ];
             const relatedIds = new Set(['node1']);
 
-            chartRenderer.sankeyData = {
-                svg: d3.select(mockContainer),
-                links,
-            };
-
-            // Mock d3.sankeyLinkHorizontal
-            const mockSankeyLink = jest.fn().mockReturnValue('M0,0 L50,50');
-            d3.sankeyLinkHorizontal = jest.fn().mockReturnValue(mockSankeyLink);
-
-            // Mock the svg selectAll to return a selection that has the transition method
             const mockLinkSelection = {
                 data: jest.fn().mockReturnThis(),
                 classed: jest.fn().mockReturnThis(),
@@ -893,12 +1051,26 @@ describe('ChartRenderer with High Coverage', () => {
                 style: jest.fn().mockReturnThis(),
             };
 
-            chartRenderer.sankeyData.svg.selectAll = jest.fn().mockReturnValue(mockLinkSelection);
+            chartRenderer.sankeyData = {
+                svg: {
+                    transition: jest.fn().mockReturnValue({
+                        duration: jest.fn().mockReturnThis(),
+                        ease: jest.fn().mockReturnThis(),
+                    }),
+                    selectAll: jest.fn().mockReturnValue(mockLinkSelection),
+                },
+                links,
+            };
 
             chartRenderer.updateRippleVisuals(nodes, links, relatedIds, false, true);
 
-            // The sankeyLinkHorizontal should be called when isClick is true
-            // This happens in the attr() call for the 'd' attribute
+            const attrArgs = mockLinkSelection.attr.mock.calls.map(call => call[0]);
+            expect(attrArgs).not.toContain('d');
+            expect(attrArgs).not.toContain('x');
+            expect(attrArgs).not.toContain('y');
+            expect(attrArgs).not.toContain('width');
+            expect(attrArgs).not.toContain('height');
+            expect(mockLinkSelection.style).toHaveBeenCalledWith('opacity', expect.any(Function));
         });
     });
 

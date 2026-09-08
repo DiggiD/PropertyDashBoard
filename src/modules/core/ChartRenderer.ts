@@ -70,6 +70,13 @@ type DataManagerPort = {
     getExpenseCategories: () => unknown[];
     hasData: (property: any, period?: any, year?: any) => boolean;
     clearSankeyCache: () => void;
+    computeSubTotalForProperty?: (
+        property: any,
+        category: string,
+        subcategory: string | null,
+        period?: any,
+        year?: any,
+    ) => number;
 };
 
 type UIManagerPort = {
@@ -124,6 +131,7 @@ class ChartRenderer {
     resizeObserver: ResizeObserver | null;
     bboxCache: Map<string, unknown>;
     relatedIdsCache: Map<string, unknown>;
+    suppressHover: boolean;
     debouncedRender: (...args: any[]) => unknown;
     debouncedRenderOverviewSankey: (...args: any[]) => unknown;
     isInitialized: boolean;
@@ -149,7 +157,7 @@ class ChartRenderer {
         this.chartConfig = {
             margins: { top: 10, right: 10, bottom: 10, left: 50 },
             animations: {
-                duration: 750,
+                duration: 150,
                 ease: d3.easeCubicInOut,
             },
         };
@@ -185,6 +193,7 @@ class ChartRenderer {
         this.resizeObserver = null; // ResizeObserver instance
         this.bboxCache = new Map(); // Cache bbox computations
         this.relatedIdsCache = new Map(); // Memoize relatedIds per filterKey
+        this.suppressHover = false;
 
         // Debounced render method for ResizeObserver
         this.debouncedRender = this.debounce(this.renderOverviewSankey.bind(this), 250);
@@ -614,6 +623,7 @@ class ChartRenderer {
                     color,
                     total: d.data.value,
                     depth: d.depth,
+                    parentId: d.parent?.data?.name,
                 });
             }
         });
@@ -644,7 +654,7 @@ class ChartRenderer {
             const sankeyResult = sankey()
                 .nodeId((d: any) => d.id)
                 .nodeWidth(15)
-                .nodePadding(1)
+                .nodePadding(12)
                 .extent([[50, 10], [width - 50, height - 50]])
                 .iterations(12)({ nodes, links });
             sankeyNodes = sankeyResult.nodes;
@@ -682,13 +692,16 @@ class ChartRenderer {
         logger.debug('CHART', 'Income/Expense nodes:', incomeExpenseNodes.map((n: any) => `${n.name}: ${n.value}`));
 
         visibleNodes.forEach((n: any) => {
-            n.x0 ??= 0;
-            n.y0 ??= 0;
-            n.x1 = n.x0 + (n.width || 15);
-            n.y1 = n.y0 + Math.max(10, n.y1 - n.y0);
+            if (!Number.isFinite(n.x0)) {n.x0 = 0;}
+            if (!Number.isFinite(n.y0)) {n.y0 = 0;}
+            if (!Number.isFinite(n.x1) || n.x1 <= n.x0) {
+                n.x1 = n.x0 + (Number.isFinite(n.width) && n.width > 0 ? n.width : 15);
+            }
+            const laidOutHeight = Number.isFinite(n.y1) ? n.y1 - n.y0 : 10;
+            n.y1 = n.y0 + Math.max(10, Number.isFinite(laidOutHeight) ? laidOutHeight : 10);
         });
         visibleLinks.forEach((l: any) => {
-            l.width = Math.max(0.5, l.width);
+            l.width = Number.isFinite(l.width) && l.width > 0 ? l.width : 1;
             try {
                 l.path = sankeyLinkHorizontal()(l);
                 logger.debug('CHART', `Link path generated: ${l.path ? 'success' : 'failed'}`);
@@ -705,7 +718,59 @@ class ChartRenderer {
             if (expNode) { expNode.y0 = minY; expNode.y1 = maxY; }
         }
 
-        return { nodes: visibleNodes, links: visibleLinks, hasIncome, sources };
+        const funderIndex = this.buildFunderIndex(validProperties, catTotals, subTotals);
+
+        return { nodes: visibleNodes, links: visibleLinks, hasIncome, sources, funderIndex };
+    }
+
+    buildFunderIndex(
+        properties: Array<{ id: number; name?: string; [key: string]: any }>,
+        catTotals: Map<string, number>,
+        subTotals: Map<string, Map<string, number>> | undefined,
+    ) {
+        if (typeof this.dataManager?.computeSubTotalForProperty !== 'function') {
+            return null;
+        }
+
+        const funderIndex = new Map<string, Set<string>>();
+        const addFunder = (key: string, propId: number) => {
+            if (!funderIndex.has(key)) {
+                funderIndex.set(key, new Set());
+            }
+            funderIndex.get(key)?.add(`prop-${propId}`);
+        };
+        const period = this.dataManager.getCurrentTimePeriod?.() || 'all';
+        const year = this.dataManager.getSelectedYear?.() || 'all';
+
+        for (const prop of properties) {
+            for (const catName of catTotals.keys()) {
+                const subs = subTotals?.get(catName);
+                if (subs && subs.size) {
+                    let catFunded = false;
+                    subs.forEach((_value, subName) => {
+                        const amount = this.dataManager.computeSubTotalForProperty?.(
+                            prop, catName, subName, period, year,
+                        ) || 0;
+                        if (amount > 0) {
+                            addFunder(subName, prop.id);
+                            catFunded = true;
+                        }
+                    });
+                    if (catFunded) {
+                        addFunder(catName, prop.id);
+                    }
+                } else {
+                    const amount = this.dataManager.computeSubTotalForProperty?.(
+                        prop, catName, null, period, year,
+                    ) || 0;
+                    if (amount > 0) {
+                        addFunder(catName, prop.id);
+                    }
+                }
+            }
+        }
+
+        return funderIndex;
     }
 
 
@@ -734,8 +799,9 @@ class ChartRenderer {
         }
 
         try {
+            // Keep a zoom identity helper for existing tests. Do not bind it to
+            // the root SVG — that would scale the drawing out from under labels.
             this.zoomBehavior = d3.zoom();
-            svg.call(this.zoomBehavior);
         } catch (error) {
             logger.warn('CHART', 'Zoom init skipped', error);
         }
@@ -751,125 +817,100 @@ class ChartRenderer {
                 grad.append('stop').attr('offset', '100%').attr('stop-color', this.getTypeColor(type, 'end'));
             });
 
-            requestAnimationFrame(() => {
-                try {
-                    const linkG = svg.append('g').attr('class', 'links');
+            try {
+                const linkG = svg.append('g').attr('class', 'links');
 
-                    logger.debug('CHART', `Rendering links: ${data.links.length}`);
-                    data.links.forEach((link: any, i: any) => {
-                        logger.debug('CHART', `Link ${i}:`, {
-                            source: link.source?.name || link.source,
-                            target: link.target?.name || link.target,
-                            path: link.path,
-                            width: link.width,
-                            type: link.type,
-                        });
+                logger.debug('CHART', `Rendering links: ${data.links.length}`);
+                data.links.forEach((link: any, i: any) => {
+                    logger.debug('CHART', `Link ${i}:`, {
+                        source: link.source?.name || link.source,
+                        target: link.target?.name || link.target,
+                        path: link.path,
+                        width: link.width,
+                        type: link.type,
                     });
+                });
 
-                    const linkSelection = linkG.selectAll('path').data(data.links);
+                const linkSelection = linkG.selectAll('path').data(data.links);
 
-                    linkSelection.enter().append('path')
-                        .attr('d', (d: any) => {
-                            logger.debug('CHART', `Link d attribute: ${d.path}`);
-                            return d.path;
-                        })
-                        .attr('fill', 'none')
-                        .attr('stroke', (d: any) => {
-                            const gradientId = `grad-${d.type.replace(/[^a-z]/g, '')}`;
-                            logger.debug('CHART', `Link stroke gradient: ${gradientId}`);
-                            return `url(#${gradientId})`;
-                        })
-                        .attr('stroke-width', (d: any) => {
-                            logger.debug('CHART', `Link stroke-width: ${d.width}`);
-                            return d.width;
-                        })
-                        .style('opacity', 0)
-                        .classed('link', true)
-                        .attr('data-type', (d: any) => d.type)
-                        .each(function(this: any, d: any) {
-                            const pathLength = this.getTotalLength();
-                            d.pathLength = pathLength;
-                            logger.debug('CHART', `Link pathLength: ${pathLength}`);
-                        })
-                        .on('mouseover', this.throttle((e: any, d: any) => {
-                            if (this.hoverTimeout) {clearTimeout(this.hoverTimeout);}
-                            this.hoverTimeout = setTimeout(() => this.handleInteraction(e, d, 'link', false), 100);
-                        }, 50))
-                        .on('mouseout', this.throttle(() => {
-                            if (this.hoverTimeout) {clearTimeout(this.hoverTimeout);}
-                            this.hoverTimeout = setTimeout(() => this.onHoverOut(), 100);
-                        }, 50))
-                        .on('click', this.throttle((e: any, d: any) => this.handleInteraction(e, d, 'link', true), 100))
-                        .transition()
-                        .delay((d: any) => d.source.level * 200)
-                        .duration(1000)
-                        .ease(d3.easeCubicInOut)
-                        .style('opacity', 0.4)
-                        .attrTween('stroke-dasharray', (d: any) => {
-                            const start = `0,${d.pathLength}`;
-                            const end = `${d.pathLength},${d.pathLength}`;
-                            return d3.interpolate(start, end);
-                        });
+                linkSelection.enter().append('path')
+                    .attr('d', (d: any) => d.path || sankeyLinkHorizontal()(d))
+                    .attr('fill', 'none')
+                    .attr('stroke', (d: any) => `url(#grad-${d.type.replace(/[^a-z]/g, '')})`)
+                    .attr('stroke-width', (d: any) => Math.max(1, d.width || 1))
+                    .attr('stroke-dasharray', 'none')
+                    .attr('stroke-linejoin', 'round')
+                    .style('opacity', 0.5)
+                    .classed('link', true)
+                    .attr('data-type', (d: any) => d.type)
+                    .on('mouseover', this.throttle((e: any, d: any) => {
+                        if (this.hoverTimeout) {clearTimeout(this.hoverTimeout);}
+                        this.hoverTimeout = setTimeout(() => this.handleInteraction(e, d, 'link', false), 100);
+                    }, 50))
+                    .on('mouseout', this.throttle(() => {
+                        if (this.hoverTimeout) {clearTimeout(this.hoverTimeout);}
+                        this.hoverTimeout = setTimeout(() => this.onHoverOut(), 100);
+                    }, 50))
+                    .on('click', this.throttle((e: any, d: any) => this.handleInteraction(e, d, 'link', true), 100));
 
-                    linkSelection.exit().remove();
+                const nodeG = svg.append('g').attr('class', 'nodes');
+                const nodeEnter = nodeG.selectAll('g').data(data.nodes).enter().append('g');
+                nodeEnter.append('rect')
+                    .attr('x', (d: any) => d.x0)
+                    .attr('y', (d: any) => d.y0)
+                    .attr('height', (d: any) => Math.max(10, d.y1 - d.y0))
+                    .attr('width', (d: any) => Math.max(8, d.x1 - d.x0))
+                    .attr('fill', (d: any) => d.color || 'var(--color-primary)')
+                    .attr('stroke', '#fff')
+                    .attr('stroke-width', 1)
+                    .attr('rx', 3)
+                    .style('cursor', 'pointer')
+                    .style('opacity', 1)
+                    .classed('node', true)
+                    .attr('data-type', (d: any) => d.type)
+                    .on('mouseover', this.throttle((e: any, d: any) => {
+                        if (this.hoverTimeout) {clearTimeout(this.hoverTimeout);}
+                        this.hoverTimeout = setTimeout(() => this.handleInteraction(e, d, 'node', false), 100);
+                    }, 50))
+                    .on('mouseout', this.throttle(() => {
+                        if (this.hoverTimeout) {clearTimeout(this.hoverTimeout);}
+                        this.hoverTimeout = setTimeout(() => this.onHoverOut(), 100);
+                    }, 50))
+                    .on('click', this.throttle((e: any, d: any) => this.handleInteraction(e, d, 'node', true), 100));
+                nodeEnter.append('text')
+                    .attr('x', (d: any) => d.x0 > width / 2 ? d.x0 - 8 : d.x1 + 8)
+                    .attr('y', (d: any) => (d.y0 + d.y1) / 2)
+                    .attr('dy', '0.35em')
+                    .attr('text-anchor', (d: any) => d.x0 > width / 2 ? 'end' : 'start')
+                    .text((d: any) => d.name.length > 12 ? d.name.slice(0, 12) + '...' : d.name)
+                    .style('font-size', '12px')
+                    .style('fill', 'var(--color-text)')
+                    .style('pointer-events', 'none')
+                    .style('opacity', 1);
+            } catch (error) {
+                logger.warn('CHART', 'Sankey link draw skipped', error);
+            }
 
-                    // Nodes: Pulse on load
-                    const nodeG = svg.append('g').attr('class', 'nodes');
-                    const nodeEnter = nodeG.selectAll('g').data(data.nodes).enter().append('g');
-                    nodeEnter.append('rect')
-                        .attr('x', (d: any) => d.x0).attr('y', (d: any) => d.y0).attr('height', (d: any) => d.y1 - d.y0)
-                        .attr('width', (d: any) => d.x1 - d.x0).attr('stroke', '#fff')
-                        .attr('stroke-width', 1).attr('rx', 3).style('cursor', 'pointer')
-                        .classed('node', true)
-                        .attr('data-type', (d: any) => d.type)
-                        .on('mouseover', this.throttle((e: any, d: any) => {
-                            if (this.hoverTimeout) {clearTimeout(this.hoverTimeout);}
-                            this.hoverTimeout = setTimeout(() => this.handleInteraction(e, d, 'node', false), 100);
-                        }, 50))
-                        .on('mouseout', this.throttle(() => {
-                            if (this.hoverTimeout) {clearTimeout(this.hoverTimeout);}
-                            this.hoverTimeout = setTimeout(() => this.onHoverOut(), 100);
-                        }, 50))
-                        .on('click', this.throttle((e: any, d: any) => this.handleInteraction(e, d, 'node', true), 100))
-                        .transition().duration(750).style('opacity', 1);
-                    nodeEnter.append('text')
-                        .attr('x', (d: any) => d.x0 > width / 2 ? d.x0 - 8 : d.x1 + 8)
-                        .attr('y', (d: any) => (d.y0 + d.y1) / 2).attr('dy', '0.35em')
-                        .attr('text-anchor', (d: any) => d.x0 > width / 2 ? 'end' : 'start')
-                        .text((d: any) => d.name.length > 12 ? d.name.slice(0, 12) + '...' : d.name)
-                        .style('font-size', '12px').style('fill', 'var(--color-text)');
-                } catch (error) {
-                    logger.warn('CHART', 'Sankey link draw skipped', error);
-                }
-            });
-
-            // Store with simulation for traces (creative: force for fast neighbors)
+            // Layout coordinates (x0/y0/x1/y1 and link.path) stay the source of truth.
+            // Stub sim.nodes() so existing interaction tests keep working without a force layout.
+            const layoutNodes = data.nodes;
+            const simStub = {
+                nodes: () => layoutNodes,
+                force() { return this; },
+                alpha() { return this; },
+                alphaDecay() { return this; },
+                restart() { return this; },
+                stop() { return this; },
+            };
             this.sankeyData = {
                 svg,
                 nodes: data.nodes,
                 links: data.links,
-                sim: d3.forceSimulation(data.nodes)
-                    .force(
-                        'link',
-                        d3.forceLink(data.links).id((d: any) => d.index).distance(30),
-                    )
-                    .force('charge', d3.forceManyBody().strength(-50))
-                    .force('center', d3.forceCenter(width / 2, height / 2))
-                    .stop(), // Precompute positions for queries
+                sim: simStub,
+                funderIndex: data.funderIndex || null,
             };
             this.state = { selected: null, highlighted: null };
-
-            // Cache ripple forces post-render
             this.rippleForces = new Map();
-            const pathForce = d3.forceLink(this.sankeyData.links)
-                .id((d: any) => d.index)
-                .distance((d: any) => 20 + d.value / 10);
-            const nodeForce = d3.forceManyBody();
-            nodeForce.path = pathForce;
-            this.rippleForces.set('node', nodeForce);
-            const linkForce = d3.forceManyBody();
-            linkForce.path = pathForce;
-            this.rippleForces.set('link', linkForce);
 
             // Build relation index for quick lookups (include income source keys)
             this.sankeyData.relationIndex = new Map();
@@ -911,118 +952,341 @@ class ChartRenderer {
         return pathNode.getTotalLength();
     }
 
-    // Unified interaction handler
+    // Unified interaction handler — opacity highlight only. Layout never moves.
     handleInteraction(event: any, item: any, type: any, isClick: any = false) {
-        if (!this.sankeyData?.sim) {return;}
-        const sim = this.sankeyData.sim;
-        const nodes = sim.nodes();
-        const links = this.sankeyData.links;
+        if (!this.sankeyData) {return;}
+        const nodes = this.sankeyData.nodes || this.sankeyData.sim?.nodes?.() || [];
+        const links = this.sankeyData.links || [];
         const startNode = type === 'link' ? item.source : item;
-        const filterKey = item.property || item.category || item.name; // For property/cat-specific ripples
+        const filterKey = this.pathCacheKey(item, type);
 
-        // Clear any existing hover timeout to prevent conflicts
         if (this.hoverTimeout) {
             clearTimeout(this.hoverTimeout);
             this.hoverTimeout = null;
         }
 
-        // Memoize relatedIds per filterKey
-        let relatedIds: any = this.relatedIdsCache.get(filterKey);
-        if (!relatedIds) {
-            relatedIds = this.sankeyData.relationIndex.get(filterKey) || new Set();
-            this.relatedIdsCache.set(filterKey, relatedIds);
+        if (event?.stopPropagation) {
+            event.stopPropagation();
         }
 
-        const forces: any = this.rippleForces.get(type);
-        forces.filter = d3.forceManyBody().strength((d: any) => {
-            const isRelated = relatedIds.has(d.id);
-            return isRelated ? 0 : -20; // Reduce repulsion strength for better visibility
-        });
-        forces.ripple = d3.forceRadial(50, startNode.x, startNode.y).strength(0.1); // Circular ripple from start
+        if (!isClick && this.suppressHover) {
+            return;
+        }
 
-        // State machine - improved logic
+        if (!isClick && this.interactionState === 'PINNED_SELECT') {
+            this.showRippleTooltip(event, item, type, true);
+            return;
+        }
+
+        let relatedIds: any = this.relatedIdsCache.get(filterKey);
+        if (!relatedIds) {
+            relatedIds = this.collectPathRelatedIds(item, type);
+            this.relatedIdsCache.set(filterKey, relatedIds);
+        }
+        if (!relatedIds.size) {
+            relatedIds = this.relatedIdsFromItem(item, type);
+        }
+
         if (isClick && this.interactionState === 'PINNED_SELECT' && this.isSameSelection(type, item)) {
+            this.suppressHover = true;
             this.clearRipple();
             return;
         }
 
-        // For clicks, enable full sim with improved alpha
-        if (isClick) {
-            sim.force('path', forces.path)
-                .force('filter', forces.filter)
-                .force('ripple', forces.ripple)
-                .alpha(0.3)
-                .alphaDecay(0.03)
-                .restart();
-        }
-
-        // Update visuals immediately for better responsiveness
         this.updateRippleVisuals(nodes, links, relatedIds, false, isClick);
 
-        // Update state
         this.interactionState = isClick ? 'PINNED_SELECT' : 'RIPPLE_HOVER';
         this.state[isClick ? 'selected' : 'highlighted'] = { type, item, startNode, filterKey, relatedIds: new Set(relatedIds) };
 
-        // Show enhanced tooltip (SVG-based for sleekness)
         this.showRippleTooltip(event, item, type, isClick);
+    }
 
-        // On click: Zoom to ripple bbox (elegant pan/zoom)
-        if (isClick) {
-            const rippleNodes = nodes.filter((n: any) => relatedIds.has(n.id));
-            const key = JSON.stringify([...relatedIds].sort());
-            let bbox = this.bboxCache.get(key);
-            if (!bbox) {
-                bbox = this.computeRippleBbox(rippleNodes);
-                this.bboxCache.set(key, bbox);
-            }
-            this.zoomToBbox(bbox);
+    endpointId(end: any) {
+        if (end == null) {return end;}
+        if (typeof end === 'object') {return end.id ?? end.name;}
+        return end;
+    }
+
+    pathCacheKey(item: any, type: any) {
+        if (type === 'link') {
+            return `link:${this.endpointId(item?.source)}:${this.endpointId(item?.target)}`;
         }
+        return `node:${item?.id ?? item?.name ?? ''}`;
+    }
+
+    relatedIdsFromItem(item: any, type: any) {
+        if (type === 'link') {
+            return new Set([this.endpointId(item?.source), this.endpointId(item?.target)].filter(Boolean));
+        }
+        return new Set(item?.id ? [item.id] : []);
+    }
+
+    buildAdjacency(links: any[]) {
+        const incoming = new Map();
+        const outgoing = new Map();
+        const add = (map: Map<any, Set<any>>, from: any, to: any) => {
+            if (from == null || to == null) {return;}
+            if (!map.has(from)) {map.set(from, new Set());}
+            map.get(from).add(to);
+        };
+        for (const link of links) {
+            const sourceId = this.endpointId(link.source);
+            const targetId = this.endpointId(link.target);
+            add(outgoing, sourceId, targetId);
+            add(incoming, targetId, sourceId);
+        }
+        return { incoming, outgoing };
+    }
+
+    propertyFunds(propId: string, catId: string | null, subId: string | null) {
+        const index = this.sankeyData?.funderIndex;
+        if (!index) {return true;}
+        const key = subId || catId;
+        if (!key) {return true;}
+        return index.get(key)?.has(propId) === true;
+    }
+
+    findLink(links: any[], fromId: any, toId: any) {
+        return links.find((link: any) =>
+            this.endpointId(link.source) === fromId && this.endpointId(link.target) === toId,
+        ) || null;
+    }
+
+    linkSpanOnNode(link: any, nodeId: any) {
+        if (!link || nodeId == null) {return null;}
+        const width = Number(link.width);
+        const sourceId = this.endpointId(link.source);
+        const targetId = this.endpointId(link.target);
+        let y: number;
+        if (sourceId === nodeId) {
+            y = Number(link.y0);
+        } else if (targetId === nodeId) {
+            y = Number(link.y1);
+        } else {
+            return null;
+        }
+        if (!Number.isFinite(y) || !Number.isFinite(width)) {return null;}
+        const half = Math.max(0, width) / 2;
+        return [y - half, y + half];
+    }
+
+    spansOverlap(a: number[] | null, b: number[] | null) {
+        if (!a || !b) {return false;}
+        return a[0] < b[1] && b[0] < a[1];
+    }
+
+    collectPathRelatedIds(item: any, type: any) {
+        const nodes = this.sankeyData?.nodes || this.sankeyData?.sim?.nodes?.() || [];
+        const links = this.sankeyData?.links || [];
+        const byId = new Map(nodes.map((node: any) => [node.id, node]));
+        const { incoming, outgoing } = this.buildAdjacency(links);
+
+        const startIds: any[] = [];
+        if (type === 'link') {
+            startIds.push(this.endpointId(item?.source), this.endpointId(item?.target));
+        } else if (item?.id) {
+            startIds.push(item.id);
+        } else if (item?.name) {
+            const match = nodes.find((node: any) => node.name === item.name || node.id === item.name);
+            if (match) {startIds.push(match.id);}
+        }
+
+        const startNodes = startIds.map(id => byId.get(id)).filter(Boolean);
+        if (!startNodes.length) {
+            return this.relatedIdsFromItem(item, type);
+        }
+
+        const rank: Record<string, number> = {
+            subcategory: 0,
+            category: 1,
+            property: 2,
+            'income-source': 3,
+            profit: 4,
+            expenses: 5,
+            earnings: 6,
+        };
+        startNodes.sort((a: any, b: any) => (rank[a.type] ?? 9) - (rank[b.type] ?? 9));
+        const focus = startNodes[0];
+
+        const related = new Set();
+        const add = (id: any) => {
+            if (id != null) {related.add(id);}
+        };
+
+        const addIncomePath = () => {
+            for (const node of nodes) {
+                if (node.type === 'earnings' || node.id === 'earnings') {add(node.id);}
+                if (node.type === 'income-source') {add(node.id);}
+            }
+        };
+
+        const propertyIds = nodes.filter((node: any) => node.type === 'property').map((node: any) => node.id);
+
+        const parentOf = (id: any) => {
+            const preds = incoming.get(id);
+            if (!preds || !preds.size) {return null;}
+            return [...preds][0];
+        };
+
+        const walkUpExpenseTree = (id: any) => {
+            let current = id;
+            const seen = new Set();
+            while (current && !seen.has(current)) {
+                seen.add(current);
+                add(current);
+                const node = byId.get(current);
+                if (!node || node.type === 'expenses' || node.id === 'expenses') {break;}
+                current = parentOf(current);
+            }
+            add('expenses');
+        };
+
+        // Cross the expenses hub only along the slice that feeds this leaf.
+        // Shared names / the full expenses bar must not light every property.
+        const addFundersThroughExpensesHub = (catId: any, subId: any) => {
+            const hubLink = this.findLink(links, 'expenses', catId);
+            const hubSpan = this.linkSpanOnNode(hubLink, 'expenses');
+            const hasGeometry = !!hubSpan;
+            for (const propId of propertyIds) {
+                if (!this.propertyFunds(propId, catId, subId)) {continue;}
+                if (hasGeometry) {
+                    const propLink = this.findLink(links, propId, 'expenses');
+                    const propSpan = this.linkSpanOnNode(propLink, 'expenses');
+                    if (!this.spansOverlap(hubSpan, propSpan)) {continue;}
+                }
+                add(propId);
+            }
+        };
+
+        const addEarningsForSelectedProperties = () => {
+            let any = false;
+            for (const propId of propertyIds) {
+                if (!related.has(propId)) {continue;}
+                if (this.findLink(links, 'earnings', propId) || incoming.get(propId)?.has('earnings')) {
+                    any = true;
+                    break;
+                }
+            }
+            if (any) {add('earnings');}
+        };
+
+        const addPropertiesThroughEarningsHub = (fromId: any) => {
+            const hubLink = this.findLink(links, fromId, 'earnings') || this.findLink(links, 'earnings', fromId);
+            const hubSpan = this.linkSpanOnNode(hubLink, 'earnings');
+            const hasGeometry = !!hubSpan;
+            for (const propId of propertyIds) {
+                const propLink = this.findLink(links, 'earnings', propId);
+                if (hasGeometry) {
+                    const propSpan = this.linkSpanOnNode(propLink, 'earnings');
+                    if (!this.spansOverlap(hubSpan, propSpan)) {continue;}
+                    if ((propLink?.width || 0) < 1 && (hubLink?.width || 0) > 1) {continue;}
+                } else if (!propLink && !(outgoing.get('earnings') || new Set()).has(propId)) {
+                    continue;
+                }
+                add(propId);
+            }
+        };
+
+        if (focus.type === 'subcategory') {
+            walkUpExpenseTree(focus.id);
+            addFundersThroughExpensesHub(parentOf(focus.id), focus.id);
+            addEarningsForSelectedProperties();
+        } else if (focus.type === 'category') {
+            walkUpExpenseTree(focus.id);
+            for (const child of (outgoing.get(focus.id) || [])) {add(child);}
+            addFundersThroughExpensesHub(focus.id, null);
+            addEarningsForSelectedProperties();
+        } else if (focus.type === 'property') {
+            add(focus.id);
+            addIncomePath();
+            for (const target of (outgoing.get(focus.id) || [])) {add(target);}
+            for (const node of nodes) {
+                if (node.type === 'category') {
+                    if (this.propertyFunds(focus.id, node.id, null)) {add(node.id);}
+                } else if (node.type === 'subcategory') {
+                    if (this.propertyFunds(focus.id, parentOf(node.id), node.id)) {add(node.id);}
+                }
+            }
+        } else if (focus.type === 'income-source') {
+            add(focus.id);
+            add('earnings');
+            addPropertiesThroughEarningsHub(focus.id);
+        } else if (focus.type === 'earnings') {
+            addIncomePath();
+            addPropertiesThroughEarningsHub('earnings');
+        } else if (focus.type === 'profit') {
+            add(focus.id);
+            addIncomePath();
+            for (const propId of propertyIds) {
+                if ((outgoing.get(propId) || new Set()).has('profit')) {add(propId);}
+            }
+        } else if (focus.type === 'expenses') {
+            add('expenses');
+            for (const propId of propertyIds) {add(propId);}
+            for (const node of nodes) {
+                if (node.type === 'category' || node.type === 'subcategory') {add(node.id);}
+            }
+        } else {
+            add(focus.id);
+            for (const target of (outgoing.get(focus.id) || [])) {add(target);}
+            for (const source of (incoming.get(focus.id) || [])) {add(source);}
+        }
+
+        return related;
+    }
+
+    highlightDuration() {
+        try {
+            if (typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+                return 0;
+            }
+        } catch (_error) {
+            // matchMedia is unavailable in some test environments
+        }
+        return 150;
+    }
+
+    linkTouchesRelated(link: any, relatedIds: Set<any>) {
+        const sourceId = this.endpointId(link?.source);
+        const targetId = this.endpointId(link?.target);
+        return relatedIds.has(sourceId) && relatedIds.has(targetId);
     }
 
 
 
-    // Declarative visual update (elegant: D3 transitions on sim positions)
-    updateRippleVisuals(nodes: any, links: any, relatedIds: any, isFinal: any, isClick: any) {
-        const relatedNodes = relatedIds ? nodes.filter((n: any) => relatedIds.has(n.id)) : [];
-        const relatedLinks = relatedIds
-            ? links.filter((l: any) => relatedIds.has(l.source.id) || relatedIds.has(l.target.id))
-            : [];
+    // Opacity-only emphasis. Never rewrite path `d`, x/y, or node size.
+    updateRippleVisuals(nodes: any, links: any, relatedIds: any, _isFinal: any, _isClick: any) {
+        const idle = !relatedIds || relatedIds.size === 0;
+        const duration = this.highlightDuration();
+        const t = this.sankeyData.svg.transition().duration(duration).ease(d3.easeCubicInOut);
 
-        const t = this.sankeyData.svg.transition().duration(isFinal ? 500 : 300).ease(d3.easeCubicInOut);
-
-        // Links: Animate to sim positions, opacity by relation
         this.sankeyData.svg.selectAll('.link')
             .data(links, (d: any) => d.index)
-            .classed('related', (d: any) => relatedLinks.includes(d))
+            .classed('related', (d: any) => !idle && this.linkTouchesRelated(d, relatedIds))
             .transition(t)
-            .attr('d', isClick ? sankeyLinkHorizontal() : null)
             .style('opacity', (d: any) => {
-                if (relatedLinks.includes(d)) {
-                    // Related links should be fully visible but not too bright
-                    return this.interactionState === 'PINNED_SELECT' ? 0.9 : 0.7;
-                } else {
-                    // Unrelated links should be dim but still visible
-                    return this.interactionState === 'PINNED_SELECT' ? 0.3 : 0.5;
+                if (idle || this.linkTouchesRelated(d, relatedIds)) {
+                    return idle ? 0.5 : 0.85;
                 }
-            })
-            .style('stroke-width', (d: any) => relatedLinks.includes(d) ? d.width * 1.2 : d.width);
+                return 0.12;
+            });
 
-        // Nodes: Scale/position with ripple, color tint
+        const nodeLit = (d: any) => idle || relatedIds.has(d.id) || d.type === 'income-source';
+
         this.sankeyData.svg.selectAll('.nodes rect')
             .data(nodes, (d: any) => d.index)
-            .classed('related', (d: any) => relatedNodes.includes(d))
+            .classed('related', (d: any) => !idle && relatedIds.has(d.id))
             .transition(t)
-            .attr('width', (d: any) => (d.width || 15) * (relatedNodes.includes(d) ? 1.2 : 0.8))
-            .attr('height', (d: any) => (d.height || 20) * (relatedNodes.includes(d) ? 1.2 : 0.8))
-            .style('fill', (d: any) => relatedNodes.includes(d) ? this.adjustColorBrightness(d.color, 0.2) : d.color)
-            .style('opacity', (d: any) => relatedNodes.includes(d) ? 1 : (this.interactionState === 'PINNED_SELECT' ? 0.1 : 0.6))
-            .attr('x', isClick ? (d: any) => d.x - (d.width || 15)/2 : (d: any) => d.x0)
-            .attr('y', isClick ? (d: any) => d.y - (d.height || 20)/2 : (d: any) => d.y0);
+            .style('opacity', (d: any) => (nodeLit(d) ? 1 : 0.2));
+
+        this.sankeyData.svg.selectAll('.nodes text')
+            .data(nodes, (d: any) => d.index)
+            .transition(t)
+            .style('opacity', (d: any) => (nodeLit(d) ? 1 : 0.2));
     }
 
-    // Clear: Fade back to idle
+    // Clear: Fade back to idle opacities. Coordinates stay put.
     clearRipple() {
-        // Clear any pending hover timeout
         if (this.hoverTimeout) {
             clearTimeout(this.hoverTimeout);
             this.hoverTimeout = null;
@@ -1031,16 +1295,14 @@ class ChartRenderer {
         this.interactionState = 'IDLE';
         this.state.selected = this.state.highlighted = null;
 
-        const sim = this.sankeyData.sim;
-        sim.force('path', null).force('filter', null).force('ripple', null).alpha(0.1);
+        if (!this.sankeyData) {
+            return;
+        }
 
-        // Reset visuals with proper timing
-        this.updateRippleVisuals(sim.nodes(), this.sankeyData.links, null, true, false);
+        const nodes = this.sankeyData.nodes || this.sankeyData.sim?.nodes?.() || [];
+        this.updateRippleVisuals(nodes, this.sankeyData.links || [], null, true, false);
 
         this.hideTooltip();
-        if (this.sankeyData.svg.call) {
-            this.sankeyData.svg.call(this.zoomBehavior?.transform, d3.zoomIdentity); // Reset zoom
-        }
     }
 
     // Add helper method for tooltip content (similar to current DOM formatting)
@@ -1073,8 +1335,7 @@ class ChartRenderer {
         const tooltipG = this.sankeyData.svg.append('g')
             .attr('class', 'ripple-tooltip')
             .style('pointer-events', 'none')
-            .style('opacity', 0)
-            .attr('transform', 'scale(0.5)'); // Start scaled for animation
+            .style('opacity', 0);
 
         // Background rect (similar to current div styles)
         const bgRect = tooltipG.append('rect')
@@ -1127,12 +1388,10 @@ class ChartRenderer {
         const anchorY = y - 10;
         tooltipG.attr('transform', `translate(${anchorX}, ${anchorY})`);
 
-        // Animate in (sleek scale + opacity, like current fade)
         tooltipG.transition()
-            .duration(200)
-            .ease(d3.easeBackOut)
-            .style('opacity', 1)
-            .attr('transform', `translate(${anchorX}, ${anchorY}) scale(1)`);
+            .duration(this.highlightDuration())
+            .ease(d3.easeCubicInOut)
+            .style('opacity', 1);
 
         if (persistent) {
             this.persistentTooltip = tooltipG;
@@ -1145,15 +1404,20 @@ class ChartRenderer {
         if (this.tooltip) {
             this.tooltip.style.opacity = '0';
         }
+        if (this.sankeyData?.svg?.selectAll) {
+            try {
+                this.sankeyData.svg.selectAll('.ripple-tooltip').remove();
+            } catch (_error) {
+                // mock svg selections may not implement selectAll/remove
+            }
+        }
         if (this.persistentTooltip) {
             try {
-                this.persistentTooltip.transition().duration(200).style('opacity', 0).remove();
+                this.persistentTooltip.transition().duration(this.highlightDuration()).style('opacity', 0).remove();
             } catch (_error) {
-                // Fallback for mock environments where transition methods may not be fully implemented
                 try {
                     this.persistentTooltip.style('opacity', 0).remove();
                 } catch (_fallbackError) {
-                    // Last resort fallback - just null out the tooltip
                     logger.warn('CHART', 'Could not properly hide persistent tooltip, clearing reference');
                 }
             }
@@ -1166,8 +1430,8 @@ class ChartRenderer {
     repositionPersistentTooltip() {
         if (this.persistentTooltip && this.persistentPos) {
             const [x, y] = this.persistentPos;
-            this.persistentTooltip.transition().duration(150)
-                .attr('transform', `translate(${x}, ${y}) scale(1)`);
+            this.persistentTooltip.transition().duration(this.highlightDuration())
+                .attr('transform', `translate(${x}, ${y})`);
         }
     }
 
@@ -1244,6 +1508,7 @@ class ChartRenderer {
      * Handle hover out
      */
     onHoverOut() {
+        this.suppressHover = false;
         if (this.interactionState === 'RIPPLE_HOVER') {
             this.clearRipple();
         }
