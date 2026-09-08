@@ -742,15 +742,27 @@ class PropertiesManager {
     }
 
     getPropertyIncomeNames(property) {
-        if (!property || typeof this.dataManager.getPropertyIncomeData !== 'function') {
-            return [];
-        }
+        const names = new Set();
         try {
-            const data = this.dataManager.getPropertyIncomeData(property);
-            return Object.keys(data.income || {}).sort((a, b) => a.localeCompare(b));
+            if (typeof this.dataManager.getIncomeCategories === 'function') {
+                (this.dataManager.getIncomeCategories() || []).forEach(name => {
+                    if (name) {names.add(name);}
+                });
+            }
         } catch (_error) {
-            return [];
+            // Tests may mock DataManager without income helpers.
         }
+        if (property && typeof this.dataManager.getPropertyIncomeData === 'function') {
+            try {
+                const data = this.dataManager.getPropertyIncomeData(property);
+                Object.keys(data.income || {}).forEach(name => {
+                    if (name) {names.add(name);}
+                });
+            } catch (_error) {
+                // Tests may mock DataManager without a queryable store.
+            }
+        }
+        return Array.from(names).sort((a, b) => a.localeCompare(b));
     }
 
     getCategoryIncomeValue(property, category) {
@@ -2141,6 +2153,13 @@ class PropertiesManager {
 
     showAddIncomeModal() {
         const timestamp = Date.now();
+        let existing = [];
+        try {
+            existing = this.dataManager.getIncomeCategories() || [];
+        } catch (_error) {
+            existing = [];
+        }
+        const options = existing.map(name => `<option value="${name}"></option>`).join('');
         const modalHtml = `
             <div class="modal-header">
                 <h3>Add Income</h3>
@@ -2149,7 +2168,8 @@ class PropertiesManager {
             <div class="modal-body">
                 <div class="form-group">
                     <label class="form-label" for="new-income-name-${timestamp}">Income source</label>
-                    <input type="text" id="new-income-name-${timestamp}" class="form-control" placeholder="Rent, Parking, ..." maxlength="50">
+                    <input type="text" id="new-income-name-${timestamp}" class="form-control" list="income-categories-${timestamp}" placeholder="Rent or another source" maxlength="50">
+                    <datalist id="income-categories-${timestamp}">${options}</datalist>
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="new-income-amount-${timestamp}">Amount</label>

@@ -32,6 +32,7 @@ describe('Properties save writes TransactionStore', () => {
         };
         const historyManager = {
             createSnapshot: jest.fn(),
+            capture: jest.fn().mockResolvedValue(true),
             saveState: jest.fn().mockResolvedValue(true),
             history: [{ id: 'baseline' }],
         };
@@ -69,6 +70,62 @@ describe('Properties save writes TransactionStore', () => {
         expect(txns[0].amount).toBe(-400);
     });
 
+    test('income list includes store income categories before a line is written', () => {
+        const names = propertiesManager.getPropertyIncomeNames(dataManager.getPropertyById(1));
+        expect(names).toContain('Salary');
+    });
+
+    test('addIncome uses an existing store income category and edit/delete leave expense Rent', async () => {
+        await propertiesManager.saveExpenseValue('Rent', null, 1500);
+        await propertiesManager.addIncome('Rent', 5000);
+
+        let income = dataManager.store.queryTransactions({
+            propertyId: 1,
+            category: 'Rent',
+            type: 'income',
+        });
+        let expense = dataManager.store.queryTransactions({
+            propertyId: 1,
+            category: 'Rent',
+            type: 'expense',
+        });
+        expect(income).toHaveLength(1);
+        expect(income[0].amount).toBe(5000);
+        expect(expense).toHaveLength(1);
+        expect(expense[0].amount).toBe(-1500);
+
+        await propertiesManager.saveExpenseValue('Rent', null, 6000, 'income');
+        income = dataManager.store.queryTransactions({
+            propertyId: 1,
+            category: 'Rent',
+            type: 'income',
+        });
+        expense = dataManager.store.queryTransactions({
+            propertyId: 1,
+            category: 'Rent',
+            type: 'expense',
+        });
+        expect(income[0].amount).toBe(6000);
+        expect(expense[0].amount).toBe(-1500);
+        expect(dataManager.getAggregatedSankeyData('all', 'all').sources.get('Rent')).toBe(6000);
+
+        await propertiesManager.deleteIncome('Rent');
+        income = dataManager.store.queryTransactions({
+            propertyId: 1,
+            category: 'Rent',
+            type: 'income',
+        });
+        expense = dataManager.store.queryTransactions({
+            propertyId: 1,
+            category: 'Rent',
+            type: 'expense',
+        });
+        expect(income).toHaveLength(0);
+        expect(expense).toHaveLength(1);
+        expect(expense[0].amount).toBe(-1500);
+        expect(dataManager.getAggregatedSankeyData('all', 'all').hasIncome).toBe(false);
+    });
+
     test('addIncome writes a positive income transaction visible on Overview Sankey', async () => {
         await propertiesManager.addIncome('Parking', 800);
 
@@ -86,6 +143,26 @@ describe('Properties save writes TransactionStore', () => {
         expect(aggregated.sources.get('Parking')).toBe(800);
         expect(aggregated.propIncomes.get(1)).toBe(800);
         expect(storage.save).toHaveBeenCalled();
+        const payload = storage.save.mock.calls[storage.save.mock.calls.length - 1][0];
+        expect(payload.transactions.some(
+            t => t.type === 'income' && t.category === 'Parking' && t.amount === 800,
+        )).toBe(true);
+        expect(propertiesManager.historyManager.capture).toHaveBeenCalled();
+        expect(propertiesManager.historyManager.saveState).toHaveBeenCalled();
+    });
+
+    test('addIncome refreshes Overview Sankey from store aggregations', async () => {
+        const renderOverviewSankey = jest.fn().mockImplementation(async () => {
+            const aggregated = dataManager.getAggregatedSankeyData('all', 'all');
+            expect(aggregated.hasIncome).toBe(true);
+            expect(aggregated.sources.get('Parking')).toBe(800);
+        });
+        propertiesManager.chartRenderer = { renderOverviewSankey };
+
+        await propertiesManager.addIncome('Parking', 800);
+
+        expect(renderOverviewSankey).toHaveBeenCalled();
+        expect(dataManager.getAggregatedSankeyData('all', 'all').propIncomes.get(1)).toBe(800);
     });
 
     test('addIncome rejects 0 and NaN without writing a transaction', async () => {
