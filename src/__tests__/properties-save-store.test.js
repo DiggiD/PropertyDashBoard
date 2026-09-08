@@ -69,6 +69,84 @@ describe('Properties save writes TransactionStore', () => {
         expect(txns[0].amount).toBe(-400);
     });
 
+    test('addIncome writes a positive income transaction visible on Overview Sankey', async () => {
+        await propertiesManager.addIncome('Parking', 800);
+
+        const txns = dataManager.store.queryTransactions({
+            propertyId: 1,
+            category: 'Parking',
+            type: 'income',
+        });
+        expect(txns).toHaveLength(1);
+        expect(txns[0].amount).toBe(800);
+        expect(txns[0].type).toBe('income');
+
+        const aggregated = dataManager.getAggregatedSankeyData('all', 'all');
+        expect(aggregated.hasIncome).toBe(true);
+        expect(aggregated.sources.get('Parking')).toBe(800);
+        expect(aggregated.propIncomes.get(1)).toBe(800);
+        expect(storage.save).toHaveBeenCalled();
+    });
+
+    test('addIncome rejects 0 and NaN without writing a transaction', async () => {
+        await propertiesManager.addIncome('Parking', 0);
+        await propertiesManager.addIncome('Parking', NaN);
+        const txns = dataManager.store.queryTransactions({
+            propertyId: 1,
+            type: 'income',
+        });
+        expect(txns).toHaveLength(0);
+        expect(propertiesManager.uiManager.showToast).toHaveBeenCalled();
+    });
+
+    test('after addIncome, ChartRenderer keeps income-source nodes on Overview', async () => {
+        global.ResizeObserver = jest.fn().mockImplementation(function ResizeObserverStub() {
+            this.observe = jest.fn();
+            this.disconnect = jest.fn();
+            this.unobserve = jest.fn();
+        });
+        const uiManager = {
+            showToast: jest.fn(),
+            getElement: key => document.getElementById(key),
+            updateDataDisplay: jest.fn(),
+            showLoadingState: jest.fn(),
+            hideLoadingState: jest.fn(),
+            showError: jest.fn(),
+            formatter: new Formatter(),
+        };
+        const chart = new ChartRenderer(dataManager, uiManager, new Formatter(), new ThemeManager());
+        await chart.initialize();
+        propertiesManager = new PropertiesManager(
+            dataManager,
+            uiManager,
+            { createSnapshot: jest.fn() },
+            chart,
+        );
+        propertiesManager.currentPropertyId = 1;
+
+        await propertiesManager.saveExpenseValue('Rent', null, 1500);
+        await propertiesManager.addIncome('Parking', 800);
+
+        const aggregated = dataManager.getAggregatedSankeyData('all', 'all');
+        expect(aggregated.hasIncome).toBe(true);
+        const built = chart.buildSankeyData(
+            dataManager.getProperties(),
+            aggregated.sources,
+            aggregated.propIncomes,
+            aggregated.propExpenses,
+            dataManager.getExpenseCategories(),
+            aggregated.hasIncome,
+            aggregated.catTotals,
+            aggregated.subTotals,
+            800,
+            400,
+        );
+        expect(built.nodes.some(n => n.type === 'income-source' && n.name === 'PARKING')).toBe(true);
+        expect(built.nodes.some(n => n.type === 'earnings')).toBe(true);
+        const container = document.getElementById('overviewChartContent');
+        expect(container.querySelector('svg')).not.toBeNull();
+    });
+
     test('saveExpenseValue income category writes a positive income transaction', async () => {
         await propertiesManager.saveExpenseValue('Salary', null, 2000);
 

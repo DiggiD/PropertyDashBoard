@@ -435,9 +435,12 @@ class ChartRenderer {
         const links: any[] = [];
 
         // L0-1: Income (if any)
+        const sourceEntries = sources instanceof Map
+            ? Array.from(sources.entries())
+            : Object.entries(sources || {});
         if (hasIncome) {
             let sortKey = 0;
-            Object.entries(sources).sort(([,a], [,b]) => b - a).forEach(([source, total]) => {
+            sourceEntries.sort(([, a], [, b]) => Number(b) - Number(a)).forEach(([source, total]) => {
                 if (total > 0) {
                     const id = `income-${source}`;
                     nodes.push({
@@ -463,7 +466,7 @@ class ChartRenderer {
                 widthFactor: 2,
             });
             logger.debug('CHART', 'Added earnings node');
-            Object.entries(sources).forEach(([source, total]) => {
+            sourceEntries.forEach(([source, total]) => {
                 if (total > 0) {
                     links.push({
                         source: `income-${source}`,

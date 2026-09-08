@@ -46,6 +46,8 @@ class PropertiesManager {
             tooltipText = 'Add Property';
         } else if (button.id === 'add-category-btn') {
             tooltipText = 'Add Category';
+        } else if (button.id === 'add-income-btn') {
+            tooltipText = 'Add Income';
         } else if (button.id === 'add-subcategory-btn') {
             tooltipText = 'Add Subcategory';
         }
@@ -255,14 +257,14 @@ class PropertiesManager {
 
             // Add tooltip functionality for add buttons
             this.uiManager.addEventListener(container, 'mouseover', (e) => {
-                const target = e.target.closest('#add-property-btn, #add-category-btn, #add-subcategory-btn');
+                const target = e.target.closest('#add-property-btn, #add-category-btn, #add-income-btn, #add-subcategory-btn');
                 if (target) {
                     this.showAddButtonTooltip(target, e);
                 }
             });
 
             this.uiManager.addEventListener(container, 'mouseout', (e) => {
-                const target = e.target.closest('#add-property-btn, #add-category-btn, #add-subcategory-btn');
+                const target = e.target.closest('#add-property-btn, #add-category-btn, #add-income-btn, #add-subcategory-btn');
                 if (target) {
                     this.hideAddButtonTooltip();
                 }
@@ -390,6 +392,8 @@ class PropertiesManager {
                         this.handleAddProperty();
                     } else if (e.target.closest('#add-category-btn')) {
                         this.handleAddCategory();
+                    } else if (e.target.closest('#add-income-btn')) {
+                        this.handleAddIncome();
                     } else if (e.target.closest('#add-subcategory-btn')) {
                         this.handleAddSubcategory();
                     } else if (e.target.closest('.back-btn')) {
@@ -560,6 +564,9 @@ class PropertiesManager {
                             <button class="btn btn--outline btn--sm" id="add-category-btn" title="Add Category">
                                 +
                             </button>
+                            <button class="btn btn--outline btn--sm" id="add-income-btn" title="Add Income">
+                                +In
+                            </button>
                         ` : ''}
                     </div>
                     <div class="panel-content">
@@ -659,6 +666,7 @@ class PropertiesManager {
                         </div>
                     </div>
                 </div>
+                ${this.renderIncomeList(property)}
             `;
         }
 
@@ -728,6 +736,75 @@ class PropertiesManager {
                         `;
         }
     }).join('')}
+            </div>
+            ${this.renderIncomeList(property)}
+        `;
+    }
+
+    getPropertyIncomeNames(property) {
+        if (!property || typeof this.dataManager.getPropertyIncomeData !== 'function') {
+            return [];
+        }
+        try {
+            const data = this.dataManager.getPropertyIncomeData(property);
+            return Object.keys(data.income || {}).sort((a, b) => a.localeCompare(b));
+        } catch (_error) {
+            return [];
+        }
+    }
+
+    getCategoryIncomeValue(property, category) {
+        if (!property || !category) {return 0;}
+        if (typeof this.dataManager.getPropertyIncomeData !== 'function') {return 0;}
+        try {
+            const data = this.dataManager.getPropertyIncomeData(property);
+            return (data.income && data.income[category]) || 0;
+        } catch (_error) {
+            return 0;
+        }
+    }
+
+    renderIncomeList(property) {
+        const names = this.getPropertyIncomeNames(property);
+        const rows = names.map(name => this.renderIncomeItem(name, property)).join('');
+        return `
+            <div class="properties-list income-list">
+                <div class="property-item">
+                    <div class="property-info">
+                        <h5 class="property-name">Income</h5>
+                    </div>
+                </div>
+                ${rows || `
+                <div class="property-item">
+                    <div class="property-info">
+                        <h5 class="property-name">No income yet</h5>
+                    </div>
+                </div>
+                `}
+            </div>
+        `;
+    }
+
+    renderIncomeItem(category, property) {
+        const amount = this.getCategoryIncomeValue(property, category);
+        const displayValue = this.uiManager.formatter
+            ? this.uiManager.formatter.formatCurrency(amount)
+            : amount;
+        return `
+            <div class="property-item" data-category="${category || ''}" data-line-type="income">
+                <div class="property-info">
+                    <div class="subcategory-inline">
+                        <span class="category-name" data-category="${category || ''}">${category || 'Unnamed Income'}</span>
+                        <div class="expense-value editable" data-category="${category || ''}" data-line-type="income" title="Click to edit income">
+                            ${displayValue}
+                        </div>
+                    </div>
+                </div>
+                <div class="category-actions">
+                    <button class="category-action delete-hidden btn btn--outline btn--sm" data-action="delete" data-category="${category || ''}" data-line-type="income" title="Delete income">
+                        ×
+                    </button>
+                </div>
             </div>
         `;
     }
@@ -1222,10 +1299,13 @@ class PropertiesManager {
         const action = button.dataset.action;
         const category = button.dataset.category;
         const subcategory = button.dataset.subcategory;
+        const lineType = button.dataset.lineType;
 
         switch (action) {
             case 'delete':
-                if (subcategory) {
+                if (lineType === 'income') {
+                    this.confirmDeleteIncome(category);
+                } else if (subcategory) {
                     this.confirmDeleteSubcategory(category, subcategory);
                 } else {
                     this.confirmDeleteCategory(category);
@@ -1253,6 +1333,12 @@ class PropertiesManager {
 
         const category = valueElement.dataset.category;
         const subcategory = valueElement.dataset.subcategory;
+        const lineType = valueElement.dataset.lineType;
+
+        if (lineType === 'income') {
+            this.startExpenseEdit(valueElement, category, subcategory, lineType);
+            return;
+        }
 
         // Check if the target entity is currently selected
         let needsSelection = false;
@@ -1284,20 +1370,20 @@ class PropertiesManager {
             }
             const updatedElement = container.querySelector(selector);
             if (updatedElement) {
-                this.startExpenseEdit(updatedElement, category, subcategory);
+                this.startExpenseEdit(updatedElement, category, subcategory, lineType);
             }
             return;
         }
 
-        this.startExpenseEdit(valueElement, category, subcategory);
+        this.startExpenseEdit(valueElement, category, subcategory, lineType);
     }
 
     /**
      * Start expense edit (helper method)
      */
-    startExpenseEdit(valueElement, category, subcategory) {
+    startExpenseEdit(valueElement, category, subcategory, lineType) {
         this.isEditMode = true;
-        const currentValue = this.getCurrentExpenseValue(category, subcategory);
+        const currentValue = this.getCurrentExpenseValue(category, subcategory, lineType);
 
         // Create input element
         const input = document.createElement('input');
@@ -1309,6 +1395,9 @@ class PropertiesManager {
         input.dataset.category = category;
         if (subcategory) {
             input.dataset.subcategory = subcategory;
+        }
+        if (lineType) {
+            input.dataset.lineType = lineType;
         }
 
         // Remove number input arrows by setting CSS properties directly
@@ -1356,9 +1445,10 @@ class PropertiesManager {
 
         const category = input.dataset.category;
         const subcategory = input.dataset.subcategory;
+        const lineType = input.dataset.lineType;
         const newValue = parseFloat(input.value) || 0;
 
-        this.saveExpenseValue(category, subcategory, newValue);
+        this.saveExpenseValue(category, subcategory, newValue, lineType);
         this.isEditMode = false;
     }
 
@@ -1377,9 +1467,15 @@ class PropertiesManager {
      * Get current expense value
      * Returns the display value (negative for expenses, positive for income)
      */
-    getCurrentExpenseValue(category, subcategory) {
+    getCurrentExpenseValue(category, subcategory, lineType) {
         const property = this.dataManager.getPropertyById(this.currentPropertyId);
         if (!property) {return 0;}
+
+        const isIncome = lineType === 'income'
+            || (this.isIncomeCategory(category) && !this.isExpenseCategory(category));
+        if (isIncome) {
+            return this.getCategoryIncomeValue(property, category);
+        }
 
         if (subcategory) {
             // For subcategories, get the value from current period data
@@ -1421,14 +1517,17 @@ class PropertiesManager {
      * Note: Expense categories store negative values, income categories store positive values
      * User input is preserved - positive values stay positive, negative values stay negative
      */
-    async saveExpenseValue(category, subcategory, value) {
+    async saveExpenseValue(category, subcategory, value, lineType) {
         const property = this.dataManager.getPropertyById(this.currentPropertyId);
         if (!property) {return;}
 
         // Determine if this is an expense or income category
         const isExpenseCategory = this.isExpenseCategory(category);
-        const isIncomeCategory = this.isIncomeCategory(category);
-        const categoryType = isIncomeCategory ? 'income' : 'expense';
+        const isIncomeCategory = lineType === 'income'
+            || this.isIncomeCategory(category);
+        const treatAsIncome = lineType === 'income'
+            || (isIncomeCategory && !isExpenseCategory);
+        const categoryType = treatAsIncome ? 'income' : 'expense';
         this._ensureUndoBaseline();
 
         // Handle NaN and invalid values
@@ -1439,10 +1538,10 @@ class PropertiesManager {
 
         let finalValue = processedValue;
 
-        if (isExpenseCategory && processedValue > 0) {
-            finalValue = -processedValue;
-        } else if (isIncomeCategory && processedValue < 0) {
+        if (treatAsIncome) {
             finalValue = Math.abs(processedValue);
+        } else if (processedValue > 0) {
+            finalValue = -processedValue;
         }
 
         if (typeof this.dataManager.upsertPropertyLine === 'function') {
@@ -1451,7 +1550,7 @@ class PropertiesManager {
                 category,
                 subcategory: subcategory || null,
                 amount: finalValue,
-                type: isIncomeCategory ? 'income' : 'expense',
+                type: categoryType,
             });
             if (!result.success) {
                 this.uiManager.showToast(result.message, 'error');
@@ -1484,7 +1583,7 @@ class PropertiesManager {
             this.uiManager.updateDataDisplay(stats);
         }
 
-        const categoryTypeLabel = isIncomeCategory ? 'Income' : 'Expense';
+        const categoryTypeLabel = treatAsIncome ? 'Income' : 'Expense';
         this.uiManager.showToast(`${categoryTypeLabel} updated successfully`, 'success');
     }
 
@@ -1503,7 +1602,11 @@ class PropertiesManager {
     cancelExpenseEdit(input) {
         const category = input.dataset.category;
         const subcategory = input.dataset.subcategory;
-        const currentValue = this.getCurrentExpenseValue(category, subcategory);
+        const currentValue = this.getCurrentExpenseValue(
+            category,
+            subcategory,
+            input.dataset.lineType,
+        );
 
         const valueElement = input.closest('.expense-value');
         valueElement.innerHTML = `${this.uiManager.formatter ? this.uiManager.formatter.formatCurrency(currentValue) : currentValue}`;
@@ -1523,6 +1626,10 @@ class PropertiesManager {
      */
     handleAddCategory() {
         this.showAddCategoryModal();
+    }
+
+    handleAddIncome() {
+        this.showAddIncomeModal();
     }
 
     /**
@@ -2032,6 +2139,123 @@ class PropertiesManager {
         input.focus();
     }
 
+    showAddIncomeModal() {
+        const timestamp = Date.now();
+        const modalHtml = `
+            <div class="modal-header">
+                <h3>Add Income</h3>
+                <button class="modal-close" id="closeIncomeModal-${timestamp}" onclick="this.closest('.modal').classList.add('hidden')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label" for="new-income-name-${timestamp}">Income source</label>
+                    <input type="text" id="new-income-name-${timestamp}" class="form-control" placeholder="Rent, Parking, ..." maxlength="50">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="new-income-amount-${timestamp}">Amount</label>
+                    <input type="number" id="new-income-amount-${timestamp}" class="form-control" placeholder="0" step="0.01">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn--outline" id="cancelIncome-${timestamp}" onclick="this.closest('.modal').classList.add('hidden')">Cancel</button>
+                <button class="btn btn--primary" id="confirm-add-income-${timestamp}">Add Income</button>
+            </div>
+        `;
+
+        this.showModal('addIncomeModal', modalHtml);
+
+        const confirmBtn = document.getElementById(`confirm-add-income-${timestamp}`);
+        const nameInput = document.getElementById(`new-income-name-${timestamp}`);
+        const amountInput = document.getElementById(`new-income-amount-${timestamp}`);
+
+        const handleConfirm = () => {
+            this.addIncome(nameInput.value, amountInput.value);
+            this.closeModal('addIncomeModal');
+        };
+
+        confirmBtn.addEventListener('click', handleConfirm);
+        amountInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {handleConfirm();}
+        });
+        nameInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {amountInput.focus();}
+        });
+        nameInput.focus();
+    }
+
+    async addIncome(name, amount) {
+        const property = this.dataManager.getPropertyById(this.currentPropertyId);
+        if (!property) {return;}
+
+        const trimmed = String(name || '').trim();
+        const num = Math.abs(parseFloat(amount));
+        if (!trimmed) {
+            this.uiManager.showToast('Income name is required', 'error');
+            return;
+        }
+        if (!Number.isFinite(num) || num === 0) {
+            this.uiManager.showToast('Enter a valid income amount', 'error');
+            return;
+        }
+
+        this._ensureUndoBaseline();
+
+        if (typeof this.dataManager.addIncomeCategory === 'function') {
+            const existing = this.dataManager.getIncomeCategories() || [];
+            if (!existing.includes(trimmed)) {
+                const catResult = this.dataManager.addIncomeCategory(trimmed);
+                if (!catResult.success) {
+                    this.uiManager.showToast(catResult.message, 'error');
+                    return;
+                }
+            }
+        }
+
+        const result = this.dataManager.upsertPropertyLine({
+            propertyId: this.currentPropertyId,
+            category: trimmed,
+            amount: num,
+            type: 'income',
+        });
+        if (!result.success) {
+            this.uiManager.showToast(result.message, 'error');
+            return;
+        }
+
+        await this.dataManager.save();
+        this._recordHistory(`Added income "${trimmed}" to ${property.name}`);
+        this.renderPropertiesDashboard();
+        await this.refreshOverviewFromStore();
+        this.uiManager.showToast(`Income "${trimmed}" added`, 'success');
+    }
+
+    confirmDeleteIncome(category) {
+        this.showInlineDeleteConfirmation(this.currentPropertyId, 'income', category);
+    }
+
+    async deleteIncome(category) {
+        const property = this.dataManager.getPropertyById(this.currentPropertyId);
+        if (!property || !category) {return;}
+
+        this._ensureUndoBaseline();
+        const result = this.dataManager.upsertPropertyLine({
+            propertyId: this.currentPropertyId,
+            category,
+            amount: 0,
+            type: 'income',
+        });
+        if (!result.success) {
+            this.uiManager.showToast(result.message, 'error');
+            return;
+        }
+
+        await this.dataManager.save();
+        this._recordHistory(`Deleted income "${category}" from ${property.name}`);
+        this.renderPropertiesDashboard();
+        await this.refreshOverviewFromStore();
+        this.uiManager.showToast(`Income "${category}" deleted`, 'success');
+    }
+
     /**
      * Show add subcategory modal
      */
@@ -2493,6 +2717,8 @@ class PropertiesManager {
                 this.deleteProperty(itemId);
             } else if (itemType === 'category') {
                 this.deleteCategory(itemName);
+            } else if (itemType === 'income') {
+                this.deleteIncome(itemName);
             } else if (itemType === 'subcategory') {
                 this.deleteSubcategory(category, itemName);
             }
@@ -2536,6 +2762,8 @@ class PropertiesManager {
             selector = `.property-action[data-action="delete"][data-property-id="${itemId}"]`;
         } else if (itemType === 'category') {
             selector = `.category-action[data-action="delete"][data-category="${CSS.escape(itemName)}"]:not([data-subcategory])`;
+        } else if (itemType === 'income') {
+            selector = `.category-action[data-action="delete"][data-category="${CSS.escape(itemName)}"][data-line-type="income"]`;
         } else if (itemType === 'subcategory') {
             selector = `.category-action[data-action="delete"][data-category="${CSS.escape(category)}"][data-subcategory="${CSS.escape(itemName)}"]`;
         }
